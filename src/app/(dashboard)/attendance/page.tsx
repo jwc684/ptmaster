@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Clock, Loader2 } from "lucide-react";
+import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle } from "lucide-react";
 
 interface Attendance {
   id: string;
@@ -21,6 +21,7 @@ interface Attendance {
     user: { name: string };
   };
   schedule?: {
+    status: "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
     trainer: {
       user: { name: string };
     };
@@ -111,37 +112,54 @@ export default function AttendancePage() {
             </div>
           ) : attendances.length > 0 ? (
             <div className="space-y-3">
-              {attendances.map((attendance) => (
-                <div
-                  key={attendance.id}
-                  className="flex items-center justify-between py-3 border-b last:border-0"
-                >
-                  <div className="space-y-1">
-                    <p className="font-medium">
-                      {attendance.memberProfile.user.name}
-                    </p>
-                    {attendance.schedule?.trainer && (
-                      <p className="text-sm text-muted-foreground">
-                        담당: {attendance.schedule.trainer.user.name}
-                      </p>
-                    )}
-                    {attendance.notes && (
-                      <p className="text-sm text-muted-foreground">
-                        {attendance.notes}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right space-y-1">
-                    <Badge variant="outline">
-                      잔여 {attendance.memberProfile.remainingPT}회
-                    </Badge>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                      <Clock className="h-3 w-3" />
-                      {format(new Date(attendance.checkInTime), "HH:mm")}
+              {attendances.map((attendance) => {
+                const isCancelled = attendance.schedule?.status === "CANCELLED";
+                return (
+                  <div
+                    key={attendance.id}
+                    className={`flex items-center justify-between py-3 border-b last:border-0 ${
+                      isCancelled ? "opacity-70" : ""
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {isCancelled ? (
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        )}
+                        <p className="font-medium">
+                          {attendance.memberProfile.user.name}
+                        </p>
+                        {isCancelled && (
+                          <Badge variant="destructive" className="text-xs">
+                            취소
+                          </Badge>
+                        )}
+                      </div>
+                      {attendance.schedule?.trainer && (
+                        <p className="text-sm text-muted-foreground ml-6">
+                          담당: {attendance.schedule.trainer.user.name}
+                        </p>
+                      )}
+                      {attendance.notes && (
+                        <p className="text-sm text-muted-foreground ml-6">
+                          {attendance.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right space-y-1">
+                      <Badge variant="outline">
+                        잔여 {attendance.memberProfile.remainingPT}회
+                      </Badge>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(attendance.checkInTime), "HH:mm")}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-muted-foreground text-center py-8">

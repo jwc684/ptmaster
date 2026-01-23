@@ -124,6 +124,75 @@ export async function PATCH(
       });
     }
 
+    // 취소 처리 (SCHEDULED -> CANCELLED) - PT 차감 및 기록 생성
+    if (status === "CANCELLED" && schedule.status === "SCHEDULED") {
+      // 잔여 PT가 있는지 확인
+      if (schedule.memberProfile.remainingPT <= 0) {
+        return NextResponse.json(
+          { error: "잔여 PT가 없습니다." },
+          { status: 400 }
+        );
+      }
+
+      // 트랜잭션으로 취소 처리
+      const [updatedSchedule] = await prisma.$transaction([
+        prisma.schedule.update({
+          where: { id },
+          data: { status: "CANCELLED", notes },
+        }),
+        // 취소 기록 생성 (출석 기록으로 남김)
+        prisma.attendance.create({
+          data: {
+            memberProfileId: schedule.memberProfileId,
+            scheduleId: id,
+            notes: notes ? `[취소] ${notes}` : "[취소]",
+          },
+        }),
+        // PT 횟수 차감
+        prisma.memberProfile.update({
+          where: { id: schedule.memberProfileId },
+          data: { remainingPT: { decrement: 1 } },
+        }),
+      ]);
+
+      return NextResponse.json({
+        message: "예약이 취소되었습니다. (PT 1회 차감)",
+        schedule: updatedSchedule,
+      });
+    }
+
+    // 취소 되돌리기 (CANCELLED -> SCHEDULED) - PT 복원
+    if (status === "SCHEDULED" && schedule.status === "CANCELLED") {
+      // 트랜잭션으로 취소 되돌리기
+      const transactionOps = [
+        prisma.schedule.update({
+          where: { id },
+          data: { status: "SCHEDULED", notes },
+        }),
+        // PT 횟수 복원
+        prisma.memberProfile.update({
+          where: { id: schedule.memberProfileId },
+          data: { remainingPT: { increment: 1 } },
+        }),
+      ];
+
+      // 출석(취소) 기록이 있으면 삭제
+      if (schedule.attendance) {
+        transactionOps.push(
+          prisma.attendance.delete({
+            where: { id: schedule.attendance.id },
+          })
+        );
+      }
+
+      const [updatedSchedule] = await prisma.$transaction(transactionOps);
+
+      return NextResponse.json({
+        message: "취소가 되돌려졌습니다. (PT 1회 복원)",
+        schedule: updatedSchedule,
+      });
+    }
+
     // 일반 업데이트 (상태 변경, 일정 변경, 메모 변경)
     const updateData: Record<string, unknown> = {};
     if (status !== undefined) updateData.status = status;

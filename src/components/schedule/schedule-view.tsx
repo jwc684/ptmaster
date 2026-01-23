@@ -248,7 +248,8 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
       });
 
       if (res.ok) {
-        toast.success("예약이 취소되었습니다.");
+        const data = await res.json();
+        toast.success(data.message || "예약이 취소되었습니다.");
         fetchSchedules();
         router.refresh();
       } else {
@@ -272,7 +273,8 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
       });
 
       if (res.ok) {
-        toast.success("출석이 되돌려졌습니다.");
+        const data = await res.json();
+        toast.success(data.message || "되돌려졌습니다.");
         fetchSchedules();
         router.refresh();
       } else {
@@ -634,6 +636,22 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                             onClick={() => handleRevert(schedule.id)}
                             disabled={actionLoading === schedule.id}
                             title="출석 되돌리기"
+                          >
+                            {actionLoading === schedule.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+
+                        {schedule.status === "CANCELLED" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRevert(schedule.id)}
+                            disabled={actionLoading === schedule.id}
+                            title="취소 되돌리기"
                           >
                             {actionLoading === schedule.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
