@@ -9,7 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User } from "lucide-react";
+
+interface Member {
+  id: string;
+  user: { name: string };
+}
 
 interface Attendance {
   id: string;
@@ -31,20 +43,42 @@ interface Attendance {
 
 export default function AttendancePage() {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 기본값: 이번 달
+  // 필터 상태
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
 
   useEffect(() => {
     fetchAttendance();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, selectedMemberId]);
+
+  async function fetchMembers() {
+    try {
+      const response = await fetch("/api/members");
+      if (response.ok) {
+        const data = await response.json();
+        setMembers(data);
+      }
+    } catch (error) {
+      console.error("Error fetching members:", error);
+    }
+  }
 
   async function fetchAttendance() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/attendance?startDate=${startDate}&endDate=${endDate}`);
+      let url = `/api/attendance?startDate=${startDate}&endDate=${endDate}`;
+      if (selectedMemberId && selectedMemberId !== "all") {
+        url += `&memberId=${selectedMemberId}`;
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setAttendances(data);
@@ -65,6 +99,12 @@ export default function AttendancePage() {
     const today = format(new Date(), "yyyy-MM-dd");
     setStartDate(today);
     setEndDate(today);
+  }
+
+  function handleResetFilter() {
+    setStartDate(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+    setEndDate(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+    setSelectedMemberId("all");
   }
 
   // 날짜별로 그룹화
@@ -88,9 +128,10 @@ export default function AttendancePage() {
         description="PT 출석 기록을 확인합니다."
       />
 
-      {/* 기간 선택 */}
+      {/* 필터 */}
       <Card>
-        <CardContent className="py-4">
+        <CardContent className="py-4 space-y-4">
+          {/* 기간 선택 */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2 flex-1">
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -123,6 +164,31 @@ export default function AttendancePage() {
               </Button>
             </div>
           </div>
+
+          {/* 회원 필터 */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="회원 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 회원</SelectItem>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedMemberId !== "all" && (
+              <Button variant="ghost" size="sm" onClick={handleResetFilter}>
+                필터 초기화
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -137,6 +203,11 @@ export default function AttendancePage() {
                   ? format(new Date(startDate), "M월 d일", { locale: ko })
                   : `${format(new Date(startDate), "M월 d일", { locale: ko })} ~ ${format(new Date(endDate), "M월 d일", { locale: ko })}`
                 } 기록
+                {selectedMemberId !== "all" && members.find(m => m.id === selectedMemberId) && (
+                  <Badge variant="secondary" className="ml-2">
+                    {members.find(m => m.id === selectedMemberId)?.user.name}
+                  </Badge>
+                )}
               </span>
             </div>
             <div className="flex items-center gap-3">

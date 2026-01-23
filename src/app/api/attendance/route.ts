@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
+    const memberIdParam = searchParams.get("memberId");
 
     // 날짜 필터 설정
     let startDate: Date;
@@ -47,6 +48,9 @@ export async function GET(request: Request) {
       }
     }
 
+    // 회원 필터
+    const memberFilter = memberIdParam ? { memberProfileId: memberIdParam } : {};
+
     const attendances = await prisma.attendance.findMany({
       where: {
         checkInTime: {
@@ -54,6 +58,7 @@ export async function GET(request: Request) {
           lte: endDate,
         },
         ...trainerFilter,
+        ...memberFilter,
       },
       select: {
         id: true,
