@@ -3,16 +3,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, QrCode, User, CreditCard } from "lucide-react";
-import QRCode from "qrcode";
-import Image from "next/image";
+import { Activity, User, CreditCard } from "lucide-react";
 
 async function getMemberData(userId: string) {
   const member = await prisma.memberProfile.findUnique({
     where: { userId },
     select: {
       id: true,
-      qrCode: true,
       remainingPT: true,
       notes: true,
       joinDate: true,
@@ -47,17 +44,6 @@ async function getMemberData(userId: string) {
   return member;
 }
 
-async function generateQRCodeDataUrl(code: string): Promise<string> {
-  try {
-    return await QRCode.toDataURL(code, {
-      width: 200,
-      margin: 2,
-    });
-  } catch {
-    return "";
-  }
-}
-
 export default async function MyPage() {
   const session = await auth();
 
@@ -71,10 +57,6 @@ export default async function MyPage() {
     redirect("/dashboard");
   }
 
-  const qrCodeDataUrl = member.qrCode
-    ? await generateQRCodeDataUrl(member.qrCode)
-    : "";
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -82,39 +64,6 @@ export default async function MyPage() {
         <h1 className="text-xl font-bold">{member.user.name}님</h1>
         <p className="text-sm text-muted-foreground">마이페이지</p>
       </div>
-
-      {/* QR Code Card */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <QrCode className="h-4 w-4" />
-            출석 QR 코드
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center py-4">
-          {qrCodeDataUrl ? (
-            <>
-              <Image
-                src={qrCodeDataUrl}
-                alt="QR Code"
-                width={180}
-                height={180}
-                className="rounded-lg"
-              />
-              <p className="mt-3 font-mono text-lg font-bold tracking-widest">
-                {member.qrCode}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                PT 출석 시 이 코드를 보여주세요
-              </p>
-            </>
-          ) : (
-            <div className="w-44 h-44 bg-muted rounded-lg flex items-center justify-center">
-              <p className="text-sm text-muted-foreground">QR 코드 없음</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* PT Status Card */}
       <Card>

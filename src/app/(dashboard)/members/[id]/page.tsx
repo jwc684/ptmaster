@@ -6,14 +6,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, QrCode, Phone, Mail, User, Calendar, CreditCard } from "lucide-react";
+import { Pencil, Phone, Mail, Calendar, CreditCard } from "lucide-react";
 
 async function getMember(id: string) {
   return prisma.memberProfile.findUnique({
     where: { id },
     select: {
       id: true,
-      qrCode: true,
       remainingPT: true,
       notes: true,
       joinDate: true,
@@ -88,14 +87,6 @@ export default async function MemberDetailPage({
       {/* 기본 정보 */}
       <Card>
         <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <QrCode className="h-4 w-4" />
-              <span className="text-sm">QR 코드</span>
-            </div>
-            <span className="font-mono text-sm">{member.qrCode}</span>
-          </div>
-
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Phone className="h-4 w-4" />
