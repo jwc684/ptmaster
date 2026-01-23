@@ -22,6 +22,7 @@ interface Attendance {
   };
   schedule?: {
     status: "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+    scheduledAt: string;
     trainer: {
       user: { name: string };
     };
@@ -92,10 +93,24 @@ export default function AttendancePage() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">
-                {format(new Date(selectedDate), "M월 d일", { locale: ko })} 출석
+                {format(new Date(selectedDate), "M월 d일", { locale: ko })} 기록
               </span>
             </div>
-            <span className="text-2xl font-bold">{attendances.length}명</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span className="font-medium">
+                  {attendances.filter(a => a.schedule?.status === "COMPLETED").length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <XCircle className="h-4 w-4 text-red-500" />
+                <span className="font-medium">
+                  {attendances.filter(a => a.schedule?.status === "CANCELLED").length}
+                </span>
+              </div>
+              <span className="text-xl font-bold">총 {attendances.length}건</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -142,7 +157,12 @@ export default function AttendancePage() {
                           담당: {attendance.schedule.trainer.user.name}
                         </p>
                       )}
-                      {attendance.notes && (
+                      {attendance.schedule?.scheduledAt && (
+                        <p className="text-sm text-muted-foreground ml-6">
+                          예약 시간: {format(new Date(attendance.schedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}
+                        </p>
+                      )}
+                      {attendance.notes && !attendance.notes.startsWith("[취소]") && (
                         <p className="text-sm text-muted-foreground ml-6">
                           {attendance.notes}
                         </p>
@@ -154,6 +174,7 @@ export default function AttendancePage() {
                       </Badge>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
                         <Clock className="h-3 w-3" />
+                        {isCancelled ? "취소: " : ""}
                         {format(new Date(attendance.checkInTime), "HH:mm")}
                       </div>
                     </div>

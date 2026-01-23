@@ -66,6 +66,7 @@ export async function GET(request: Request) {
         schedule: {
           select: {
             status: true,
+            scheduledAt: true,
             trainer: {
               select: {
                 user: { select: { name: true } },
