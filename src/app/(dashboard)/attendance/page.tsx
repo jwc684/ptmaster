@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,16 +32,19 @@ interface Attendance {
 export default function AttendancePage() {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
+
+  // 기본값: 이번 달
+  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
 
   useEffect(() => {
     fetchAttendance();
-  }, [selectedDate]);
+  }, [startDate, endDate]);
 
   async function fetchAttendance() {
     setLoading(true);
     try {
-      const response = await fetch(`/api/attendance?date=${selectedDate}`);
+      const response = await fetch(`/api/attendance?startDate=${startDate}&endDate=${endDate}`);
       if (response.ok) {
         const data = await response.json();
         setAttendances(data);
@@ -53,9 +56,30 @@ export default function AttendancePage() {
     }
   }
 
-  function handleToday() {
-    setSelectedDate(format(new Date(), "yyyy-MM-dd"));
+  function handleThisMonth() {
+    setStartDate(format(startOfMonth(new Date()), "yyyy-MM-dd"));
+    setEndDate(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   }
+
+  function handleToday() {
+    const today = format(new Date(), "yyyy-MM-dd");
+    setStartDate(today);
+    setEndDate(today);
+  }
+
+  // 날짜별로 그룹화
+  const groupedAttendances = attendances.reduce((groups, attendance) => {
+    const date = format(new Date(attendance.checkInTime), "yyyy-MM-dd");
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(attendance);
+    return groups;
+  }, {} as Record<string, Attendance[]>);
+
+  const sortedDates = Object.keys(groupedAttendances).sort((a, b) =>
+    new Date(b).getTime() - new Date(a).getTime()
+  );
 
   return (
     <div className="space-y-4">
@@ -64,24 +88,40 @@ export default function AttendancePage() {
         description="PT 출석 기록을 확인합니다."
       />
 
-      {/* 날짜 선택 */}
+      {/* 기간 선택 */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2 flex-1">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <Label htmlFor="date" className="sr-only">날짜 선택</Label>
-              <Input
-                id="date"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-auto"
-              />
+              <div className="flex items-center gap-2">
+                <Label htmlFor="startDate" className="sr-only">시작일</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-auto"
+                />
+                <span className="text-muted-foreground">~</span>
+                <Label htmlFor="endDate" className="sr-only">종료일</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
             </div>
-            <Button variant="outline" size="sm" onClick={handleToday}>
-              오늘
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleToday}>
+                오늘
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleThisMonth}>
+                이번 달
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -93,7 +133,10 @@ export default function AttendancePage() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">
-                {format(new Date(selectedDate), "M월 d일", { locale: ko })} 기록
+                {startDate === endDate
+                  ? format(new Date(startDate), "M월 d일", { locale: ko })
+                  : `${format(new Date(startDate), "M월 d일", { locale: ko })} ~ ${format(new Date(endDate), "M월 d일", { locale: ko })}`
+                } 기록
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -126,61 +169,69 @@ export default function AttendancePage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : attendances.length > 0 ? (
-            <div className="space-y-3">
-              {attendances.map((attendance) => {
-                const isCancelled = attendance.schedule?.status === "CANCELLED";
-                return (
-                  <div
-                    key={attendance.id}
-                    className={`flex items-center justify-between py-3 border-b last:border-0 ${
-                      isCancelled ? "opacity-70" : ""
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {isCancelled ? (
-                          <XCircle className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        )}
-                        <p className="font-medium">
-                          {attendance.memberProfile.user.name}
-                        </p>
-                        {isCancelled && (
-                          <Badge variant="destructive" className="text-xs">
-                            취소
-                          </Badge>
-                        )}
-                      </div>
-                      {attendance.schedule?.trainer && (
-                        <p className="text-sm text-muted-foreground ml-6">
-                          담당: {attendance.schedule.trainer.user.name}
-                        </p>
-                      )}
-                      {attendance.schedule?.scheduledAt && (
-                        <p className="text-sm text-muted-foreground ml-6">
-                          예약 시간: {format(new Date(attendance.schedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}
-                        </p>
-                      )}
-                      {attendance.notes && !attendance.notes.startsWith("[취소]") && (
-                        <p className="text-sm text-muted-foreground ml-6">
-                          {attendance.notes}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right space-y-1">
-                      <Badge variant="outline">
-                        잔여 {attendance.memberProfile.remainingPT}회
-                      </Badge>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                        <Clock className="h-3 w-3" />
-                        {isCancelled ? "취소: " : ""}
-                        {format(new Date(attendance.checkInTime), "HH:mm")}
-                      </div>
-                    </div>
+            <div className="space-y-6">
+              {sortedDates.map((date) => (
+                <div key={date} className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    {format(new Date(date), "M월 d일 (EEEE)", { locale: ko })}
+                    <Badge variant="outline" className="ml-auto">
+                      {groupedAttendances[date].length}건
+                    </Badge>
                   </div>
-                );
-              })}
+                  <div className="space-y-2 pl-2 border-l-2 border-muted">
+                    {groupedAttendances[date].map((attendance) => {
+                      const isCancelled = attendance.schedule?.status === "CANCELLED";
+                      return (
+                        <div
+                          key={attendance.id}
+                          className={`flex items-center justify-between py-2 pl-4 ${
+                            isCancelled ? "opacity-70" : ""
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              {isCancelled ? (
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                              )}
+                              <p className="font-medium">
+                                {attendance.memberProfile.user.name}
+                              </p>
+                              {isCancelled && (
+                                <Badge variant="destructive" className="text-xs">
+                                  취소
+                                </Badge>
+                              )}
+                            </div>
+                            {attendance.schedule?.trainer && (
+                              <p className="text-sm text-muted-foreground ml-6">
+                                담당: {attendance.schedule.trainer.user.name}
+                              </p>
+                            )}
+                            {attendance.notes && !attendance.notes.startsWith("[취소]") && (
+                              <p className="text-sm text-muted-foreground ml-6">
+                                {attendance.notes}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right space-y-1">
+                            <Badge variant="outline">
+                              잔여 {attendance.memberProfile.remainingPT}회
+                            </Badge>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                              <Clock className="h-3 w-3" />
+                              {isCancelled ? "취소: " : ""}
+                              {format(new Date(attendance.checkInTime), "HH:mm")}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="text-muted-foreground text-center py-8">

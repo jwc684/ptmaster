@@ -10,22 +10,25 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const dateParam = searchParams.get("date");
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
 
     // 날짜 필터 설정
     let startDate: Date;
     let endDate: Date;
 
-    if (dateParam) {
-      startDate = new Date(dateParam);
+    if (startDateParam && endDateParam) {
+      // 기간 필터
+      startDate = new Date(startDateParam);
       startDate.setHours(0, 0, 0, 0);
-      endDate = new Date(dateParam);
+      endDate = new Date(endDateParam);
       endDate.setHours(23, 59, 59, 999);
     } else {
-      // 기본값: 오늘
-      startDate = new Date();
+      // 기본값: 이번 달
+      const now = new Date();
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       startDate.setHours(0, 0, 0, 0);
-      endDate = new Date();
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       endDate.setHours(23, 59, 59, 999);
     }
 
