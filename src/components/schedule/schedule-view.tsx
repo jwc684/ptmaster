@@ -15,6 +15,9 @@ import {
   Loader2,
   Filter,
   RotateCcw,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +39,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Member {
   id: string;
@@ -86,7 +105,17 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // 수정 폼 상태
+  const [editForm, setEditForm] = useState({
+    date: "",
+    time: "",
+    notes: "",
+  });
 
   // 필터 상태
   const [startDate, setStartDate] = useState("");
@@ -249,6 +278,80 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
       } else {
         const error = await res.json();
         toast.error(error.error || "되돌리기에 실패했습니다.");
+      }
+    } catch {
+      toast.error("오류가 발생했습니다.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  function openEditDialog(schedule: Schedule) {
+    setSelectedSchedule(schedule);
+    const scheduledDate = new Date(schedule.scheduledAt);
+    setEditForm({
+      date: format(scheduledDate, "yyyy-MM-dd"),
+      time: format(scheduledDate, "HH:mm"),
+      notes: schedule.notes || "",
+    });
+    setEditDialogOpen(true);
+  }
+
+  async function handleEditSchedule() {
+    if (!selectedSchedule) return;
+
+    setActionLoading("edit");
+    try {
+      const scheduledAt = new Date(`${editForm.date}T${editForm.time}`);
+      const res = await fetch(`/api/schedules/${selectedSchedule.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scheduledAt: scheduledAt.toISOString(),
+          notes: editForm.notes,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("일정이 수정되었습니다.");
+        setEditDialogOpen(false);
+        setSelectedSchedule(null);
+        fetchSchedules();
+        router.refresh();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "일정 수정에 실패했습니다.");
+      }
+    } catch {
+      toast.error("오류가 발생했습니다.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  function openDeleteDialog(schedule: Schedule) {
+    setSelectedSchedule(schedule);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleDeleteSchedule() {
+    if (!selectedSchedule) return;
+
+    setActionLoading("delete");
+    try {
+      const res = await fetch(`/api/schedules/${selectedSchedule.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast.success("일정이 삭제되었습니다.");
+        setDeleteDialogOpen(false);
+        setSelectedSchedule(null);
+        fetchSchedules();
+        router.refresh();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "일정 삭제에 실패했습니다.");
       }
     } catch {
       toast.error("오류가 발생했습니다.");
@@ -539,6 +642,34 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                             )}
                           </Button>
                         )}
+
+                        {/* 더보기 메뉴 (수정/삭제) */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => openEditDialog(schedule)}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              수정
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => openDeleteDialog(schedule)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              삭제
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </CardContent>
                   </Card>
@@ -548,6 +679,96 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
           ))
         )}
       </div>
+
+      {/* 수정 다이얼로그 */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>일정 수정</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {selectedSchedule && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{selectedSchedule.memberProfile.user.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {statusLabels[selectedSchedule.status]}
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>날짜</Label>
+                <Input
+                  type="date"
+                  value={editForm.date}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, date: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>시간</Label>
+                <Input
+                  type="time"
+                  value={editForm.time}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, time: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>메모</Label>
+              <Textarea
+                placeholder="메모를 입력하세요"
+                value={editForm.notes}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, notes: e.target.value })
+                }
+                rows={2}
+              />
+            </div>
+
+            <Button
+              onClick={handleEditSchedule}
+              disabled={actionLoading === "edit"}
+              className="w-full"
+            >
+              {actionLoading === "edit" ? "수정 중..." : "수정하기"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>일정을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedSchedule && (
+                <>
+                  {selectedSchedule.memberProfile.user.name}님의{" "}
+                  {format(new Date(selectedSchedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}{" "}
+                  예약을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSchedule}
+              disabled={actionLoading === "delete"}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {actionLoading === "delete" ? "삭제 중..." : "삭제"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

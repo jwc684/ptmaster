@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const updateScheduleSchema = z.object({
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
+  scheduledAt: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -33,7 +34,7 @@ export async function PATCH(
       );
     }
 
-    const { status, notes } = validatedData.data;
+    const { status, scheduledAt, notes } = validatedData.data;
 
     const schedule = await prisma.schedule.findUnique({
       where: { id },
@@ -123,10 +124,15 @@ export async function PATCH(
       });
     }
 
-    // 일반 상태 변경
+    // 일반 업데이트 (상태 변경, 일정 변경, 메모 변경)
+    const updateData: Record<string, unknown> = {};
+    if (status !== undefined) updateData.status = status;
+    if (scheduledAt !== undefined) updateData.scheduledAt = new Date(scheduledAt);
+    if (notes !== undefined) updateData.notes = notes;
+
     const updatedSchedule = await prisma.schedule.update({
       where: { id },
-      data: { status, notes },
+      data: updateData,
       select: {
         id: true,
         scheduledAt: true,
