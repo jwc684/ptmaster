@@ -17,7 +17,10 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get("date"); // YYYY-MM-DD 형식
+    const date = searchParams.get("date"); // YYYY-MM-DD 형식 (단일 날짜)
+    const startDate = searchParams.get("startDate"); // 기간 시작
+    const endDate = searchParams.get("endDate"); // 기간 종료
+    const status = searchParams.get("status"); // 상태 필터
 
     let trainerId: string | undefined;
 
@@ -33,8 +36,9 @@ export async function GET(request: Request) {
     }
 
     // 날짜 필터 설정
-    let dateFilter = {};
+    let dateFilter: Record<string, unknown> = {};
     if (date) {
+      // 단일 날짜 필터
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(date);
@@ -45,12 +49,29 @@ export async function GET(request: Request) {
           lte: endOfDay,
         },
       };
+    } else if (startDate || endDate) {
+      // 기간 필터
+      dateFilter = { scheduledAt: {} };
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        (dateFilter.scheduledAt as Record<string, Date>).gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        (dateFilter.scheduledAt as Record<string, Date>).lte = end;
+      }
     }
+
+    // 상태 필터
+    const statusFilter = status ? { status: status as "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" } : {};
 
     const schedules = await prisma.schedule.findMany({
       where: {
         ...(trainerId && { trainerId }),
         ...dateFilter,
+        ...statusFilter,
       },
       select: {
         id: true,
