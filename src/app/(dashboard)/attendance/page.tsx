@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { QrCode, CheckCircle, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Users, Calendar, Clock, Loader2 } from "lucide-react";
 
 interface Attendance {
   id: string;
@@ -19,157 +20,132 @@ interface Attendance {
     remainingPT: number;
     user: { name: string };
   };
+  schedule?: {
+    trainer: {
+      user: { name: string };
+    };
+  } | null;
 }
 
 export default function AttendancePage() {
-  const [qrCode, setQrCode] = useState("");
-  const [notes, setNotes] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
-  const [todayCount, setTodayCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   useEffect(() => {
-    fetchTodayAttendance();
-  }, []);
+    fetchAttendance();
+  }, [selectedDate]);
 
-  async function fetchTodayAttendance() {
+  async function fetchAttendance() {
+    setLoading(true);
     try {
-      const response = await fetch("/api/attendance");
+      const response = await fetch(`/api/attendance?date=${selectedDate}`);
       if (response.ok) {
         const data = await response.json();
         setAttendances(data);
-        setTodayCount(data.length);
       }
     } catch (error) {
       console.error("Error fetching attendance:", error);
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function handleCheckIn() {
-    if (!qrCode.trim()) {
-      toast.error("QR 코드를 입력해주세요.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrCode, notes }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(result.error);
-        return;
-      }
-
-      toast.success(result.message);
-      setQrCode("");
-      setNotes("");
-      fetchTodayAttendance();
-    } catch {
-      toast.error("출석 처리 중 오류가 발생했습니다.");
-    } finally {
-      setIsLoading(false);
-    }
+  function handleToday() {
+    setSelectedDate(format(new Date(), "yyyy-MM-dd"));
   }
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="PT 출석"
-        description="회원 PT 출석을 체크합니다."
+        description="PT 출석 기록을 확인합니다."
       />
 
-      {/* Check-in Card */}
+      {/* 날짜 선택 */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <QrCode className="h-5 w-5" />
-            출석 체크
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Input
-            placeholder="QR 코드 입력"
-            value={qrCode}
-            onChange={(e) => setQrCode(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === "Enter" && handleCheckIn()}
-            className="text-lg"
-          />
-          <Textarea
-            placeholder="PT 메모 (선택사항)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            className="resize-none"
-          />
-          <Button onClick={handleCheckIn} disabled={isLoading} className="w-full" size="lg">
-            <CheckCircle className="mr-2 h-5 w-5" />
-            {isLoading ? "처리 중..." : "PT 출석 체크"}
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            출석 시 PT 횟수가 1회 차감됩니다.
-          </p>
+        <CardContent className="py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 flex-1">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="date" className="sr-only">날짜 선택</Label>
+              <Input
+                id="date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-auto"
+              />
+            </div>
+            <Button variant="outline" size="sm" onClick={handleToday}>
+              오늘
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Today Stats */}
+      {/* 출석 통계 */}
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
-              <span className="text-muted-foreground">오늘 PT 출석</span>
+              <span className="text-muted-foreground">
+                {format(new Date(selectedDate), "M월 d일", { locale: ko })} 출석
+              </span>
             </div>
-            <span className="text-2xl font-bold">{todayCount}명</span>
+            <span className="text-2xl font-bold">{attendances.length}명</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Today's Attendance List */}
+      {/* 출석 기록 목록 */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">오늘 출석 기록</CardTitle>
+          <CardTitle className="text-lg">출석 기록</CardTitle>
         </CardHeader>
         <CardContent>
-          {attendances.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : attendances.length > 0 ? (
             <div className="space-y-3">
               {attendances.map((attendance) => (
                 <div
                   key={attendance.id}
-                  className="flex items-center justify-between py-2 border-b last:border-0"
+                  className="flex items-center justify-between py-3 border-b last:border-0"
                 >
-                  <div>
+                  <div className="space-y-1">
                     <p className="font-medium">
                       {attendance.memberProfile.user.name}
                     </p>
+                    {attendance.schedule?.trainer && (
+                      <p className="text-sm text-muted-foreground">
+                        담당: {attendance.schedule.trainer.user.name}
+                      </p>
+                    )}
                     {attendance.notes && (
                       <p className="text-sm text-muted-foreground">
                         {attendance.notes}
                       </p>
                     )}
                   </div>
-                  <div className="text-right">
-                    <Badge variant="outline" className="mb-1">
+                  <div className="text-right space-y-1">
+                    <Badge variant="outline">
                       잔여 {attendance.memberProfile.remainingPT}회
                     </Badge>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(attendance.checkInTime).toLocaleTimeString("ko-KR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                      <Clock className="h-3 w-3" />
+                      {format(new Date(attendance.checkInTime), "HH:mm")}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-6">
-              오늘 출석 기록이 없습니다.
+            <p className="text-muted-foreground text-center py-8">
+              출석 기록이 없습니다.
             </p>
           )}
         </CardContent>

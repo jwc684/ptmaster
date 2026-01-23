@@ -2,25 +2,55 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await auth();
     if (!session?.user || !["ADMIN", "TRAINER"].includes(session.user.role)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
-    // Get today's attendances
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get("date");
+
+    // 날짜 필터 설정
+    let startDate: Date;
+    let endDate: Date;
+
+    if (dateParam) {
+      startDate = new Date(dateParam);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(dateParam);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      // 기본값: 오늘
+      startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    // 트레이너인 경우 자신의 출석 기록만 조회
+    let trainerFilter = {};
+    if (session.user.role === "TRAINER") {
+      const trainerProfile = await prisma.trainerProfile.findUnique({
+        where: { userId: session.user.id },
+      });
+      if (trainerProfile) {
+        trainerFilter = {
+          schedule: {
+            trainerId: trainerProfile.id,
+          },
+        };
+      }
+    }
 
     const attendances = await prisma.attendance.findMany({
       where: {
         checkInTime: {
-          gte: today,
-          lt: tomorrow,
+          gte: startDate,
+          lte: endDate,
         },
+        ...trainerFilter,
       },
       select: {
         id: true,
@@ -33,6 +63,15 @@ export async function GET() {
             user: { select: { name: true } },
           },
         },
+        schedule: {
+          select: {
+            trainer: {
+              select: {
+                user: { select: { name: true } },
+              },
+            },
+          },
+        },
       },
       orderBy: { checkInTime: "desc" },
     });
@@ -42,97 +81,6 @@ export async function GET() {
     console.error("Error fetching attendance:", error);
     return NextResponse.json(
       { error: "출석 기록을 불러오는 중 오류가 발생했습니다." },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user || !["ADMIN", "TRAINER"].includes(session.user.role)) {
-      return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
-    }
-
-    const { qrCode, notes } = await request.json();
-
-    if (!qrCode) {
-      return NextResponse.json(
-        { error: "QR 코드가 필요합니다." },
-        { status: 400 }
-      );
-    }
-
-    // Find member by QR code
-    const member = await prisma.memberProfile.findUnique({
-      where: { qrCode },
-      select: {
-        id: true,
-        remainingPT: true,
-        user: { select: { name: true } },
-      },
-    });
-
-    if (!member) {
-      return NextResponse.json(
-        { error: "유효하지 않은 QR 코드입니다." },
-        { status: 404 }
-      );
-    }
-
-    // Check if member has remaining PT sessions
-    if (member.remainingPT <= 0) {
-      return NextResponse.json(
-        { error: `${member.user.name}님의 잔여 PT 횟수가 없습니다.` },
-        { status: 400 }
-      );
-    }
-
-    // Create attendance and deduct PT count in transaction
-    const [attendance] = await prisma.$transaction([
-      prisma.attendance.create({
-        data: {
-          memberProfileId: member.id,
-          notes: notes || null,
-        },
-        select: {
-          id: true,
-          checkInTime: true,
-          notes: true,
-          memberProfile: {
-            select: {
-              id: true,
-              remainingPT: true,
-              user: { select: { name: true } },
-            },
-          },
-        },
-      }),
-      prisma.memberProfile.update({
-        where: { id: member.id },
-        data: { remainingPT: { decrement: 1 } },
-      }),
-    ]);
-
-    const newRemainingPT = member.remainingPT - 1;
-
-    return NextResponse.json(
-      {
-        message: `${member.user.name}님 PT 출석 완료! (잔여 ${newRemainingPT}회)`,
-        attendance: {
-          ...attendance,
-          memberProfile: {
-            ...attendance.memberProfile,
-            remainingPT: newRemainingPT,
-          },
-        },
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Error creating attendance:", error);
-    return NextResponse.json(
-      { error: "출석 처리 중 오류가 발생했습니다." },
       { status: 500 }
     );
   }
