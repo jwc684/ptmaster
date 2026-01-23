@@ -95,28 +95,27 @@ export async function PATCH(
     // 출석 되돌리기 (COMPLETED -> SCHEDULED)
     if (status === "SCHEDULED" && schedule.status === "COMPLETED") {
       // 트랜잭션으로 출석 되돌리기
-      const transactionOps = [
-        prisma.schedule.update({
+      const updatedSchedule = await prisma.$transaction(async (tx) => {
+        const updated = await tx.schedule.update({
           where: { id },
           data: { status: "SCHEDULED", notes },
-        }),
+        });
+
         // PT 횟수 복원
-        prisma.memberProfile.update({
+        await tx.memberProfile.update({
           where: { id: schedule.memberProfileId },
           data: { remainingPT: { increment: 1 } },
-        }),
-      ];
+        });
 
-      // 출석 기록이 있으면 삭제
-      if (schedule.attendance) {
-        transactionOps.push(
-          prisma.attendance.delete({
+        // 출석 기록이 있으면 삭제
+        if (schedule.attendance) {
+          await tx.attendance.delete({
             where: { id: schedule.attendance.id },
-          })
-        );
-      }
+          });
+        }
 
-      const [updatedSchedule] = await prisma.$transaction(transactionOps);
+        return updated;
+      });
 
       return NextResponse.json({
         message: "출석이 되돌려졌습니다.",
@@ -164,28 +163,27 @@ export async function PATCH(
     // 취소 되돌리기 (CANCELLED -> SCHEDULED) - PT 복원
     if (status === "SCHEDULED" && schedule.status === "CANCELLED") {
       // 트랜잭션으로 취소 되돌리기
-      const transactionOps = [
-        prisma.schedule.update({
+      const updatedSchedule = await prisma.$transaction(async (tx) => {
+        const updated = await tx.schedule.update({
           where: { id },
           data: { status: "SCHEDULED", notes },
-        }),
+        });
+
         // PT 횟수 복원
-        prisma.memberProfile.update({
+        await tx.memberProfile.update({
           where: { id: schedule.memberProfileId },
           data: { remainingPT: { increment: 1 } },
-        }),
-      ];
+        });
 
-      // 출석(취소) 기록이 있으면 삭제
-      if (schedule.attendance) {
-        transactionOps.push(
-          prisma.attendance.delete({
+        // 출석(취소) 기록이 있으면 삭제
+        if (schedule.attendance) {
+          await tx.attendance.delete({
             where: { id: schedule.attendance.id },
-          })
-        );
-      }
+          });
+        }
 
-      const [updatedSchedule] = await prisma.$transaction(transactionOps);
+        return updated;
+      });
 
       return NextResponse.json({
         message: "취소가 되돌려졌습니다. (PT 1회 복원)",
