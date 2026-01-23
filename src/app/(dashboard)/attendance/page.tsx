@@ -61,10 +61,10 @@ export default function AttendancePage() {
 
   async function fetchMembers() {
     try {
-      const response = await fetch("/api/members");
+      const response = await fetch("/api/members?limit=1000");
       if (response.ok) {
         const data = await response.json();
-        setMembers(data);
+        setMembers(data.members || []);
       }
     } catch (error) {
       console.error("Error fetching members:", error);
