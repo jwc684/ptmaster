@@ -26,6 +26,7 @@ interface Member {
 interface Attendance {
   id: string;
   checkInTime: string;
+  remainingPTAfter: number | null;
   notes: string | null;
   memberProfile: {
     id: string;
@@ -289,7 +290,7 @@ export default function AttendancePage() {
                           </div>
                           <div className="text-right space-y-1">
                             <Badge variant="outline">
-                              잔여 {attendance.memberProfile.remainingPT}회
+                              잔여 {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
                             </Badge>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
                               <Clock className="h-3 w-3" />

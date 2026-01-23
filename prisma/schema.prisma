@@ -155,14 +155,15 @@ model Schedule {
 // ============================================
 
 model Attendance {
-  id              String         @id @default(cuid())
-  memberProfile   MemberProfile  @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
-  memberProfileId String
-  schedule        Schedule?      @relation(fields: [scheduleId], references: [id])
-  scheduleId      String?        @unique
-  checkInTime     DateTime       @default(now())
-  notes           String?        // PT 메모
-  createdAt       DateTime       @default(now())
+  id               String         @id @default(cuid())
+  memberProfile    MemberProfile  @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  memberProfileId  String
+  schedule         Schedule?      @relation(fields: [scheduleId], references: [id])
+  scheduleId       String?        @unique
+  checkInTime      DateTime       @default(now())
+  remainingPTAfter Int?           // 기록 시점 차감 후 잔여 PT
+  notes            String?        // PT 메모
+  createdAt        DateTime       @default(now())
 
   @@map("attendances")
 }

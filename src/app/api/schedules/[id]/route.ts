@@ -65,26 +65,33 @@ export async function PATCH(
         );
       }
 
+      const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
+
       // 트랜잭션으로 출석 처리
-      const [updatedSchedule] = await prisma.$transaction([
-        prisma.schedule.update({
+      const updatedSchedule = await prisma.$transaction(async (tx) => {
+        const updated = await tx.schedule.update({
           where: { id },
           data: { status: "COMPLETED", notes },
-        }),
-        // 출석 기록 생성
-        prisma.attendance.create({
+        });
+
+        // 출석 기록 생성 (차감 후 잔여 회수 저장)
+        await tx.attendance.create({
           data: {
             memberProfileId: schedule.memberProfileId,
             scheduleId: id,
+            remainingPTAfter,
             notes,
           },
-        }),
+        });
+
         // PT 횟수 차감
-        prisma.memberProfile.update({
+        await tx.memberProfile.update({
           where: { id: schedule.memberProfileId },
           data: { remainingPT: { decrement: 1 } },
-        }),
-      ]);
+        });
+
+        return updated;
+      });
 
       return NextResponse.json({
         message: "출석이 완료되었습니다.",
@@ -133,26 +140,33 @@ export async function PATCH(
         );
       }
 
+      const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
+
       // 트랜잭션으로 취소 처리
-      const [updatedSchedule] = await prisma.$transaction([
-        prisma.schedule.update({
+      const updatedSchedule = await prisma.$transaction(async (tx) => {
+        const updated = await tx.schedule.update({
           where: { id },
           data: { status: "CANCELLED", notes },
-        }),
-        // 취소 기록 생성 (출석 기록으로 남김)
-        prisma.attendance.create({
+        });
+
+        // 취소 기록 생성 (차감 후 잔여 회수 저장)
+        await tx.attendance.create({
           data: {
             memberProfileId: schedule.memberProfileId,
             scheduleId: id,
+            remainingPTAfter,
             notes: notes ? `[취소] ${notes}` : "[취소]",
           },
-        }),
+        });
+
         // PT 횟수 차감
-        prisma.memberProfile.update({
+        await tx.memberProfile.update({
           where: { id: schedule.memberProfileId },
           data: { remainingPT: { decrement: 1 } },
-        }),
-      ]);
+        });
+
+        return updated;
+      });
 
       return NextResponse.json({
         message: "예약이 취소되었습니다. (PT 1회 차감)",

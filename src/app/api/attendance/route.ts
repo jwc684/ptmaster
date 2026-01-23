@@ -63,6 +63,7 @@ export async function GET(request: Request) {
       select: {
         id: true,
         checkInTime: true,
+        remainingPTAfter: true,
         notes: true,
         memberProfile: {
           select: {
