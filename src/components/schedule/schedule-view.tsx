@@ -14,6 +14,7 @@ import {
   User,
   Loader2,
   Filter,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -224,6 +225,30 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
       } else {
         const error = await res.json();
         toast.error(error.error || "취소 처리에 실패했습니다.");
+      }
+    } catch {
+      toast.error("오류가 발생했습니다.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleRevert(scheduleId: string) {
+    setActionLoading(scheduleId);
+    try {
+      const res = await fetch(`/api/schedules/${scheduleId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "SCHEDULED" }),
+      });
+
+      if (res.ok) {
+        toast.success("출석이 되돌려졌습니다.");
+        fetchSchedules();
+        router.refresh();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "되돌리기에 실패했습니다.");
       }
     } catch {
       toast.error("오류가 발생했습니다.");
@@ -497,6 +522,22 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                               )}
                             </Button>
                           </div>
+                        )}
+
+                        {schedule.status === "COMPLETED" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRevert(schedule.id)}
+                            disabled={actionLoading === schedule.id}
+                            title="출석 되돌리기"
+                          >
+                            {actionLoading === schedule.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-4 w-4" />
+                            )}
+                          </Button>
                         )}
                       </div>
                     </CardContent>
