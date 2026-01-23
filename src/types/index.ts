@@ -15,6 +15,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
   TRAINER: [
     "/dashboard",
     "/my-members",
+    "/schedule",
     "/attendance",
   ],
   MEMBER: [
@@ -72,6 +73,12 @@ export const NAV_ITEMS: NavItem[] = [
     title: "내 회원",
     href: "/my-members",
     icon: "Users",
+    roles: ["TRAINER"],
+  },
+  {
+    title: "일정 관리",
+    href: "/schedule",
+    icon: "CalendarDays",
     roles: ["TRAINER"],
   },
   {

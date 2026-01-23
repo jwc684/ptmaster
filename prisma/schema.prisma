@@ -97,6 +97,7 @@ model MemberProfile {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   attendances  Attendance[]
   payments     Payment[]
+  schedules    Schedule[]
 
   @@map("member_profiles")
 }
@@ -115,18 +116,50 @@ model TrainerProfile {
   // Relations
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   members       MemberProfile[] // 담당 회원들
+  schedules     Schedule[]      // 예약 일정
 
   @@map("trainer_profiles")
 }
 
 // ============================================
-// PT Attendance (Simplified)
+// PT Schedule (예약)
+// ============================================
+
+enum ScheduleStatus {
+  SCHEDULED   // 예약됨
+  COMPLETED   // 완료 (출석)
+  CANCELLED   // 취소됨
+  NO_SHOW     // 노쇼
+}
+
+model Schedule {
+  id              String         @id @default(cuid())
+  memberProfile   MemberProfile  @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  memberProfileId String
+  trainer         TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  trainerId       String
+  scheduledAt     DateTime       // 예약 일시
+  status          ScheduleStatus @default(SCHEDULED)
+  notes           String?        // 메모
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // 출석 기록 연결
+  attendance      Attendance?
+
+  @@map("schedules")
+}
+
+// ============================================
+// PT Attendance (출석)
 // ============================================
 
 model Attendance {
   id              String         @id @default(cuid())
   memberProfile   MemberProfile  @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
   memberProfileId String
+  schedule        Schedule?      @relation(fields: [scheduleId], references: [id])
+  scheduleId      String?        @unique
   checkInTime     DateTime       @default(now())
   notes           String?        // PT 메모
   createdAt       DateTime       @default(now())

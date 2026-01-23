@@ -12,6 +12,7 @@ import {
   User,
   Dumbbell,
   PlusCircle,
+  CalendarDays,
 } from "lucide-react";
 
 import {
@@ -36,6 +37,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CreditCard,
   User,
   PlusCircle,
+  CalendarDays,
 };
 
 export function AppSidebar() {
