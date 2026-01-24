@@ -16,6 +16,7 @@ import {
   Shield,
   Crown,
   Building2,
+  Activity,
 } from "lucide-react";
 
 import {
@@ -46,6 +47,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Shield,
   Crown,
   Building2,
+  Activity,
 };
 
 export function AppSidebar() {
