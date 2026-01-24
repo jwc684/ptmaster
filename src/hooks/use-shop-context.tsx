@@ -89,14 +89,35 @@ export function ShopProvider({ children }: ShopProviderProps) {
         }
       });
     } else if (session?.user?.shopId) {
-      // Regular users - use their assigned shop
-      setCurrentShop({
-        id: session.user.shopId,
-        name: "", // Will be populated if needed
-        slug: "",
-        isActive: true,
-      });
-      setIsLoading(false);
+      // Regular users - fetch their assigned shop details
+      fetch(`/api/shops/${session.user.shopId}`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((shop) => {
+          if (shop) {
+            setCurrentShop({
+              id: shop.id,
+              name: shop.name,
+              slug: shop.slug,
+              isActive: shop.isActive,
+            });
+          } else {
+            setCurrentShop({
+              id: session.user.shopId!,
+              name: "",
+              slug: "",
+              isActive: true,
+            });
+          }
+        })
+        .catch(() => {
+          setCurrentShop({
+            id: session.user.shopId!,
+            name: "",
+            slug: "",
+            isActive: true,
+          });
+        })
+        .finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }

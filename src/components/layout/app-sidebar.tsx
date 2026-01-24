@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { NAV_ITEMS } from "@/types";
 import type { UserRole } from "@/types";
+import { useShopContext } from "@/hooks/use-shop-context";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -51,6 +52,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { setOpenMobile, isMobile } = useSidebar();
+  const { currentShop, isSuperAdmin } = useShopContext();
   const userRole = session?.user?.role as UserRole | undefined;
 
   const filteredNavItems = NAV_ITEMS.filter(
@@ -63,12 +65,18 @@ export function AppSidebar() {
     }
   };
 
+  // Display shop name: use currentShop name if available, otherwise default to "PT Shop"
+  const displayName = currentShop?.name || "PT Shop";
+  const dashboardLink = isSuperAdmin ? "/super-admin" : "/dashboard";
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-6 py-4">
-        <Link href="/dashboard" className="flex items-center gap-2" onClick={handleMenuClick}>
+        <Link href={dashboardLink} className="flex items-center gap-2" onClick={handleMenuClick}>
           <Dumbbell className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold">PT Shop</span>
+          <span className="text-lg font-bold truncate max-w-[160px]" title={displayName}>
+            {displayName}
+          </span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
