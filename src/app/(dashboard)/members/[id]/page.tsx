@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake } from "lucide-react";
+import { DeleteMemberButton } from "@/components/members/delete-member-button";
 
 async function getMember(id: string) {
   return prisma.memberProfile.findUnique({
@@ -78,12 +79,15 @@ export default async function MemberDetailPage({
           title={member.user.name}
           description="회원 정보"
         />
-        <Button asChild size="sm">
-          <Link href={`/members/${id}/edit`}>
-            <Pencil className="mr-2 h-4 w-4" />
-            수정
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild size="sm">
+            <Link href={`/members/${id}/edit`}>
+              <Pencil className="mr-2 h-4 w-4" />
+              수정
+            </Link>
+          </Button>
+          <DeleteMemberButton memberId={id} memberName={member.user.name} />
+        </div>
       </div>
 
       {/* 기본 정보 */}
