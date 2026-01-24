@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { memberSchema } from "@/lib/validations/member";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
+import { logApiAction } from "@/lib/access-log";
 
 function generateQRCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -192,6 +193,31 @@ export async function POST(request: Request) {
         memberProfile: true,
       },
     });
+
+    // Log the action
+    const currentUser = await prisma.user.findUnique({
+      where: { id: authResult.userId },
+      select: { name: true },
+    });
+    const shop = authResult.shopId
+      ? await prisma.pTShop.findUnique({
+          where: { id: authResult.shopId },
+          select: { name: true },
+        })
+      : null;
+
+    await logApiAction(
+      authResult.userId,
+      currentUser?.name || "Unknown",
+      authResult.userRole,
+      "CREATE",
+      "/api/members",
+      `회원 등록: ${name}`,
+      authResult.shopId,
+      shop?.name,
+      user.memberProfile?.id,
+      "member"
+    );
 
     return NextResponse.json(
       {

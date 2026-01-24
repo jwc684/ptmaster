@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@prisma/client";
+import { logLogin } from "@/lib/access-log";
 
 declare module "next-auth" {
   interface User {
@@ -126,6 +127,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.shopId = token.shopId as string | null | undefined;
       }
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      if (user.id) {
+        try {
+          // Get shop name if user has shopId
+          let shopName: string | null = null;
+          if (user.shopId) {
+            const shop = await prisma.pTShop.findUnique({
+              where: { id: user.shopId },
+              select: { name: true },
+            });
+            shopName = shop?.name || null;
+          }
+
+          await logLogin(
+            user.id,
+            user.name || "Unknown",
+            user.role as UserRole,
+            user.shopId,
+            shopName
+          );
+        } catch (error) {
+          console.error("Failed to log login:", error);
+        }
+      }
     },
   },
 });

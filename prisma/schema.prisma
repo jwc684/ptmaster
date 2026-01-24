@@ -31,6 +31,7 @@ model PTShop {
   schedules       Schedule[]
   attendances     Attendance[]
   payments        Payment[]
+  accessLogs      AccessLog[]
 
   @@map("pt_shops")
 }
@@ -253,4 +254,45 @@ model Payment {
   shopId          String?
 
   @@map("payments")
+}
+
+// ============================================
+// Access Log (사용자 접근 기록)
+// ============================================
+
+enum ActionType {
+  PAGE_VIEW     // 페이지 조회
+  CREATE        // 생성
+  UPDATE        // 수정
+  DELETE        // 삭제
+  LOGIN         // 로그인
+  LOGOUT        // 로그아웃
+  API_CALL      // API 호출
+}
+
+model AccessLog {
+  id          String     @id @default(cuid())
+  userId      String
+  userName    String                        // 사용자 이름 (조회 편의)
+  userRole    UserRole                      // 사용자 역할
+  shopId      String?                       // PT샵 ID (SUPER_ADMIN은 null 가능)
+  shopName    String?                       // PT샵 이름 (조회 편의)
+  actionType  ActionType                    // 액션 유형
+  page        String                        // 페이지 경로
+  action      String?                       // 상세 액션 (예: "회원 생성", "결제 수정")
+  targetId    String?                       // 대상 ID (예: 수정한 회원 ID)
+  targetType  String?                       // 대상 타입 (예: "member", "payment")
+  metadata    Json?                         // 추가 데이터
+  ipAddress   String?                       // IP 주소
+  userAgent   String?     @db.Text          // User Agent
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  shop        PTShop?     @relation(fields: [shopId], references: [id])
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([createdAt])
+  @@index([actionType])
+  @@map("access_logs")
 }

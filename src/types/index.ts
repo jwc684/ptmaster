@@ -72,6 +72,12 @@ export const NAV_ITEMS: NavItem[] = [
     icon: "Building2",
     roles: ["SUPER_ADMIN"],
   },
+  {
+    title: "접근 기록",
+    href: "/super-admin/logs",
+    icon: "Activity",
+    roles: ["SUPER_ADMIN"],
+  },
   // Regular navigation
   {
     title: "대시보드",
