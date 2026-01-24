@@ -92,7 +92,12 @@ export async function GET(request: Request) {
           },
         },
         attendance: {
-          select: { id: true, checkInTime: true },
+          select: {
+            id: true,
+            checkInTime: true,
+            notes: true,
+            internalNotes: true,
+          },
         },
       },
       orderBy: { scheduledAt: "asc" },

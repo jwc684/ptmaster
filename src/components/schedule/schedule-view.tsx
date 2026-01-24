@@ -18,6 +18,8 @@ import {
   Pencil,
   Trash2,
   MoreHorizontal,
+  MessageSquare,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -80,7 +82,12 @@ interface Schedule {
     id: string;
     user: { name: string };
   };
-  attendance: { id: string; checkInTime: string } | null;
+  attendance: {
+    id: string;
+    checkInTime: string;
+    notes: string | null;
+    internalNotes: string | null;
+  } | null;
 }
 
 interface ScheduleViewProps {
@@ -627,6 +634,23 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                               <p className="text-xs text-muted-foreground mt-1">
                                 {schedule.notes}
                               </p>
+                            )}
+                            {/* 출석 메모 (완료/취소된 일정) */}
+                            {schedule.attendance?.notes && (
+                              <div className="flex items-start gap-1 mt-1">
+                                <MessageSquare className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
+                                <p className="text-xs text-muted-foreground">
+                                  {schedule.attendance.notes}
+                                </p>
+                              </div>
+                            )}
+                            {schedule.attendance?.internalNotes && (
+                              <div className="flex items-start gap-1 mt-1">
+                                <Lock className="h-3 w-3 text-orange-500 mt-0.5 shrink-0" />
+                                <p className="text-xs text-orange-600 dark:text-orange-400">
+                                  {schedule.attendance.internalNotes}
+                                </p>
+                              </div>
                             )}
                           </div>
                         </div>
