@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCog, CreditCard, Activity, ClipboardCheck, UserPlus, Receipt } from "lucide-react";
+import { Users, UserCog, CreditCard, Activity, ClipboardCheck, Receipt } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PTTrendsChart } from "@/components/dashboard/pt-trends-chart";
+import { MemberTrendsChart } from "@/components/dashboard/member-trends-chart";
 
 // Admin Dashboard Stats
 async function getAdminStats() {
@@ -73,37 +74,6 @@ async function getTrainerStats(trainerId: string) {
   };
 }
 
-// Daily New Members for last 7 days
-async function getDailyNewMembers() {
-  const days = 7;
-  const results: { date: string; count: number }[] = [];
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - i);
-
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
-
-    const count = await prisma.memberProfile.count({
-      where: {
-        joinDate: {
-          gte: date,
-          lt: nextDate,
-        },
-      },
-    });
-
-    results.push({
-      date: date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" }),
-      count,
-    });
-  }
-
-  return results;
-}
-
 // Daily Payments for last 7 days
 async function getDailyPayments() {
   const days = 7;
@@ -164,48 +134,6 @@ function StatCard({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-// New Member Trends Component
-async function NewMemberTrends() {
-  const dailyMembers = await getDailyNewMembers();
-  const totalNewMembers = dailyMembers.reduce((sum, d) => sum + d.count, 0);
-  const maxCount = Math.max(...dailyMembers.map((d) => d.count), 1);
-
-  return (
-    <div className="space-y-4">
-      {/* 요약 */}
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-purple-100 rounded-full">
-          <UserPlus className="h-4 w-4 text-purple-600" />
-        </div>
-        <div>
-          <p className="text-lg font-bold">{totalNewMembers}명</p>
-          <p className="text-xs text-muted-foreground">7일 신규 가입</p>
-        </div>
-      </div>
-
-      {/* 일별 추이 */}
-      <div className="space-y-2">
-        {dailyMembers.map((day, index) => (
-          <div key={index} className="flex items-center gap-3">
-            <div className="w-14 text-xs text-muted-foreground">{day.date}</div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
-                  <div
-                    className="bg-purple-500 h-full rounded-full transition-all"
-                    style={{ width: `${(day.count / maxCount) * 100}%` }}
-                  />
-                </div>
-                <span className="text-xs font-medium w-8">{day.count}명</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -321,10 +249,10 @@ async function AdminDashboard() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">최근 7일 신규 회원</CardTitle>
+          <CardTitle className="text-base">신규 회원 추이</CardTitle>
         </CardHeader>
         <CardContent>
-          <NewMemberTrends />
+          <MemberTrendsChart />
         </CardContent>
       </Card>
 
