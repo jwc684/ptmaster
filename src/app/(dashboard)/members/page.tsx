@@ -16,6 +16,9 @@ import {
 import { User, Phone, ChevronRight, Users } from "lucide-react";
 
 async function getMembers(shopFilter: { shopId?: string }) {
+  // Limit results for performance - for "all shops" view (no filter), limit to 100
+  const hasShopFilter = shopFilter.shopId !== undefined;
+
   return prisma.memberProfile.findMany({
     where: shopFilter,
     select: {
@@ -36,7 +39,12 @@ async function getMembers(shopFilter: { shopId?: string }) {
       },
     },
     orderBy: { createdAt: "desc" },
+    take: hasShopFilter ? undefined : 100, // Limit when viewing all shops
   });
+}
+
+async function getMemberCount(shopFilter: { shopId?: string }) {
+  return prisma.memberProfile.count({ where: shopFilter });
 }
 
 export default async function MembersPage() {
@@ -51,7 +59,12 @@ export default async function MembersPage() {
   }
 
   const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
-  const members = await getMembers(shopFilter);
+
+  // Run queries in parallel
+  const [members, totalCount] = await Promise.all([
+    getMembers(shopFilter),
+    getMemberCount(shopFilter),
+  ]);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("ko-KR", {
@@ -65,7 +78,11 @@ export default async function MembersPage() {
     <div className="space-y-4">
       <PageHeader
         title="회원 관리"
-        description={`총 ${members.length}명의 회원`}
+        description={
+          members.length < totalCount
+            ? `총 ${totalCount}명 중 최근 ${members.length}명 표시`
+            : `총 ${totalCount}명의 회원`
+        }
         action={{
           label: "회원 등록",
           href: "/members/new",

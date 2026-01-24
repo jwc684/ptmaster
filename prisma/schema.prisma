@@ -144,6 +144,9 @@ model MemberProfile {
   payments     Payment[]
   schedules    Schedule[]
 
+  @@index([shopId])
+  @@index([trainerId])
+  @@index([createdAt])
   @@map("member_profiles")
 }
 
@@ -167,6 +170,8 @@ model TrainerProfile {
   members       MemberProfile[] // 담당 회원들
   schedules     Schedule[]      // 예약 일정
 
+  @@index([shopId])
+  @@index([createdAt])
   @@map("trainer_profiles")
 }
 

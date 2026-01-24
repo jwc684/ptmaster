@@ -16,6 +16,9 @@ import {
 import { UserCog, Phone, Users, ChevronRight } from "lucide-react";
 
 async function getTrainers(shopFilter: { shopId?: string }) {
+  // Limit results for "all shops" view
+  const hasShopFilter = shopFilter.shopId !== undefined;
+
   return prisma.trainerProfile.findMany({
     where: shopFilter,
     select: {
@@ -28,12 +31,17 @@ async function getTrainers(shopFilter: { shopId?: string }) {
           phone: true,
         },
       },
-      members: {
-        select: { id: true },
+      _count: {
+        select: { members: true },
       },
     },
     orderBy: { createdAt: "desc" },
+    take: hasShopFilter ? undefined : 50, // Limit when viewing all shops
   });
+}
+
+async function getTrainerCount(shopFilter: { shopId?: string }) {
+  return prisma.trainerProfile.count({ where: shopFilter });
 }
 
 export default async function TrainersPage() {
@@ -48,13 +56,22 @@ export default async function TrainersPage() {
   }
 
   const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
-  const trainers = await getTrainers(shopFilter);
+
+  // Run queries in parallel
+  const [trainers, totalCount] = await Promise.all([
+    getTrainers(shopFilter),
+    getTrainerCount(shopFilter),
+  ]);
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="트레이너 관리"
-        description={`트레이너 ${trainers.length}명`}
+        description={
+          trainers.length < totalCount
+            ? `총 ${totalCount}명 중 최근 ${trainers.length}명 표시`
+            : `트레이너 ${totalCount}명`
+        }
         action={{
           label: "트레이너 등록",
           href: "/trainers/new",
@@ -110,7 +127,7 @@ export default async function TrainersPage() {
                       <TableCell>
                         <Badge variant="outline">
                           <Users className="h-3 w-3 mr-1" />
-                          {trainer.members.length}명
+                          {trainer._count.members}명
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-[200px]">
@@ -145,7 +162,7 @@ export default async function TrainersPage() {
                             <p className="font-medium">{trainer.user.name}</p>
                             <Badge variant="outline">
                               <Users className="h-3 w-3 mr-1" />
-                              {trainer.members.length}명
+                              {trainer._count.members}명
                             </Badge>
                           </div>
                           {trainer.user.phone && (

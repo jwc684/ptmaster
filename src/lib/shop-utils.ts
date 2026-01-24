@@ -22,8 +22,10 @@ export type AuthWithShopResult = ShopAuthResult | ShopAuthError;
  * Get authenticated user with shop context
  * For API routes, retrieves the session and shop information
  * Super Admin can optionally override shopId via header
+ *
+ * @param validateShop - If true, validates that the shop exists (slower, use for write operations)
  */
-export async function getAuthWithShop(): Promise<AuthWithShopResult> {
+export async function getAuthWithShop(validateShop = false): Promise<AuthWithShopResult> {
   const session = await auth();
 
   if (!session?.user) {
@@ -35,8 +37,7 @@ export async function getAuthWithShop(): Promise<AuthWithShopResult> {
 
   // Super Admin can override shop context via header or cookie
   if (isSuperAdmin) {
-    const headersList = await headers();
-    const cookieStore = await cookies();
+    const [headersList, cookieStore] = await Promise.all([headers(), cookies()]);
 
     // First check header (for API calls)
     let overrideShopId = headersList.get("x-shop-id");
@@ -47,11 +48,17 @@ export async function getAuthWithShop(): Promise<AuthWithShopResult> {
     }
 
     if (overrideShopId) {
-      // Validate that the shop exists
-      const shop = await prisma.pTShop.findUnique({
-        where: { id: overrideShopId },
-      });
-      if (shop) {
+      // Only validate shop existence for write operations
+      if (validateShop) {
+        const shop = await prisma.pTShop.findUnique({
+          where: { id: overrideShopId },
+          select: { id: true },
+        });
+        if (shop) {
+          effectiveShopId = overrideShopId;
+        }
+      } else {
+        // Trust the cookie value for read operations
         effectiveShopId = overrideShopId;
       }
     }
