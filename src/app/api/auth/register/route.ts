@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { registerSchema } from "@/lib/validations/auth";
+import { registerApiSchema } from "@/lib/validations/auth";
 
 function generateQRCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -15,7 +15,7 @@ function generateQRCode(): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const validatedData = registerSchema.omit({ confirmPassword: true }).safeParse(body);
+    const validatedData = registerApiSchema.safeParse(body);
 
     if (!validatedData.success) {
       return NextResponse.json(
