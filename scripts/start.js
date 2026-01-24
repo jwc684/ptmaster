@@ -13,6 +13,20 @@ if (process.env.DATABASE_URL) {
       env: { ...process.env }
     });
     console.log('Database schema synced successfully');
+
+    // Run multi-tenant migration if needed
+    console.log('Checking if multi-tenant migration is needed...');
+    try {
+      execSync('npx tsx scripts/migrate-multi-tenant.ts', {
+        stdio: 'inherit',
+        env: { ...process.env }
+      });
+      console.log('Multi-tenant migration check completed');
+    } catch (migrationError) {
+      console.error('Warning: multi-tenant migration failed');
+      console.error('Error:', migrationError.message);
+      console.error('Continuing with server start anyway...');
+    }
   } catch (error) {
     console.error('Warning: prisma db push failed');
     console.error('Error:', error.message);
