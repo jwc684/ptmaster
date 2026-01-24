@@ -900,7 +900,6 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
           </div>
         </>
       )}
-      </div>
 
       {/* 수정 다이얼로그 */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

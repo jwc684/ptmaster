@@ -78,23 +78,32 @@ async function getTrainerStats(trainerId: string) {
   };
 }
 
-// Compact Stat Item for horizontal display
+// Compact Stat Item for horizontal display - Toss style
 function CompactStat({
   label,
   value,
   icon: Icon,
+  color = "primary",
 }: {
   label: string;
   value: string | number;
   icon: React.ComponentType<{ className?: string }>;
+  color?: "primary" | "success" | "warning" | "info";
 }) {
+  const colorClasses = {
+    primary: "bg-primary/10 text-primary",
+    success: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+    warning: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+    info: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+  };
+
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      <div className="p-1.5 bg-muted rounded-lg shrink-0">
-        <Icon className="h-4 w-4 text-muted-foreground" />
+    <div className="flex items-center gap-3 min-w-0">
+      <div className={`p-2.5 rounded-xl shrink-0 ${colorClasses[color]}`}>
+        <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-bold truncate">{value}</p>
+        <p className="text-lg font-bold truncate">{value}</p>
         <p className="text-xs text-muted-foreground truncate">{label}</p>
       </div>
     </div>
@@ -112,15 +121,15 @@ async function AdminDashboard({ shopFilter }: { shopFilter: { shopId?: string } 
         <p className="text-sm text-muted-foreground">PT샵 현황</p>
       </div>
 
-      {/* Stats Bar - responsive grid */}
+      {/* Stats Bar - responsive grid - Toss style */}
       <Card>
-        <CardContent className="py-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <CompactStat label="전체 회원" value={`${stats.totalMembers}명`} icon={Users} />
-            <CompactStat label="트레이너" value={`${stats.totalTrainers}명`} icon={UserCog} />
-            <CompactStat label="오늘 PT" value={`${stats.todayAttendance}회`} icon={Activity} />
-            <CompactStat label="이번달 매출" value={`₩${(stats.monthlyRevenue / 10000).toFixed(0)}만`} icon={CreditCard} />
-            <CompactStat label="잔여 PT" value={`${stats.totalPTRemaining}회`} icon={ClipboardCheck} />
+        <CardContent className="py-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
+            <CompactStat label="전체 회원" value={`${stats.totalMembers}명`} icon={Users} color="primary" />
+            <CompactStat label="트레이너" value={`${stats.totalTrainers}명`} icon={UserCog} color="info" />
+            <CompactStat label="오늘 PT" value={`${stats.todayAttendance}회`} icon={Activity} color="success" />
+            <CompactStat label="이번달 매출" value={`₩${(stats.monthlyRevenue / 10000).toFixed(0)}만`} icon={CreditCard} color="warning" />
+            <CompactStat label="잔여 PT" value={`${stats.totalPTRemaining}회`} icon={ClipboardCheck} color="primary" />
           </div>
         </CardContent>
       </Card>
@@ -185,13 +194,13 @@ async function TrainerDashboard({ trainerId }: { trainerId: string }) {
         <p className="text-sm text-muted-foreground">내 PT 현황</p>
       </div>
 
-      {/* Stats Bar - responsive */}
+      {/* Stats Bar - responsive - Toss style */}
       <Card>
-        <CardContent className="py-3">
+        <CardContent className="py-4">
           <div className="grid grid-cols-3 gap-4">
-            <CompactStat label="담당 회원" value={`${stats.memberCount}명`} icon={Users} />
-            <CompactStat label="오늘 PT" value={`${stats.todayAttendance}회`} icon={Activity} />
-            <CompactStat label="잔여 PT" value={`${stats.totalPTRemaining}회`} icon={ClipboardCheck} />
+            <CompactStat label="담당 회원" value={`${stats.memberCount}명`} icon={Users} color="primary" />
+            <CompactStat label="오늘 PT" value={`${stats.todayAttendance}회`} icon={Activity} color="success" />
+            <CompactStat label="잔여 PT" value={`${stats.totalPTRemaining}회`} icon={ClipboardCheck} color="info" />
           </div>
         </CardContent>
       </Card>

@@ -30,14 +30,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const registrationSchema = z.object({
   memberProfileId: z.string().min(1, "회원을 선택해주세요."),
   trainerId: z.string().optional(),
-  ptCount: z.union([z.number(), z.string()]).transform((val) => {
-    const num = typeof val === "string" ? parseInt(val, 10) : val;
-    return isNaN(num) ? 1 : num;
-  }).pipe(z.number().min(1, "PT 횟수는 1회 이상이어야 합니다.")),
-  amount: z.union([z.number(), z.string()]).transform((val) => {
-    const num = typeof val === "string" ? parseInt(val, 10) : val;
-    return isNaN(num) ? 0 : num;
-  }).pipe(z.number().min(0, "금액을 입력해주세요.")),
+  ptCount: z.number().min(1, "PT 횟수는 1회 이상이어야 합니다."),
+  amount: z.number().min(0, "금액을 입력해주세요."),
   notes: z.string().optional(),
 });
 
