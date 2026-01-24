@@ -30,8 +30,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const registrationSchema = z.object({
   memberProfileId: z.string().min(1, "회원을 선택해주세요."),
   trainerId: z.string().optional(),
-  ptCount: z.number().min(1, "PT 횟수는 1회 이상이어야 합니다."),
-  amount: z.number().min(0, "금액을 입력해주세요."),
+  ptCount: z.union([z.number(), z.string()]).transform((val) => {
+    const num = typeof val === "string" ? parseInt(val, 10) : val;
+    return isNaN(num) ? 1 : num;
+  }).pipe(z.number().min(1, "PT 횟수는 1회 이상이어야 합니다.")),
+  amount: z.union([z.number(), z.string()]).transform((val) => {
+    const num = typeof val === "string" ? parseInt(val, 10) : val;
+    return isNaN(num) ? 0 : num;
+  }).pipe(z.number().min(0, "금액을 입력해주세요.")),
   notes: z.string().optional(),
 });
 
@@ -192,7 +198,7 @@ export function RegistrationForm({ members, trainers }: RegistrationFormProps) {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="ptCount"
@@ -204,8 +210,17 @@ export function RegistrationForm({ members, trainers }: RegistrationFormProps) {
                         type="number"
                         min={1}
                         placeholder="10"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? "" : Number(val));
+                        }}
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || isNaN(Number(val))) {
+                            field.onChange(1);
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -225,8 +240,17 @@ export function RegistrationForm({ members, trainers }: RegistrationFormProps) {
                         min={0}
                         step={10000}
                         placeholder="500000"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? "" : Number(val));
+                        }}
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || isNaN(Number(val))) {
+                            field.onChange(0);
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
