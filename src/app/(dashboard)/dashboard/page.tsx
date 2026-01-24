@@ -75,30 +75,26 @@ async function getTrainerStats(trainerId: string) {
   };
 }
 
-function StatCard({
-  title,
+// Compact Stat Item for horizontal display
+function CompactStat({
+  label,
   value,
-  description,
   icon: Icon,
 }: {
-  title: string;
+  label: string;
   value: string | number;
-  description?: string;
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+    <div className="flex items-center gap-2 min-w-0">
+      <div className="p-1.5 bg-muted rounded-lg shrink-0">
         <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-bold truncate">{value}</p>
+        <p className="text-xs text-muted-foreground truncate">{label}</p>
+      </div>
+    </div>
   );
 }
 
@@ -113,36 +109,16 @@ async function AdminDashboard() {
         <p className="text-sm text-muted-foreground">PT샵 현황</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          title="전체 회원"
-          value={stats.totalMembers}
-          icon={Users}
-        />
-        <StatCard
-          title="트레이너"
-          value={stats.totalTrainers}
-          icon={UserCog}
-        />
-        <StatCard
-          title="오늘 PT"
-          value={stats.todayAttendance}
-          icon={Activity}
-        />
-        <StatCard
-          title="이번달 매출"
-          value={`₩${stats.monthlyRevenue.toLocaleString()}`}
-          icon={CreditCard}
-        />
-      </div>
-
+      {/* Stats Bar - responsive grid */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">잔여 PT 현황</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{stats.totalPTRemaining}회</p>
-          <p className="text-xs text-muted-foreground">전체 회원 잔여 PT</p>
+        <CardContent className="py-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <CompactStat label="전체 회원" value={`${stats.totalMembers}명`} icon={Users} />
+            <CompactStat label="트레이너" value={`${stats.totalTrainers}명`} icon={UserCog} />
+            <CompactStat label="오늘 PT" value={`${stats.todayAttendance}회`} icon={Activity} />
+            <CompactStat label="이번달 매출" value={`₩${(stats.monthlyRevenue / 10000).toFixed(0)}만`} icon={CreditCard} />
+            <CompactStat label="잔여 PT" value={`${stats.totalPTRemaining}회`} icon={ClipboardCheck} />
+          </div>
         </CardContent>
       </Card>
 
@@ -206,26 +182,14 @@ async function TrainerDashboard({ trainerId }: { trainerId: string }) {
         <p className="text-sm text-muted-foreground">내 PT 현황</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          title="담당 회원"
-          value={stats.memberCount}
-          icon={Users}
-        />
-        <StatCard
-          title="오늘 PT"
-          value={stats.todayAttendance}
-          icon={Activity}
-        />
-      </div>
-
+      {/* Stats Bar - responsive */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">잔여 PT</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">{stats.totalPTRemaining}회</p>
-          <p className="text-xs text-muted-foreground">담당 회원 잔여 PT</p>
+        <CardContent className="py-3">
+          <div className="grid grid-cols-3 gap-4">
+            <CompactStat label="담당 회원" value={`${stats.memberCount}명`} icon={Users} />
+            <CompactStat label="오늘 PT" value={`${stats.todayAttendance}회`} icon={Activity} />
+            <CompactStat label="잔여 PT" value={`${stats.totalPTRemaining}회`} icon={ClipboardCheck} />
+          </div>
         </CardContent>
       </Card>
 
