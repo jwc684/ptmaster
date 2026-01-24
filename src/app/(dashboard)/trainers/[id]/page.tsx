@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, User, Phone, Mail, Users } from "lucide-react";
 import { AssignMemberDialog } from "@/components/trainer/assign-member-dialog";
+import { DeleteTrainerButton } from "@/components/trainer/delete-trainer-button";
 
 async function getTrainer(id: string) {
   return prisma.trainerProfile.findUnique({
@@ -68,7 +69,17 @@ export default async function TrainerDetailPage({
           trainerName={trainer.user.name}
           currentMemberIds={trainer.members.map((m) => m.id)}
         />
+        <DeleteTrainerButton
+          trainerId={id}
+          trainerName={trainer.user.name}
+          hasMember={trainer.members.length > 0}
+        />
       </div>
+      {trainer.members.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          * 담당 회원이 있는 트레이너는 삭제할 수 없습니다. 먼저 회원을 다른 트레이너에게 재배정해주세요.
+        </p>
+      )}
 
       {/* Basic Info */}
       <Card>
