@@ -325,7 +325,13 @@ export default function AdminsPage() {
         </Card>
       ) : admins.length > 0 ? (
         <Card>
-          <CardContent className="p-0">
+          <CardHeader className="pb-0">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              관리자 목록
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 pt-4">
             <div className="divide-y divide-border/50">
               {admins.map((admin) => (
                 <div
