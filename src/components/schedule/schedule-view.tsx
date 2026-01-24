@@ -974,7 +974,13 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                 <>
                   {selectedSchedule.memberProfile.user.name}님의{" "}
                   {format(new Date(selectedSchedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}{" "}
-                  예약을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+                  예약을 삭제합니다.
+                  {selectedSchedule.status === "SCHEDULED" && (
+                    <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                      예약 상태이므로 PT 1회가 복구됩니다.
+                    </span>
+                  )}
+                  <span className="block mt-1">이 작업은 되돌릴 수 없습니다.</span>
                 </>
               )}
             </AlertDialogDescription>
@@ -1075,10 +1081,10 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
               </div>
             )}
 
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm font-medium text-yellow-800">PT 차감 여부를 선택해주세요</p>
-              <p className="text-xs text-yellow-700 mt-1">
-                노쇼 등의 사유로 취소하는 경우 PT를 차감할 수 있습니다.
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-800">
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">PT 복구 여부를 선택해주세요</p>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                일정 생성 시 차감된 PT를 복구하거나, 노쇼 등의 사유로 차감을 유지할 수 있습니다.
               </p>
             </div>
 
@@ -1092,12 +1098,12 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                 돌아가기
               </Button>
               <Button
-                variant="secondary"
+                variant="default"
                 onClick={() => handleCancel(false)}
                 disabled={actionLoading === "cancel"}
                 className="flex-1"
               >
-                {actionLoading === "cancel" ? "처리 중..." : "미차감 취소"}
+                {actionLoading === "cancel" ? "처리 중..." : "PT 복구"}
               </Button>
               <Button
                 variant="destructive"
@@ -1105,7 +1111,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                 disabled={actionLoading === "cancel"}
                 className="flex-1"
               >
-                {actionLoading === "cancel" ? "처리 중..." : "차감 취소"}
+                {actionLoading === "cancel" ? "처리 중..." : "PT 차감 유지"}
               </Button>
             </div>
           </div>

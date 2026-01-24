@@ -57,18 +57,8 @@ export async function PATCH(
       }
     }
 
-    // 출석 완료 처리
+    // 출석 완료 처리 (PT는 일정 생성 시 이미 차감됨)
     if (status === "COMPLETED" && schedule.status !== "COMPLETED") {
-      // 잔여 PT가 있는지 확인
-      if (schedule.memberProfile.remainingPT <= 0) {
-        return NextResponse.json(
-          { error: "잔여 PT가 없습니다." },
-          { status: 400 }
-        );
-      }
-
-      const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
-
       // 건당 PT 비용 계산 (회원의 모든 결제 기록 기반)
       const payments = await prisma.payment.findMany({
         where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
@@ -78,29 +68,23 @@ export async function PATCH(
       const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
       const unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
 
-      // 트랜잭션으로 출석 처리
+      // 트랜잭션으로 출석 처리 (PT 차감 없음 - 이미 일정 생성 시 차감됨)
       const updatedSchedule = await prisma.$transaction(async (tx) => {
         const updated = await tx.schedule.update({
           where: { id },
           data: { status: "COMPLETED", notes },
         });
 
-        // 출석 기록 생성 (차감 후 잔여 회수 저장 + 건당 비용)
+        // 출석 기록 생성 (현재 잔여 회수 저장 + 건당 비용)
         await tx.attendance.create({
           data: {
             memberProfileId: schedule.memberProfileId,
             scheduleId: id,
-            remainingPTAfter,
-            unitPrice,       // 건당 PT 비용
-            notes,           // 공유 메모
-            internalNotes,   // 내부 메모
+            remainingPTAfter: schedule.memberProfile.remainingPT,
+            unitPrice,
+            notes,
+            internalNotes,
           },
-        });
-
-        // PT 횟수 차감
-        await tx.memberProfile.update({
-          where: { id: schedule.memberProfileId },
-          data: { remainingPT: { decrement: 1 } },
         });
 
         return updated;
@@ -112,7 +96,7 @@ export async function PATCH(
       });
     }
 
-    // 출석 되돌리기 (COMPLETED -> SCHEDULED)
+    // 출석 되돌리기 (COMPLETED -> SCHEDULED) - PT 변동 없음 (이미 일정 생성 시 차감됨)
     if (status === "SCHEDULED" && schedule.status === "COMPLETED") {
       // 트랜잭션으로 출석 되돌리기
       const updatedSchedule = await prisma.$transaction(async (tx) => {
@@ -121,13 +105,7 @@ export async function PATCH(
           data: { status: "SCHEDULED", notes },
         });
 
-        // PT 횟수 복원
-        await tx.memberProfile.update({
-          where: { id: schedule.memberProfileId },
-          data: { remainingPT: { increment: 1 } },
-        });
-
-        // 출석 기록이 있으면 삭제
+        // 출석 기록이 있으면 삭제 (PT는 복원하지 않음 - 일정 생성 시 차감된 상태 유지)
         if (schedule.attendance) {
           await tx.attendance.delete({
             where: { id: schedule.attendance.id },
@@ -138,27 +116,18 @@ export async function PATCH(
       });
 
       return NextResponse.json({
-        message: "출석이 되돌려졌습니다.",
+        message: "출석이 되돌려졌습니다. (일정 상태로 복귀)",
         schedule: updatedSchedule,
       });
     }
 
-    // 취소 처리 (SCHEDULED -> CANCELLED)
+    // 취소 처리 (SCHEDULED -> CANCELLED) - PT는 일정 생성 시 이미 차감됨
     if (status === "CANCELLED" && schedule.status === "SCHEDULED") {
-      // PT 차감 여부에 따라 처리
-      const shouldDeductPT = deductPT !== false; // 기본값은 차감
+      // PT 유지 여부에 따라 처리 (deductPT=true면 차감 유지, false면 복구)
+      const keepDeduction = deductPT === true; // 기본값은 복구 (미차감)
 
-      if (shouldDeductPT) {
-        // PT 차감하는 경우
-        if (schedule.memberProfile.remainingPT <= 0) {
-          return NextResponse.json(
-            { error: "잔여 PT가 없습니다." },
-            { status: 400 }
-          );
-        }
-
-        const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
-
+      if (keepDeduction) {
+        // PT 차감 유지 (복구하지 않음)
         // 건당 PT 비용 계산 (회원의 모든 결제 기록 기반)
         const payments = await prisma.payment.findMany({
           where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
@@ -168,71 +137,77 @@ export async function PATCH(
         const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
         const unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
 
-        // 트랜잭션으로 취소 처리 (차감)
+        // 트랜잭션으로 취소 처리 (차감 유지)
         const updatedSchedule = await prisma.$transaction(async (tx) => {
           const updated = await tx.schedule.update({
             where: { id },
-            data: { status: "CANCELLED", notes },
+            data: { status: "CANCELLED", notes: notes ? `[취소-차감] ${notes}` : "[취소-차감]" },
           });
 
-          // 취소 기록 생성 (차감 후 잔여 회수 저장 + 건당 비용)
+          // 취소 기록 생성 (차감 유지 표시용)
           await tx.attendance.create({
             data: {
               memberProfileId: schedule.memberProfileId,
               scheduleId: id,
-              remainingPTAfter,
+              remainingPTAfter: schedule.memberProfile.remainingPT,
               unitPrice,
               notes: notes ? `[취소-차감] ${notes}` : "[취소-차감]",
               internalNotes,
             },
           });
 
-          // PT 횟수 차감
+          return updated;
+        });
+
+        return NextResponse.json({
+          message: "예약이 취소되었습니다. (PT 차감 유지)",
+          schedule: updatedSchedule,
+        });
+      } else {
+        // PT 복구 (미차감)
+        const updatedSchedule = await prisma.$transaction(async (tx) => {
+          const updated = await tx.schedule.update({
+            where: { id },
+            data: { status: "CANCELLED", notes: notes ? `[취소] ${notes}` : "[취소]" },
+          });
+
+          // PT 1회 복구
           await tx.memberProfile.update({
             where: { id: schedule.memberProfileId },
-            data: { remainingPT: { decrement: 1 } },
+            data: { remainingPT: { increment: 1 } },
           });
 
           return updated;
         });
 
         return NextResponse.json({
-          message: "예약이 취소되었습니다. (PT 1회 차감)",
-          schedule: updatedSchedule,
-        });
-      } else {
-        // PT 차감하지 않는 경우
-        const updatedSchedule = await prisma.schedule.update({
-          where: { id },
-          data: { status: "CANCELLED", notes: notes ? `[취소] ${notes}` : "[취소]" },
-        });
-
-        return NextResponse.json({
-          message: "예약이 취소되었습니다. (PT 미차감)",
+          message: "예약이 취소되었습니다. (PT 1회 복구)",
           schedule: updatedSchedule,
         });
       }
     }
 
-    // 취소 되돌리기 (CANCELLED -> SCHEDULED) - PT 복원
+    // 취소 되돌리기 (CANCELLED -> SCHEDULED)
     if (status === "SCHEDULED" && schedule.status === "CANCELLED") {
-      // 트랜잭션으로 취소 되돌리기
+      // attendance 기록 유무로 차감/미차감 여부 판단
+      const wasKeptDeducted = !!schedule.attendance; // attendance 있음 = 차감 유지 취소
+
       const updatedSchedule = await prisma.$transaction(async (tx) => {
         const updated = await tx.schedule.update({
           where: { id },
           data: { status: "SCHEDULED", notes },
         });
 
-        // PT 횟수 복원
-        await tx.memberProfile.update({
-          where: { id: schedule.memberProfileId },
-          data: { remainingPT: { increment: 1 } },
-        });
-
-        // 출석(취소) 기록이 있으면 삭제
-        if (schedule.attendance) {
+        if (wasKeptDeducted) {
+          // 차감 유지 취소였음 - attendance 기록만 삭제, PT 변동 없음
           await tx.attendance.delete({
-            where: { id: schedule.attendance.id },
+            where: { id: schedule.attendance!.id },
+          });
+        } else {
+          // 미차감 취소였음 - PT가 복구됐었으므로 다시 차감
+          await tx.memberProfile.update({
+            where: { id: schedule.memberProfileId },
+            data: { remainingPT: { decrement: 1 } },
           });
         }
 
@@ -240,7 +215,9 @@ export async function PATCH(
       });
 
       return NextResponse.json({
-        message: "취소가 되돌려졌습니다. (PT 1회 복원)",
+        message: wasKeptDeducted
+          ? "취소가 되돌려졌습니다. (예약 상태로 복귀)"
+          : "취소가 되돌려졌습니다. (PT 1회 차감)",
         schedule: updatedSchedule,
       });
     }
@@ -298,6 +275,7 @@ export async function DELETE(
 
     const schedule = await prisma.schedule.findUnique({
       where: { id },
+      include: { attendance: true },
     });
 
     if (!schedule) {
@@ -314,9 +292,36 @@ export async function DELETE(
       }
     }
 
-    await prisma.schedule.delete({ where: { id } });
+    // PT 복구 여부 결정
+    // - SCHEDULED: PT 복구 (일정 생성 시 차감되었으므로)
+    // - COMPLETED: PT 복구 안함 (PT가 사용됨)
+    // - CANCELLED with attendance: PT 복구 안함 (차감 유지 취소였음)
+    // - CANCELLED without attendance: PT 복구 안함 (이미 취소 시 복구됨)
+    const shouldRestorePT = schedule.status === "SCHEDULED";
 
-    return NextResponse.json({ message: "일정이 삭제되었습니다." });
+    await prisma.$transaction(async (tx) => {
+      // 관련 출석 기록 먼저 삭제
+      if (schedule.attendance) {
+        await tx.attendance.delete({ where: { id: schedule.attendance.id } });
+      }
+
+      // 일정 삭제
+      await tx.schedule.delete({ where: { id } });
+
+      // SCHEDULED 상태였다면 PT 복구
+      if (shouldRestorePT) {
+        await tx.memberProfile.update({
+          where: { id: schedule.memberProfileId },
+          data: { remainingPT: { increment: 1 } },
+        });
+      }
+    });
+
+    return NextResponse.json({
+      message: shouldRestorePT
+        ? "일정이 삭제되었습니다. (PT 1회 복구)"
+        : "일정이 삭제되었습니다.",
+    });
   } catch (error) {
     console.error("Error deleting schedule:", error);
     return NextResponse.json(

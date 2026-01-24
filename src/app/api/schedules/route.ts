@@ -169,6 +169,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "해당 회원을 찾을 수 없습니다." }, { status: 404 });
     }
 
+    // 잔여 PT 확인
+    if (member.remainingPT <= 0) {
+      return NextResponse.json(
+        { error: "잔여 PT가 없습니다. PT를 등록해주세요." },
+        { status: 400 }
+      );
+    }
+
     // 트레이너 ID 가져오기
     let trainerId: string;
     if (authResult.userRole === "TRAINER") {
@@ -187,29 +195,42 @@ export async function POST(request: Request) {
       trainerId = member.trainerId;
     }
 
-    const schedule = await prisma.schedule.create({
-      data: {
-        memberProfileId,
-        trainerId,
-        scheduledAt: new Date(scheduledAt),
-        notes,
-        shopId: authResult.shopId!,
-      },
-      select: {
-        id: true,
-        scheduledAt: true,
-        status: true,
-        memberProfile: {
-          select: {
-            user: { select: { name: true } },
+    // 트랜잭션으로 일정 생성 + PT 차감
+    const schedule = await prisma.$transaction(async (tx) => {
+      // 일정 생성
+      const newSchedule = await tx.schedule.create({
+        data: {
+          memberProfileId,
+          trainerId,
+          scheduledAt: new Date(scheduledAt),
+          notes,
+          shopId: authResult.shopId!,
+        },
+        select: {
+          id: true,
+          scheduledAt: true,
+          status: true,
+          memberProfile: {
+            select: {
+              user: { select: { name: true } },
+              remainingPT: true,
+            },
           },
         },
-      },
+      });
+
+      // PT 1회 차감
+      await tx.memberProfile.update({
+        where: { id: memberProfileId },
+        data: { remainingPT: { decrement: 1 } },
+      });
+
+      return newSchedule;
     });
 
     return NextResponse.json(
       {
-        message: `${schedule.memberProfile.user.name}님 예약이 등록되었습니다.`,
+        message: `${schedule.memberProfile.user.name}님 예약이 등록되었습니다. (잔여 PT: ${schedule.memberProfile.remainingPT - 1}회)`,
         schedule,
       },
       { status: 201 }
