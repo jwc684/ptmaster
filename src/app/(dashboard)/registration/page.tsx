@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreditCard } from "lucide-react";
 import { RegistrationList } from "@/components/registration/registration-list";
 
 async function getPayments(shopFilter: { shopId?: string }) {
@@ -72,12 +73,22 @@ export default async function RegistrationListPage() {
       </div>
 
       {/* 등록 리스트 */}
-      <RegistrationList
-        payments={payments.map((p) => ({
-          ...p,
-          paidAt: p.paidAt.toISOString(),
-        }))}
-      />
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            등록 내역
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 pt-4">
+          <RegistrationList
+            payments={payments.map((p) => ({
+              ...p,
+              paidAt: p.paidAt.toISOString(),
+            }))}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
