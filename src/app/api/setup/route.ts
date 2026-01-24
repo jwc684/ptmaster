@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-// 초기 설정용 엔드포인트 - 관리자가 없을 때만 생성
+// 초기 설정용 엔드포인트 - 관리자 생성 또는 비밀번호 재설정
 export async function POST(request: Request) {
   try {
     // 요청 본문에서 설정 키 확인 (보안을 위해)
     const body = await request.json();
-    const { setupKey, email, password, name } = body;
+    const { setupKey, email, password, name, action } = body;
 
     // 환경변수로 설정된 키와 비교 (없으면 기본값 사용)
     const validKey = process.env.SETUP_KEY || "ptmaster-setup-2024";
@@ -16,6 +16,38 @@ export async function POST(request: Request) {
         { error: "Invalid setup key" },
         { status: 403 }
       );
+    }
+
+    // 비밀번호 재설정 액션
+    if (action === "reset-password") {
+      if (!email || !password) {
+        return NextResponse.json(
+          { error: "이메일과 새 비밀번호를 입력해주세요." },
+          { status: 400 }
+        );
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "해당 이메일의 사용자를 찾을 수 없습니다." },
+          { status: 404 }
+        );
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 12);
+      await prisma.user.update({
+        where: { email },
+        data: { password: hashedPassword },
+      });
+
+      return NextResponse.json({
+        message: "비밀번호가 재설정되었습니다.",
+        user: { email: user.email, name: user.name, role: user.role },
+      });
     }
 
     // 이미 관리자가 있는지 확인
