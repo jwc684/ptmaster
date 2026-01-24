@@ -31,9 +31,15 @@ declare module "@auth/core/jwt" {
   }
 }
 
+// AUTH_SECRET 확인 (프로덕션에서 필수)
+if (!process.env.AUTH_SECRET && process.env.NODE_ENV === "production") {
+  console.error("AUTH_SECRET is not set in production environment!");
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma) as any,
   trustHost: true,
+  secret: process.env.AUTH_SECRET,
   session: {
     strategy: "jwt",
   },
@@ -49,34 +55,49 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("이메일과 비밀번호를 입력해주세요.");
+        try {
+          console.log("[Auth] Login attempt for:", credentials?.email);
+
+          if (!credentials?.email || !credentials?.password) {
+            console.log("[Auth] Missing credentials");
+            throw new Error("이메일과 비밀번호를 입력해주세요.");
+          }
+
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+          });
+
+          console.log("[Auth] User found:", !!user);
+
+          if (!user || !user.password) {
+            console.log("[Auth] User not found or no password");
+            throw new Error("등록되지 않은 이메일입니다.");
+          }
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          );
+
+          console.log("[Auth] Password valid:", isPasswordValid);
+
+          if (!isPasswordValid) {
+            throw new Error("비밀번호가 일치하지 않습니다.");
+          }
+
+          console.log("[Auth] Login successful for:", user.email);
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            phone: user.phone,
+          };
+        } catch (error) {
+          console.error("[Auth] Login error:", error);
+          throw error;
         }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
-
-        if (!user || !user.password) {
-          throw new Error("등록되지 않은 이메일입니다.");
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          throw new Error("비밀번호가 일치하지 않습니다.");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          phone: user.phone,
-        };
       },
     }),
   ],

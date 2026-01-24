@@ -54,7 +54,12 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        // Auth.js Configuration 에러 처리
+        if (result.error === "Configuration") {
+          setError("서버 설정 오류입니다. 관리자에게 문의하세요. (AUTH_SECRET 미설정)");
+        } else {
+          setError(result.error);
+        }
         return;
       }
 
