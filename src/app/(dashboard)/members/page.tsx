@@ -3,16 +3,8 @@ import { redirect } from "next/navigation";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { User, Phone, ChevronRight, Users } from "lucide-react";
 
 async function getMembers(shopFilter: { shopId?: string }) {
@@ -97,111 +89,58 @@ export default async function MembersPage() {
           </CardContent>
         </Card>
       ) : (
-        <>
-          {/* Desktop Table View */}
-          <Card className="hidden md:block">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>이름</TableHead>
-                    <TableHead>전화번호</TableHead>
-                    <TableHead>이메일</TableHead>
-                    <TableHead>담당 트레이너</TableHead>
-                    <TableHead>잔여 PT</TableHead>
-                    <TableHead>가입일</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {members.map((member) => (
-                    <TableRow
-                      key={member.id}
-                      className="hover:bg-muted/50"
-                    >
-                      <TableCell>
-                        <Link
-                          href={`/members/${member.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {member.user.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        {member.user.phone || (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-muted-foreground text-sm">
-                          {member.user.email}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {member.trainer?.user.name || (
-                          <span className="text-muted-foreground">미배정</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={member.remainingPT > 0 ? "default" : "secondary"}
-                        >
-                          {member.remainingPT}회
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(member.joinDate)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="pb-0">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              회원 목록
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 pt-4">
+            <div className="divide-y divide-border/50">
+              {members.map((member) => (
+                <Link
+                  key={member.id}
+                  href={`/members/${member.id}`}
+                  className="flex items-center gap-4 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
+                >
+                  {/* 아이콘 */}
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <User className="h-6 w-6 text-primary" />
+                  </div>
 
-          {/* Mobile Card View */}
-          <div className="space-y-3 md:hidden">
-            {members.map((member) => (
-              <Link key={member.id} href={`/members/${member.id}`} className="block">
-                <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium truncate">{member.user.name}</p>
-                            <Badge
-                              variant={member.remainingPT > 0 ? "default" : "secondary"}
-                              className="text-xs"
-                            >
-                              PT {member.remainingPT}회
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            {member.user.phone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {member.user.phone}
-                              </span>
-                            )}
-                          </div>
-                          {member.trainer && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              담당: {member.trainer.user.name}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </>
+                  {/* 정보 */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[17px] font-semibold text-foreground truncate">
+                      {member.user.name}
+                    </p>
+                    {member.user.phone && (
+                      <p className="text-[15px] text-muted-foreground flex items-center gap-1">
+                        <Phone className="h-3.5 w-3.5" />
+                        {member.user.phone}
+                      </p>
+                    )}
+                    {member.trainer && (
+                      <p className="text-[13px] text-muted-foreground/70 mt-0.5">
+                        담당: {member.trainer.user.name}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 잔여 PT & 화살표 */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge
+                      variant={member.remainingPT > 0 ? "default" : "secondary"}
+                    >
+                      PT {member.remainingPT}회
+                    </Badge>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
