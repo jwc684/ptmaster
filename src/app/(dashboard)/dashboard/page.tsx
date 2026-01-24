@@ -390,7 +390,7 @@ export default async function DashboardPage() {
 
   return (
     <Suspense fallback={<DashboardSkeleton />}>
-      {session.user.role === "ADMIN" ? (
+      {session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN" ? (
         <AdminDashboard />
       ) : trainerId ? (
         <TrainerDashboard trainerId={trainerId} />

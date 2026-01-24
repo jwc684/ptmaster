@@ -35,7 +35,7 @@ async function getMembers() {
 export default async function MembersPage() {
   const session = await auth();
 
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
     redirect("/dashboard");
   }
 

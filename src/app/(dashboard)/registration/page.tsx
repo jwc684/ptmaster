@@ -29,7 +29,7 @@ async function getPayments() {
 export default async function RegistrationListPage() {
   const session = await auth();
 
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
     redirect("/dashboard");
   }
 
