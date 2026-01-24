@@ -38,31 +38,32 @@ export async function GET(request: Request) {
         });
       }
     } else if (period === "weekly") {
-      // Last 12 weeks
+      // Last 12 weeks (including current week)
       for (let i = 11; i >= 0; i--) {
-        const endDate = new Date(now);
-        endDate.setHours(23, 59, 59, 999);
-        const dayOfWeek = endDate.getDay();
-        endDate.setDate(endDate.getDate() - dayOfWeek - (i * 7));
+        // Start from today and go back i weeks
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
 
-        const startDate = new Date(endDate);
-        startDate.setDate(startDate.getDate() - 6);
-        startDate.setHours(0, 0, 0, 0);
+        // Find the Monday of the current week
+        const dayOfWeek = today.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
-        const nextDate = new Date(endDate);
-        nextDate.setDate(nextDate.getDate() + 1);
-        nextDate.setHours(0, 0, 0, 0);
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() + mondayOffset - (i * 7));
+
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 7);
 
         const count = await prisma.memberProfile.count({
           where: {
-            joinDate: { gte: startDate, lt: nextDate },
+            joinDate: { gte: weekStart, lt: weekEnd },
           },
         });
 
-        const weekLabel = `${startDate.getMonth() + 1}/${startDate.getDate()}`;
+        const weekLabel = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
 
         results.push({
-          date: startDate.toISOString().split("T")[0],
+          date: weekStart.toISOString().split("T")[0],
           label: weekLabel,
           count,
         });

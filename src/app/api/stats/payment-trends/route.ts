@@ -5,30 +5,15 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: Request) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMIN", "TRAINER"].includes(session.user.role)) {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "daily"; // daily, weekly, monthly
-    const trainerId = searchParams.get("trainerId");
-
-    let trainerFilter = {};
-
-    // 트레이너인 경우 자신의 데이터만 조회
-    if (session.user.role === "TRAINER") {
-      const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
-      });
-      if (trainerProfile) {
-        trainerFilter = { memberProfile: { is: { trainerId: trainerProfile.id } } };
-      }
-    } else if (trainerId) {
-      trainerFilter = { memberProfile: { is: { trainerId } } };
-    }
 
     const now = new Date();
-    let results: { date: string; label: string; count: number; revenue: number }[] = [];
+    let results: { date: string; label: string; count: number; amount: number }[] = [];
 
     if (period === "daily") {
       // Last 14 days
@@ -40,19 +25,19 @@ export async function GET(request: Request) {
         const nextDate = new Date(date);
         nextDate.setDate(nextDate.getDate() + 1);
 
-        const attendances = await prisma.attendance.findMany({
+        const payments = await prisma.payment.findMany({
           where: {
-            checkInTime: { gte: date, lt: nextDate },
-            ...trainerFilter,
+            status: "COMPLETED",
+            paidAt: { gte: date, lt: nextDate },
           },
-          select: { unitPrice: true },
+          select: { amount: true },
         });
 
         results.push({
           date: date.toISOString().split("T")[0],
           label: date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" }),
-          count: attendances.length,
-          revenue: attendances.reduce((sum, a) => sum + (a.unitPrice || 0), 0),
+          count: payments.length,
+          amount: payments.reduce((sum, p) => sum + p.amount, 0),
         });
       }
     } else if (period === "weekly") {
@@ -72,12 +57,12 @@ export async function GET(request: Request) {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 7);
 
-        const attendances = await prisma.attendance.findMany({
+        const payments = await prisma.payment.findMany({
           where: {
-            checkInTime: { gte: weekStart, lt: weekEnd },
-            ...trainerFilter,
+            status: "COMPLETED",
+            paidAt: { gte: weekStart, lt: weekEnd },
           },
-          select: { unitPrice: true },
+          select: { amount: true },
         });
 
         const weekLabel = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
@@ -85,8 +70,8 @@ export async function GET(request: Request) {
         results.push({
           date: weekStart.toISOString().split("T")[0],
           label: weekLabel,
-          count: attendances.length,
-          revenue: attendances.reduce((sum, a) => sum + (a.unitPrice || 0), 0),
+          count: payments.length,
+          amount: payments.reduce((sum, p) => sum + p.amount, 0),
         });
       }
     } else if (period === "monthly") {
@@ -95,39 +80,38 @@ export async function GET(request: Request) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const nextDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
 
-        const attendances = await prisma.attendance.findMany({
+        const payments = await prisma.payment.findMany({
           where: {
-            checkInTime: { gte: date, lt: nextDate },
-            ...trainerFilter,
+            status: "COMPLETED",
+            paidAt: { gte: date, lt: nextDate },
           },
-          select: { unitPrice: true },
+          select: { amount: true },
         });
 
         results.push({
           date: date.toISOString().split("T")[0],
           label: date.toLocaleDateString("ko-KR", { month: "short" }),
-          count: attendances.length,
-          revenue: attendances.reduce((sum, a) => sum + (a.unitPrice || 0), 0),
+          count: payments.length,
+          amount: payments.reduce((sum, p) => sum + p.amount, 0),
         });
       }
     }
 
-    // Calculate totals
     const totalCount = results.reduce((sum, r) => sum + r.count, 0);
-    const totalRevenue = results.reduce((sum, r) => sum + r.revenue, 0);
+    const totalAmount = results.reduce((sum, r) => sum + r.amount, 0);
 
     return NextResponse.json({
       period,
       data: results,
       totals: {
         count: totalCount,
-        revenue: totalRevenue,
+        amount: totalAmount,
       },
     });
   } catch (error) {
-    console.error("Error fetching PT trends:", error);
+    console.error("Error fetching payment trends:", error);
     return NextResponse.json(
-      { error: "PT 추이를 불러오는 중 오류가 발생했습니다." },
+      { error: "PT 등록 추이를 불러오는 중 오류가 발생했습니다." },
       { status: 500 }
     );
   }
