@@ -119,6 +119,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -270,18 +271,27 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
     }
   }
 
-  async function handleCancel(scheduleId: string) {
-    setActionLoading(scheduleId);
+  function openCancelDialog(schedule: Schedule) {
+    setSelectedSchedule(schedule);
+    setCancelDialogOpen(true);
+  }
+
+  async function handleCancel(deductPT: boolean) {
+    if (!selectedSchedule) return;
+
+    setActionLoading("cancel");
     try {
-      const res = await fetch(`/api/schedules/${scheduleId}`, {
+      const res = await fetch(`/api/schedules/${selectedSchedule.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "CANCELLED" }),
+        body: JSON.stringify({ status: "CANCELLED", deductPT }),
       });
 
       if (res.ok) {
         const data = await res.json();
         toast.success(data.message || "예약이 취소되었습니다.");
+        setCancelDialogOpen(false);
+        setSelectedSchedule(null);
         fetchSchedules();
         router.refresh();
       } else {
@@ -660,8 +670,8 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleCancel(schedule.id)}
-                              disabled={actionLoading === schedule.id}
+                              onClick={() => openCancelDialog(schedule)}
+                              disabled={!!actionLoading}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -892,6 +902,62 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                 className="flex-1"
               >
                 {actionLoading === "checkIn" ? "처리 중..." : "출석 완료"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 예약 취소 다이얼로그 */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>예약 취소</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {selectedSchedule && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{selectedSchedule.memberProfile.user.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(selectedSchedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  현재 잔여 PT: {selectedSchedule.memberProfile.remainingPT}회
+                </p>
+              </div>
+            )}
+
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm font-medium text-yellow-800">PT 차감 여부를 선택해주세요</p>
+              <p className="text-xs text-yellow-700 mt-1">
+                노쇼 등의 사유로 취소하는 경우 PT를 차감할 수 있습니다.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCancelDialogOpen(false)}
+                disabled={actionLoading === "cancel"}
+                className="flex-1"
+              >
+                돌아가기
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handleCancel(false)}
+                disabled={actionLoading === "cancel"}
+                className="flex-1"
+              >
+                {actionLoading === "cancel" ? "처리 중..." : "미차감 취소"}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleCancel(true)}
+                disabled={actionLoading === "cancel"}
+                className="flex-1"
+              >
+                {actionLoading === "cancel" ? "처리 중..." : "차감 취소"}
               </Button>
             </div>
           </div>

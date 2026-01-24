@@ -8,6 +8,7 @@ const updateScheduleSchema = z.object({
   scheduledAt: z.string().optional(),
   notes: z.string().optional(),
   internalNotes: z.string().optional(), // 내부 메모 (트레이너/관리자용)
+  deductPT: z.boolean().optional(), // 취소 시 PT 차감 여부
 });
 
 export async function PATCH(
@@ -35,7 +36,7 @@ export async function PATCH(
       );
     }
 
-    const { status, scheduledAt, notes, internalNotes } = validatedData.data;
+    const { status, scheduledAt, notes, internalNotes, deductPT } = validatedData.data;
 
     const schedule = await prisma.schedule.findUnique({
       where: { id },
@@ -142,59 +143,75 @@ export async function PATCH(
       });
     }
 
-    // 취소 처리 (SCHEDULED -> CANCELLED) - PT 차감 및 기록 생성
+    // 취소 처리 (SCHEDULED -> CANCELLED)
     if (status === "CANCELLED" && schedule.status === "SCHEDULED") {
-      // 잔여 PT가 있는지 확인
-      if (schedule.memberProfile.remainingPT <= 0) {
-        return NextResponse.json(
-          { error: "잔여 PT가 없습니다." },
-          { status: 400 }
-        );
-      }
+      // PT 차감 여부에 따라 처리
+      const shouldDeductPT = deductPT !== false; // 기본값은 차감
 
-      const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
+      if (shouldDeductPT) {
+        // PT 차감하는 경우
+        if (schedule.memberProfile.remainingPT <= 0) {
+          return NextResponse.json(
+            { error: "잔여 PT가 없습니다." },
+            { status: 400 }
+          );
+        }
 
-      // 건당 PT 비용 계산 (회원의 모든 결제 기록 기반)
-      const payments = await prisma.payment.findMany({
-        where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
-        select: { amount: true, ptCount: true },
-      });
-      const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
-      const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
-      const unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
+        const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
 
-      // 트랜잭션으로 취소 처리
-      const updatedSchedule = await prisma.$transaction(async (tx) => {
-        const updated = await tx.schedule.update({
+        // 건당 PT 비용 계산 (회원의 모든 결제 기록 기반)
+        const payments = await prisma.payment.findMany({
+          where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
+          select: { amount: true, ptCount: true },
+        });
+        const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+        const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
+        const unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
+
+        // 트랜잭션으로 취소 처리 (차감)
+        const updatedSchedule = await prisma.$transaction(async (tx) => {
+          const updated = await tx.schedule.update({
+            where: { id },
+            data: { status: "CANCELLED", notes },
+          });
+
+          // 취소 기록 생성 (차감 후 잔여 회수 저장 + 건당 비용)
+          await tx.attendance.create({
+            data: {
+              memberProfileId: schedule.memberProfileId,
+              scheduleId: id,
+              remainingPTAfter,
+              unitPrice,
+              notes: notes ? `[취소-차감] ${notes}` : "[취소-차감]",
+              internalNotes,
+            },
+          });
+
+          // PT 횟수 차감
+          await tx.memberProfile.update({
+            where: { id: schedule.memberProfileId },
+            data: { remainingPT: { decrement: 1 } },
+          });
+
+          return updated;
+        });
+
+        return NextResponse.json({
+          message: "예약이 취소되었습니다. (PT 1회 차감)",
+          schedule: updatedSchedule,
+        });
+      } else {
+        // PT 차감하지 않는 경우
+        const updatedSchedule = await prisma.schedule.update({
           where: { id },
-          data: { status: "CANCELLED", notes },
+          data: { status: "CANCELLED", notes: notes ? `[취소] ${notes}` : "[취소]" },
         });
 
-        // 취소 기록 생성 (차감 후 잔여 회수 저장 + 건당 비용)
-        await tx.attendance.create({
-          data: {
-            memberProfileId: schedule.memberProfileId,
-            scheduleId: id,
-            remainingPTAfter,
-            unitPrice,       // 건당 PT 비용
-            notes: notes ? `[취소] ${notes}` : "[취소]",
-            internalNotes,
-          },
+        return NextResponse.json({
+          message: "예약이 취소되었습니다. (PT 미차감)",
+          schedule: updatedSchedule,
         });
-
-        // PT 횟수 차감
-        await tx.memberProfile.update({
-          where: { id: schedule.memberProfileId },
-          data: { remainingPT: { decrement: 1 } },
-        });
-
-        return updated;
-      });
-
-      return NextResponse.json({
-        message: "예약이 취소되었습니다. (PT 1회 차감)",
-        schedule: updatedSchedule,
-      });
+      }
     }
 
     // 취소 되돌리기 (CANCELLED -> SCHEDULED) - PT 복원
