@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 import { z } from "zod";
 
 const createAdminSchema = z.object({
@@ -14,19 +14,32 @@ const createAdminSchema = z.object({
 // GET: 관리자 목록 조회
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // ADMIN 또는 SUPER_ADMIN만 접근 가능
+    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
+    // Shop context 확인 (ADMIN은 필수, SUPER_ADMIN은 선택적)
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
     const admins = await prisma.user.findMany({
-      where: { role: "ADMIN" },
+      where: {
+        role: "ADMIN",
+        ...shopFilter,
+      },
       select: {
         id: true,
         name: true,
         email: true,
         phone: true,
         createdAt: true,
+        shopId: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -44,9 +57,21 @@ export async function GET() {
 // POST: 새 관리자 생성
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // ADMIN 또는 SUPER_ADMIN만 접근 가능
+    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    }
+
+    // Shop context 필수
+    const shopError = requireShopContext(authResult);
+    if (shopError) {
+      return NextResponse.json({ error: shopError }, { status: 400 });
     }
 
     const body = await request.json();
@@ -76,7 +101,7 @@ export async function POST(request: Request) {
     // 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // 관리자 생성
+    // 관리자 생성 (shopId 포함)
     const admin = await prisma.user.create({
       data: {
         name,
@@ -84,6 +109,7 @@ export async function POST(request: Request) {
         phone,
         password: hashedPassword,
         role: "ADMIN",
+        shopId: authResult.shopId!,
       },
       select: {
         id: true,
@@ -91,6 +117,7 @@ export async function POST(request: Request) {
         email: true,
         phone: true,
         createdAt: true,
+        shopId: true,
       },
     });
 

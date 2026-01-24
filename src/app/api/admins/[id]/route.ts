@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
 
 const updateAdminSchema = z.object({
@@ -17,21 +17,32 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { id } = await params;
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
-    const admin = await prisma.user.findUnique({
-      where: { id, role: "ADMIN" },
+    const admin = await prisma.user.findFirst({
+      where: {
+        id,
+        role: "ADMIN",
+        ...shopFilter,
+      },
       select: {
         id: true,
         name: true,
         email: true,
         phone: true,
         createdAt: true,
+        shopId: true,
       },
     });
 
@@ -55,8 +66,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -71,9 +87,15 @@ export async function PATCH(
       );
     }
 
-    // 관리자 존재 확인
-    const existingAdmin = await prisma.user.findUnique({
-      where: { id, role: "ADMIN" },
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    // 관리자 존재 확인 (shop 필터 적용)
+    const existingAdmin = await prisma.user.findFirst({
+      where: {
+        id,
+        role: "ADMIN",
+        ...shopFilter,
+      },
     });
 
     if (!existingAdmin) {
@@ -113,6 +135,7 @@ export async function PATCH(
         email: true,
         phone: true,
         createdAt: true,
+        shopId: true,
       },
     });
 
@@ -135,33 +158,47 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { id } = await params;
 
     // 자기 자신 삭제 방지
-    if (session.user.id === id) {
+    if (authResult.userId === id) {
       return NextResponse.json(
         { error: "자기 자신은 삭제할 수 없습니다." },
         { status: 400 }
       );
     }
 
-    // 관리자 존재 확인
-    const admin = await prisma.user.findUnique({
-      where: { id, role: "ADMIN" },
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    // 관리자 존재 확인 (shop 필터 적용)
+    const admin = await prisma.user.findFirst({
+      where: {
+        id,
+        role: "ADMIN",
+        ...shopFilter,
+      },
     });
 
     if (!admin) {
       return NextResponse.json({ error: "관리자를 찾을 수 없습니다." }, { status: 404 });
     }
 
-    // 마지막 관리자 삭제 방지
+    // 해당 샵의 마지막 관리자 삭제 방지
     const adminCount = await prisma.user.count({
-      where: { role: "ADMIN" },
+      where: {
+        role: "ADMIN",
+        shopId: admin.shopId,
+      },
     });
 
     if (adminCount <= 1) {
