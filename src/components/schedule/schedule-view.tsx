@@ -22,16 +22,8 @@ import {
   Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -614,78 +606,106 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
           </CardContent>
         </Card>
       ) : (
-        <>
-          {/* Desktop Table View */}
-          <Card className="hidden md:block">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>상태</TableHead>
-                    <TableHead>날짜</TableHead>
-                    <TableHead>시간</TableHead>
-                    <TableHead>회원</TableHead>
-                    <TableHead>트레이너</TableHead>
-                    <TableHead>잔여 PT</TableHead>
-                    <TableHead>메모</TableHead>
-                    <TableHead className="text-right">액션</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {schedules.map((schedule) => (
-                    <TableRow key={schedule.id}>
-                      <TableCell>
-                        <Badge className={statusColors[schedule.status]}>
-                          {statusLabels[schedule.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(schedule.scheduledAt), "M월 d일 (EEE)", { locale: ko })}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(schedule.scheduledAt), "HH:mm")}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {schedule.memberProfile.user.name}
-                      </TableCell>
-                      <TableCell>
-                        {schedule.trainer.user.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={schedule.memberProfile.remainingPT > 0 ? "default" : "secondary"}>
-                          {schedule.memberProfile.remainingPT}회
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        {schedule.notes && (
-                          <p className="text-sm text-muted-foreground truncate">
-                            {schedule.notes}
-                          </p>
-                        )}
-                        {schedule.attendance?.notes && (
-                          <div className="flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3 text-muted-foreground shrink-0" />
-                            <p className="text-xs text-muted-foreground truncate">
-                              {schedule.attendance.notes}
+        <Card>
+          <CardHeader className="pb-0">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              일정 목록
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 pt-4">
+            <div className="divide-y divide-border/50">
+              {sortedDates.map((date) => (
+                <div key={date}>
+                  {/* 날짜 헤더 */}
+                  <div className="flex items-center gap-2 px-4 py-3 bg-muted/30">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[15px] font-medium">
+                      {format(new Date(date), "M월 d일 (EEEE)", { locale: ko })}
+                    </span>
+                    <Badge variant="outline" className="ml-auto">
+                      {groupedSchedules[date].length}건
+                    </Badge>
+                  </div>
+
+                  {/* 해당 날짜의 일정 */}
+                  <div className="divide-y divide-border/30">
+                    {groupedSchedules[date].map((schedule) => (
+                      <div
+                        key={schedule.id}
+                        className="flex items-center gap-4 px-4 py-4 hover:bg-accent/30 transition-colors"
+                      >
+                        {/* 상태 아이콘 */}
+                        <div className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          schedule.status === "COMPLETED" ? "bg-green-500/10" :
+                          schedule.status === "CANCELLED" ? "bg-gray-500/10" :
+                          schedule.status === "NO_SHOW" ? "bg-red-500/10" :
+                          "bg-blue-500/10"
+                        }`}>
+                          {schedule.status === "COMPLETED" ? (
+                            <Check className="h-6 w-6 text-green-500" />
+                          ) : schedule.status === "CANCELLED" ? (
+                            <X className="h-6 w-6 text-gray-500" />
+                          ) : schedule.status === "NO_SHOW" ? (
+                            <X className="h-6 w-6 text-red-500" />
+                          ) : (
+                            <Clock className="h-6 w-6 text-blue-500" />
+                          )}
+                        </div>
+
+                        {/* 정보 */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[17px] font-semibold text-foreground truncate">
+                              {schedule.memberProfile.user.name}
                             </p>
+                            <Badge className={statusColors[schedule.status]}>
+                              {statusLabels[schedule.status]}
+                            </Badge>
                           </div>
-                        )}
-                        {schedule.attendance?.internalNotes && (
-                          <div className="flex items-center gap-1">
-                            <Lock className="h-3 w-3 text-orange-500 shrink-0" />
-                            <p className="text-xs text-orange-600 truncate">
-                              {schedule.attendance.internalNotes}
+                          <div className="flex items-center gap-2 text-[15px] text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            {format(new Date(schedule.scheduledAt), "HH:mm")}
+                            <span className="hidden sm:inline">
+                              · {schedule.trainer.user.name} 트레이너
+                            </span>
+                          </div>
+                          {/* 메모 */}
+                          {schedule.notes && (
+                            <p className="text-[13px] text-muted-foreground/70 mt-0.5 truncate">
+                              {schedule.notes}
                             </p>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                          )}
+                          {schedule.attendance?.notes && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <MessageSquare className="h-3 w-3 text-muted-foreground/70" />
+                              <p className="text-[13px] text-muted-foreground/70 truncate">
+                                {schedule.attendance.notes}
+                              </p>
+                            </div>
+                          )}
+                          {schedule.attendance?.internalNotes && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Lock className="h-3 w-3 text-orange-500" />
+                              <p className="text-[13px] text-orange-600 dark:text-orange-400 truncate">
+                                {schedule.attendance.internalNotes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 오른쪽: 잔여PT, 액션 */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge variant={schedule.memberProfile.remainingPT > 0 ? "outline" : "secondary"}>
+                            {schedule.memberProfile.remainingPT}회
+                          </Badge>
+
                           {schedule.status === "SCHEDULED" && (
                             <>
                               <Button
                                 size="sm"
                                 variant="outline"
+                                className="h-8 w-8 p-0"
                                 onClick={() => openCancelDialog(schedule)}
                                 disabled={!!actionLoading}
                                 title="취소"
@@ -694,6 +714,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                               </Button>
                               <Button
                                 size="sm"
+                                className="h-8 w-8 p-0"
                                 onClick={() => openCheckInDialog(schedule)}
                                 disabled={!!actionLoading}
                                 title="출석"
@@ -707,6 +728,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                             <Button
                               size="sm"
                               variant="outline"
+                              className="h-8 w-8 p-0"
                               onClick={() => handleRevert(schedule.id)}
                               disabled={actionLoading === schedule.id}
                               title="되돌리기"
@@ -744,161 +766,14 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Mobile Card View */}
-          <div className="space-y-4 md:hidden">
-            {sortedDates.map((date) => (
-              <div key={date} className="space-y-2">
-                <h2 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  {format(new Date(date), "M월 d일 (EEEE)", { locale: ko })}
-                  <Badge variant="outline" className="ml-auto">
-                    {groupedSchedules[date].length}건
-                  </Badge>
-                </h2>
-                <div className="space-y-2">
-                  {groupedSchedules[date].map((schedule) => (
-                    <Card key={schedule.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <User className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-medium">
-                                  {schedule.memberProfile.user.name}
-                                </p>
-                                <Badge className={statusColors[schedule.status]}>
-                                  {statusLabels[schedule.status]}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                                <Clock className="h-3 w-3" />
-                                {format(new Date(schedule.scheduledAt), "HH:mm")}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                잔여 PT: {schedule.memberProfile.remainingPT}회
-                              </p>
-                              {schedule.notes && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {schedule.notes}
-                                </p>
-                              )}
-                              {schedule.attendance?.notes && (
-                                <div className="flex items-start gap-1 mt-1">
-                                  <MessageSquare className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-                                  <p className="text-xs text-muted-foreground">
-                                    {schedule.attendance.notes}
-                                  </p>
-                                </div>
-                              )}
-                              {schedule.attendance?.internalNotes && (
-                                <div className="flex items-start gap-1 mt-1">
-                                  <Lock className="h-3 w-3 text-orange-500 mt-0.5 shrink-0" />
-                                  <p className="text-xs text-orange-600 dark:text-orange-400">
-                                    {schedule.attendance.internalNotes}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {schedule.status === "SCHEDULED" && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => openCancelDialog(schedule)}
-                                disabled={!!actionLoading}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => openCheckInDialog(schedule)}
-                                disabled={!!actionLoading}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-
-                          {schedule.status === "COMPLETED" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRevert(schedule.id)}
-                              disabled={actionLoading === schedule.id}
-                              title="출석 되돌리기"
-                            >
-                              {actionLoading === schedule.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <RotateCcw className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
-
-                          {schedule.status === "CANCELLED" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRevert(schedule.id)}
-                              disabled={actionLoading === schedule.id}
-                              title="취소 되돌리기"
-                            >
-                              {actionLoading === schedule.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <RotateCcw className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => openEditDialog(schedule)}
-                              >
-                                <Pencil className="h-4 w-4 mr-2" />
-                                수정
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => openDeleteDialog(schedule)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                삭제
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* 수정 다이얼로그 */}
