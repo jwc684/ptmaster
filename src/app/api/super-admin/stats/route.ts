@@ -74,16 +74,18 @@ export async function GET(request: NextRequest) {
     });
 
     const topShops = await Promise.all(
-      shopRevenues.map(async (item) => {
-        const shop = await prisma.pTShop.findUnique({
-          where: { id: item.shopId },
-          select: { id: true, name: true, slug: true },
-        });
-        return {
-          shop,
-          totalRevenue: item._sum.amount || 0,
-        };
-      })
+      shopRevenues
+        .filter((item) => item.shopId !== null)
+        .map(async (item) => {
+          const shop = await prisma.pTShop.findUnique({
+            where: { id: item.shopId! },
+            select: { id: true, name: true, slug: true },
+          });
+          return {
+            shop,
+            totalRevenue: item._sum.amount || 0,
+          };
+        })
     );
 
     // Get monthly revenue trend (last 6 months)
