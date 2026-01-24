@@ -33,9 +33,9 @@ export function ShopSelector() {
 
   if (isLoading) {
     return (
-      <Button variant="outline" size="sm" disabled className="max-w-[160px] sm:max-w-[200px]">
-        <Building2 className="mr-2 h-4 w-4 flex-shrink-0" />
-        <span className="truncate">로딩...</span>
+      <Button variant="outline" size="sm" disabled className="h-8 px-2 sm:px-3">
+        <Building2 className="h-4 w-4 flex-shrink-0" />
+        <span className="ml-1.5 truncate hidden sm:inline">로딩...</span>
       </Button>
     );
   }
@@ -47,23 +47,24 @@ export function ShopSelector() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="max-w-[140px] sm:max-w-[200px] justify-between"
+          className="h-8 px-2 sm:px-3 max-w-[120px] sm:max-w-[180px] justify-between"
           size="sm"
         >
-          <div className="flex items-center min-w-0 flex-1">
+          <div className="flex items-center min-w-0">
             {currentShop ? (
               <>
-                <Building2 className="mr-1.5 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{currentShop.name}</span>
+                <Building2 className="h-4 w-4 flex-shrink-0" />
+                <span className="ml-1.5 truncate hidden sm:inline">{currentShop.name}</span>
+                <span className="ml-1.5 truncate sm:hidden">{currentShop.name.slice(0, 6)}</span>
               </>
             ) : (
               <>
-                <Globe className="mr-1.5 h-4 w-4 flex-shrink-0" />
-                <span className="truncate">전체</span>
+                <Globe className="h-4 w-4 flex-shrink-0" />
+                <span className="ml-1.5 truncate">전체</span>
               </>
             )}
           </div>
-          <ChevronsUpDown className="ml-1 h-4 w-4 flex-shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-1 h-3 w-3 flex-shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[250px] p-0">

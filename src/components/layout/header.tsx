@@ -43,29 +43,29 @@ export function Header() {
     .toUpperCase() || "U";
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 items-center gap-2 border-b bg-background px-4 w-full max-w-full overflow-hidden">
+    <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background px-3 sm:px-4 w-full">
+      {/* Left: Menu button (mobile only) */}
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden flex-shrink-0"
+        className="md:hidden h-9 w-9 flex-shrink-0"
         onClick={toggleSidebar}
       >
         <Menu className="h-5 w-5" />
         <span className="sr-only">Toggle menu</span>
       </Button>
 
-      {/* Shop Selector for Super Admin */}
-      <div className="min-w-0 flex-shrink">
+      {/* Center: Shop Selector (Super Admin only) */}
+      <div className="flex-1 flex justify-center md:justify-start md:ml-0 min-w-0 px-2">
         <ShopSelector />
       </div>
 
-      <div className="flex-1 min-w-0" />
-
-      <div className="flex items-center gap-2 flex-shrink-0">
+      {/* Right: Actions */}
+      <div className="flex items-center gap-1 flex-shrink-0">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild className="h-8 w-8 sm:h-9 sm:w-9">
           <Link href="/notifications">
-            <Bell className="h-5 w-5" />
+            <Bell className="h-4 w-4" />
             <span className="sr-only">알림</span>
           </Link>
         </Button>
@@ -74,10 +74,10 @@ export function Header() {
         {mounted ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
+              <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0">
+                <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
                   <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />
-                  <AvatarFallback>{initials}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -111,9 +111,9 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>{initials}</AvatarFallback>
+          <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0">
+            <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
           </Button>
         )}
