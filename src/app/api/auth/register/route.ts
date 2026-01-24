@@ -4,17 +4,6 @@ import { prisma, testDbConnection } from "@/lib/prisma";
 import { registerApiSchema } from "@/lib/validations/auth";
 import { Prisma } from "@prisma/client";
 
-function generateQRCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  // 타임스탬프 추가로 충돌 방지
-  result += Date.now().toString(36).slice(-4).toUpperCase();
-  return result.slice(0, 12);
-}
-
 export async function POST(request: Request) {
   try {
     // 1. 요청 본문 파싱
@@ -67,61 +56,22 @@ export async function POST(request: Request) {
     // 5. 비밀번호 해시
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // 6. 사용자 생성 (QR 코드 충돌 시 재시도)
-    let user;
-    let attempts = 0;
-    const maxAttempts = 3;
-
-    while (attempts < maxAttempts) {
-      try {
-        user = await prisma.user.create({
-          data: {
-            name,
-            email,
-            phone,
-            password: hashedPassword,
-            role: "MEMBER",
-            memberProfile: {
-              create: {
-                qrCode: generateQRCode(),
-              },
-            },
-          },
-          include: {
-            memberProfile: true,
-          },
-        });
-        break; // 성공 시 루프 종료
-      } catch (createError) {
-        // Prisma unique constraint 에러 (P2002)
-        if (
-          createError instanceof Prisma.PrismaClientKnownRequestError &&
-          createError.code === "P2002"
-        ) {
-          const target = createError.meta?.target as string[] | undefined;
-          if (target?.includes("qrCode")) {
-            attempts++;
-            console.log(`QR code collision, attempt ${attempts}/${maxAttempts}`);
-            if (attempts >= maxAttempts) {
-              throw new Error("QR 코드 생성에 실패했습니다. 다시 시도해주세요.");
-            }
-            continue;
-          }
-          // 이메일 중복 (이미 위에서 체크했지만 race condition 대비)
-          if (target?.includes("email")) {
-            return NextResponse.json(
-              { error: "이미 등록된 이메일입니다." },
-              { status: 400 }
-            );
-          }
-        }
-        throw createError;
-      }
-    }
-
-    if (!user) {
-      throw new Error("사용자 생성에 실패했습니다.");
-    }
+    // 6. 사용자 생성
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        phone,
+        password: hashedPassword,
+        role: "MEMBER",
+        memberProfile: {
+          create: {},
+        },
+      },
+      include: {
+        memberProfile: true,
+      },
+    });
 
     return NextResponse.json(
       {
@@ -140,11 +90,26 @@ export async function POST(request: Request) {
 
     // Prisma 에러 상세 분류
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error("Prisma error code:", error.code, "meta:", error.meta);
+      console.error("Prisma error code:", error.code, "meta:", error.meta, "message:", error.message);
+
+      // P2002: Unique constraint violation
+      if (error.code === "P2002") {
+        const target = error.meta?.target as string[] | undefined;
+        if (target?.includes("email")) {
+          return NextResponse.json(
+            { error: "이미 등록된 이메일입니다." },
+            { status: 400 }
+          );
+        }
+      }
+
+      // P2003: Foreign key constraint
+      // P2025: Record not found
       return NextResponse.json(
         {
           error: "데이터베이스 오류가 발생했습니다.",
-          code: error.code
+          code: error.code,
+          details: process.env.NODE_ENV === "development" ? error.message : undefined
         },
         { status: 500 }
       );
@@ -155,15 +120,32 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "서버 초기화 오류가 발생했습니다.",
-          code: "PRISMA_INIT_ERROR"
+          code: "PRISMA_INIT_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined
+        },
+        { status: 500 }
+      );
+    }
+
+    if (error instanceof Prisma.PrismaClientValidationError) {
+      console.error("Prisma validation error:", error.message);
+      return NextResponse.json(
+        {
+          error: "데이터 유효성 검사 오류가 발생했습니다.",
+          code: "PRISMA_VALIDATION_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined
         },
         { status: 500 }
       );
     }
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Unknown registration error:", errorMessage);
     return NextResponse.json(
-      { error: "회원가입 중 오류가 발생했습니다.", details: errorMessage },
+      {
+        error: "회원가입 중 오류가 발생했습니다.",
+        details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }

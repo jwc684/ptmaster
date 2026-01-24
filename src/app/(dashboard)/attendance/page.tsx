@@ -133,17 +133,20 @@ export default function AttendancePage() {
       <Card>
         <CardContent className="py-4 space-y-4">
           {/* 기간 선택 */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <div className="flex items-center gap-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>기간</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center gap-2 flex-1">
                 <Label htmlFor="startDate" className="sr-only">시작일</Label>
                 <Input
                   id="startDate"
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-auto"
+                  className="flex-1 sm:flex-none sm:w-auto"
                 />
                 <span className="text-muted-foreground">~</span>
                 <Label htmlFor="endDate" className="sr-only">종료일</Label>
@@ -152,26 +155,26 @@ export default function AttendancePage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-auto"
+                  className="flex-1 sm:flex-none sm:w-auto"
                 />
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleToday}>
-                오늘
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleThisMonth}>
-                이번 달
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleToday} className="flex-1 sm:flex-none">
+                  오늘
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleThisMonth} className="flex-1 sm:flex-none">
+                  이번 달
+                </Button>
+              </div>
             </div>
           </div>
 
           {/* 회원 필터 */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex items-center gap-2 flex-1">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <User className="h-4 w-4 text-muted-foreground" />
               <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="flex-1 sm:w-[200px]">
                   <SelectValue placeholder="회원 선택" />
                 </SelectTrigger>
                 <SelectContent>
@@ -196,35 +199,37 @@ export default function AttendancePage() {
       {/* 출석 통계 */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Users className="h-5 w-5 text-muted-foreground" />
-              <span className="text-muted-foreground">
+              <span className="text-sm sm:text-base text-muted-foreground">
                 {startDate === endDate
                   ? format(new Date(startDate), "M월 d일", { locale: ko })
-                  : `${format(new Date(startDate), "M월 d일", { locale: ko })} ~ ${format(new Date(endDate), "M월 d일", { locale: ko })}`
-                } 기록
-                {selectedMemberId !== "all" && members.find(m => m.id === selectedMemberId) && (
-                  <Badge variant="secondary" className="ml-2">
-                    {members.find(m => m.id === selectedMemberId)?.user.name}
-                  </Badge>
-                )}
+                  : `${format(new Date(startDate), "M/d", { locale: ko })} ~ ${format(new Date(endDate), "M/d", { locale: ko })}`
+                }
               </span>
+              {selectedMemberId !== "all" && members.find(m => m.id === selectedMemberId) && (
+                <Badge variant="secondary">
+                  {members.find(m => m.id === selectedMemberId)?.user.name}
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="font-medium">
-                  {attendances.filter(a => a.schedule?.status === "COMPLETED").length}
-                </span>
+            <div className="flex items-center justify-between sm:justify-end gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="font-medium text-sm">
+                    {attendances.filter(a => a.schedule?.status === "COMPLETED").length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <XCircle className="h-4 w-4 text-red-500" />
+                  <span className="font-medium text-sm">
+                    {attendances.filter(a => a.schedule?.status === "CANCELLED").length}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <XCircle className="h-4 w-4 text-red-500" />
-                <span className="font-medium">
-                  {attendances.filter(a => a.schedule?.status === "CANCELLED").length}
-                </span>
-              </div>
-              <span className="text-xl font-bold">총 {attendances.length}건</span>
+              <span className="text-lg sm:text-xl font-bold">총 {attendances.length}건</span>
             </div>
           </div>
         </CardContent>
@@ -257,18 +262,18 @@ export default function AttendancePage() {
                       return (
                         <div
                           key={attendance.id}
-                          className={`flex items-center justify-between py-2 pl-4 ${
+                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 pl-4 gap-2 ${
                             isCancelled ? "opacity-70" : ""
                           }`}
                         >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {isCancelled ? (
-                                <XCircle className="h-4 w-4 text-red-500" />
+                                <XCircle className="h-4 w-4 text-red-500 shrink-0" />
                               ) : (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
                               )}
-                              <p className="font-medium">
+                              <p className="font-medium truncate">
                                 {attendance.memberProfile.user.name}
                               </p>
                               {isCancelled && (
@@ -283,20 +288,20 @@ export default function AttendancePage() {
                               </p>
                             )}
                             {attendance.notes && !attendance.notes.startsWith("[취소]") && (
-                              <p className="text-sm text-muted-foreground ml-6">
+                              <p className="text-sm text-muted-foreground ml-6 break-words">
                                 {attendance.notes}
                               </p>
                             )}
                           </div>
-                          <div className="text-right space-y-1">
-                            <Badge variant="outline">
-                              잔여 {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
-                            </Badge>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                          <div className="flex items-center justify-between sm:justify-end gap-2 ml-6 sm:ml-0">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Clock className="h-3 w-3" />
-                              {isCancelled ? "취소: " : ""}
+                              {isCancelled ? "취소 " : ""}
                               {format(new Date(attendance.checkInTime), "HH:mm")}
                             </div>
+                            <Badge variant="outline" className="shrink-0">
+                              잔여 {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
+                            </Badge>
                           </div>
                         </div>
                       );
