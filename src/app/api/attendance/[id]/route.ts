@@ -159,3 +159,67 @@ export async function PATCH(
     );
   }
 }
+
+// DELETE: 출석 기록 삭제 (관리자 전용)
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+
+    // 관리자만 삭제 가능
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "관리자만 삭제할 수 있습니다." }, { status: 403 });
+    }
+
+    const { id } = await params;
+
+    const attendance = await prisma.attendance.findUnique({
+      where: { id },
+      include: {
+        memberProfile: true,
+        schedule: true,
+      },
+    });
+
+    if (!attendance) {
+      return NextResponse.json({ error: "출석 기록을 찾을 수 없습니다." }, { status: 404 });
+    }
+
+    // 트랜잭션으로 출석 삭제 및 PT 복원
+    await prisma.$transaction(async (tx) => {
+      // 출석 기록 삭제
+      await tx.attendance.delete({
+        where: { id },
+      });
+
+      // PT 횟수 복원
+      await tx.memberProfile.update({
+        where: { id: attendance.memberProfileId },
+        data: { remainingPT: { increment: 1 } },
+      });
+
+      // 연결된 스케줄이 있으면 상태를 SCHEDULED로 변경
+      if (attendance.scheduleId) {
+        await tx.schedule.update({
+          where: { id: attendance.scheduleId },
+          data: { status: "SCHEDULED" },
+        });
+      }
+    });
+
+    return NextResponse.json({
+      message: "출석 기록이 삭제되었습니다. (PT 1회 복원)",
+    });
+  } catch (error) {
+    console.error("Error deleting attendance:", error);
+    return NextResponse.json(
+      { error: "출석 기록 삭제 중 오류가 발생했습니다." },
+      { status: 500 }
+    );
+  }
+}

@@ -24,7 +24,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User, Pencil, MessageSquare, Lock, Banknote } from "lucide-react";
+import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User, Pencil, MessageSquare, Lock, Banknote, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Member {
   id: string;
@@ -68,9 +78,30 @@ export default function AttendancePage() {
   const [editNotes, setEditNotes] = useState({ notes: "", internalNotes: "" });
   const [saving, setSaving] = useState(false);
 
+  // 삭제 다이얼로그 상태
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [attendanceToDelete, setAttendanceToDelete] = useState<Attendance | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // 사용자 역할
+  const [userRole, setUserRole] = useState<string | null>(null);
+
   useEffect(() => {
     fetchMembers();
+    fetchUserRole();
   }, []);
+
+  async function fetchUserRole() {
+    try {
+      const response = await fetch("/api/auth/session");
+      if (response.ok) {
+        const data = await response.json();
+        setUserRole(data?.user?.role || null);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  }
 
   useEffect(() => {
     fetchAttendance();
@@ -159,6 +190,36 @@ export default function AttendancePage() {
       toast.error("오류가 발생했습니다.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function openDeleteDialog(attendance: Attendance) {
+    setAttendanceToDelete(attendance);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleDelete() {
+    if (!attendanceToDelete) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/attendance/${attendanceToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast.success("출석 기록이 삭제되었습니다. (PT 1회 복원)");
+        setDeleteDialogOpen(false);
+        setAttendanceToDelete(null);
+        fetchAttendance();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "삭제에 실패했습니다.");
+      }
+    } catch {
+      toast.error("오류가 발생했습니다.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -398,6 +459,16 @@ export default function AttendancePage() {
                             >
                               <Pencil className="h-3 w-3" />
                             </Button>
+                            {userRole === "ADMIN" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                onClick={() => openDeleteDialog(attendance)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
@@ -476,6 +547,43 @@ export default function AttendancePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>출석 기록 삭제</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {attendanceToDelete && (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="font-medium text-foreground">
+                      {attendanceToDelete.memberProfile.user.name}
+                    </p>
+                    <p className="text-sm">
+                      {format(new Date(attendanceToDelete.checkInTime), "M월 d일 HH:mm", { locale: ko })}
+                    </p>
+                  </div>
+                )}
+                <p>이 출석 기록을 삭제하시겠습니까?</p>
+                <p className="text-sm text-orange-600 dark:text-orange-400">
+                  삭제 시 PT 1회가 복원됩니다.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "삭제 중..." : "삭제"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
