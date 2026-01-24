@@ -7,15 +7,6 @@ import { toast } from "sonner";
 import { Trash2, Loader2, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -89,97 +80,37 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
 
   if (payments.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-8">
+      <div className="text-center py-8 text-muted-foreground">
+        <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
         결제 내역이 없습니다.
-      </p>
+      </div>
     );
   }
 
   return (
     <>
-      {/* Desktop Table View */}
-      <div className="hidden md:block -mx-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>회원</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead>PT 횟수</TableHead>
-              <TableHead>결제금액</TableHead>
-              <TableHead>결제일</TableHead>
-              <TableHead>비고</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map((payment) => (
-              <TableRow key={payment.id}>
-                <TableCell>
-                  <Link
-                    href={`/members/${payment.memberProfile.id}`}
-                    className="font-medium hover:underline"
-                  >
-                    {payment.memberProfile.user.name}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={payment.status === "COMPLETED" ? "default" : "destructive"}
-                    className="text-xs"
-                  >
-                    {statusLabels[payment.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell>PT {payment.ptCount}회</TableCell>
-                <TableCell className="font-medium">
-                  ₩{payment.amount.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {new Date(payment.paidAt).toLocaleDateString("ko-KR")}
-                </TableCell>
-                <TableCell className="max-w-[150px]">
-                  {payment.description ? (
-                    <span className="text-muted-foreground text-sm truncate block">
-                      {payment.description}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => openDeleteDialog(payment)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mobile Card View */}
-      <div className="space-y-3 md:hidden">
+      <div className="divide-y divide-border/50">
         {payments.map((payment) => (
-          <div
+          <Link
             key={payment.id}
-            className="flex items-center gap-3 py-3 border-b last:border-0"
+            href={`/members/${payment.memberProfile.id}`}
+            className="flex items-center gap-4 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
           >
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <CreditCard className="h-5 w-5 text-primary" />
+            {/* 아이콘 */}
+            <div className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+              payment.status === "COMPLETED" ? "bg-primary/10" : "bg-destructive/10"
+            }`}>
+              <CreditCard className={`h-6 w-6 ${
+                payment.status === "COMPLETED" ? "text-primary" : "text-destructive"
+              }`} />
             </div>
+
+            {/* 정보 */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/members/${payment.memberProfile.id}`}
-                  className="font-medium hover:underline"
-                >
+                <p className="text-[17px] font-semibold text-foreground truncate">
                   {payment.memberProfile.user.name}
-                </Link>
+                </p>
                 <Badge
                   variant={payment.status === "COMPLETED" ? "default" : "destructive"}
                   className="text-xs"
@@ -187,32 +118,43 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
                   {statusLabels[payment.status]}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[15px] text-muted-foreground">
                 PT {payment.ptCount}회
-                {payment.description && ` - ${payment.description}`}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
+              {payment.description && (
+                <p className="text-[13px] text-muted-foreground/70 mt-0.5 truncate">
+                  {payment.description}
+                </p>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <p className="font-bold text-right">
-                ₩{payment.amount.toLocaleString()}
-              </p>
+
+            {/* 오른쪽: 금액, 날짜, 삭제 */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="text-right">
+                <p className="text-[17px] font-semibold">
+                  ₩{payment.amount.toLocaleString()}
+                </p>
+                <p className="text-[13px] text-muted-foreground">
+                  {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                onClick={() => openDeleteDialog(payment)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openDeleteDialog(payment);
+                }}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
