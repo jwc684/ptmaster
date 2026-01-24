@@ -111,8 +111,15 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // 출석 메모 폼 상태
+  const [checkInNotes, setCheckInNotes] = useState({
+    notes: "",           // 공유 메모 (회원에게 보이는 메모)
+    internalNotes: "",   // 내부 메모 (트레이너/관리자만)
+  });
 
   // 수정 폼 상태
   const [editForm, setEditForm] = useState({
@@ -218,17 +225,31 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
     }
   }
 
-  async function handleCheckIn(scheduleId: string) {
-    setActionLoading(scheduleId);
+  function openCheckInDialog(schedule: Schedule) {
+    setSelectedSchedule(schedule);
+    setCheckInNotes({ notes: "", internalNotes: "" });
+    setCheckInDialogOpen(true);
+  }
+
+  async function handleCheckIn() {
+    if (!selectedSchedule) return;
+
+    setActionLoading("checkIn");
     try {
-      const res = await fetch(`/api/schedules/${scheduleId}`, {
+      const res = await fetch(`/api/schedules/${selectedSchedule.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "COMPLETED" }),
+        body: JSON.stringify({
+          status: "COMPLETED",
+          notes: checkInNotes.notes || undefined,
+          internalNotes: checkInNotes.internalNotes || undefined,
+        }),
       });
 
       if (res.ok) {
         toast.success("출석이 완료되었습니다.");
+        setCheckInDialogOpen(false);
+        setSelectedSchedule(null);
         fetchSchedules();
         router.refresh();
       } else {
@@ -622,14 +643,10 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => handleCheckIn(schedule.id)}
-                              disabled={actionLoading === schedule.id}
+                              onClick={() => openCheckInDialog(schedule)}
+                              disabled={!!actionLoading}
                             >
-                              {actionLoading === schedule.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
+                              <Check className="h-4 w-4" />
                             </Button>
                           </div>
                         )}
@@ -792,6 +809,70 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 출석 체크 다이얼로그 */}
+      <Dialog open={checkInDialogOpen} onOpenChange={setCheckInDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>PT 출석 체크</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {selectedSchedule && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{selectedSchedule.memberProfile.user.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(selectedSchedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  잔여 PT: {selectedSchedule.memberProfile.remainingPT}회 → {selectedSchedule.memberProfile.remainingPT - 1}회
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>공유 메모 (회원에게 보이는 메모)</Label>
+              <Textarea
+                placeholder="오늘 수업 내용, 다음 수업 안내 등"
+                value={checkInNotes.notes}
+                onChange={(e) =>
+                  setCheckInNotes({ ...checkInNotes, notes: e.target.value })
+                }
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>내부 메모 (트레이너/관리자만 보이는 메모)</Label>
+              <Textarea
+                placeholder="컨디션, 특이사항 등 내부 기록용"
+                value={checkInNotes.internalNotes}
+                onChange={(e) =>
+                  setCheckInNotes({ ...checkInNotes, internalNotes: e.target.value })
+                }
+                rows={2}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCheckInDialogOpen(false)}
+                disabled={actionLoading === "checkIn"}
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleCheckIn}
+                disabled={actionLoading === "checkIn"}
+                className="flex-1"
+              >
+                {actionLoading === "checkIn" ? "처리 중..." : "출석 완료"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

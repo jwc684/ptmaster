@@ -3,12 +3,20 @@
 import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -16,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User } from "lucide-react";
+import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User, Pencil, MessageSquare, Lock } from "lucide-react";
 
 interface Member {
   id: string;
@@ -28,6 +36,7 @@ interface Attendance {
   checkInTime: string;
   remainingPTAfter: number | null;
   notes: string | null;
+  internalNotes: string | null;
   memberProfile: {
     id: string;
     remainingPT: number;
@@ -51,6 +60,12 @@ export default function AttendancePage() {
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [selectedMemberId, setSelectedMemberId] = useState<string>("all");
+
+  // 메모 수정 다이얼로그 상태
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null);
+  const [editNotes, setEditNotes] = useState({ notes: "", internalNotes: "" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchMembers();
@@ -106,6 +121,44 @@ export default function AttendancePage() {
     setStartDate(format(startOfMonth(new Date()), "yyyy-MM-dd"));
     setEndDate(format(endOfMonth(new Date()), "yyyy-MM-dd"));
     setSelectedMemberId("all");
+  }
+
+  function openEditDialog(attendance: Attendance) {
+    setSelectedAttendance(attendance);
+    setEditNotes({
+      notes: attendance.notes || "",
+      internalNotes: attendance.internalNotes || "",
+    });
+    setEditDialogOpen(true);
+  }
+
+  async function handleSaveNotes() {
+    if (!selectedAttendance) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/attendance/${selectedAttendance.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notes: editNotes.notes,
+          internalNotes: editNotes.internalNotes,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("메모가 수정되었습니다.");
+        setEditDialogOpen(false);
+        fetchAttendance();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "메모 수정에 실패했습니다.");
+      }
+    } catch {
+      toast.error("오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   // 날짜별로 그룹화
@@ -287,10 +340,23 @@ export default function AttendancePage() {
                                 담당: {attendance.schedule.trainer.user.name}
                               </p>
                             )}
+                            {/* 공유 메모 */}
                             {attendance.notes && !attendance.notes.startsWith("[취소]") && (
-                              <p className="text-sm text-muted-foreground ml-6 break-words">
-                                {attendance.notes}
-                              </p>
+                              <div className="flex items-start gap-1 ml-6 mt-1">
+                                <MessageSquare className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
+                                <p className="text-sm text-muted-foreground break-words">
+                                  {attendance.notes}
+                                </p>
+                              </div>
+                            )}
+                            {/* 내부 메모 */}
+                            {attendance.internalNotes && (
+                              <div className="flex items-start gap-1 ml-6 mt-1">
+                                <Lock className="h-3 w-3 text-orange-500 mt-0.5 shrink-0" />
+                                <p className="text-sm text-orange-600 dark:text-orange-400 break-words">
+                                  {attendance.internalNotes}
+                                </p>
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center justify-between sm:justify-end gap-2 ml-6 sm:ml-0">
@@ -302,6 +368,14 @@ export default function AttendancePage() {
                             <Badge variant="outline" className="shrink-0">
                               잔여 {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
                             </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={() => openEditDialog(attendance)}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
                       );
@@ -317,6 +391,69 @@ export default function AttendancePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 메모 수정 다이얼로그 */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>메모 수정</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {selectedAttendance && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{selectedAttendance.memberProfile.user.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(selectedAttendance.checkInTime), "M월 d일 HH:mm", { locale: ko })}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                공유 메모 (회원에게 보이는 메모)
+              </Label>
+              <Textarea
+                placeholder="오늘 수업 내용, 다음 수업 안내 등"
+                value={editNotes.notes}
+                onChange={(e) => setEditNotes({ ...editNotes, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-orange-500" />
+                내부 메모 (트레이너/관리자만 보이는 메모)
+              </Label>
+              <Textarea
+                placeholder="컨디션, 특이사항 등 내부 기록용"
+                value={editNotes.internalNotes}
+                onChange={(e) => setEditNotes({ ...editNotes, internalNotes: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                disabled={saving}
+                className="flex-1"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleSaveNotes}
+                disabled={saving}
+                className="flex-1"
+              >
+                {saving ? "저장 중..." : "저장"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7,6 +7,7 @@ const updateScheduleSchema = z.object({
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
   scheduledAt: z.string().optional(),
   notes: z.string().optional(),
+  internalNotes: z.string().optional(), // 내부 메모 (트레이너/관리자용)
 });
 
 export async function PATCH(
@@ -34,7 +35,7 @@ export async function PATCH(
       );
     }
 
-    const { status, scheduledAt, notes } = validatedData.data;
+    const { status, scheduledAt, notes, internalNotes } = validatedData.data;
 
     const schedule = await prisma.schedule.findUnique({
       where: { id },
@@ -80,7 +81,8 @@ export async function PATCH(
             memberProfileId: schedule.memberProfileId,
             scheduleId: id,
             remainingPTAfter,
-            notes,
+            notes,           // 공유 메모
+            internalNotes,   // 내부 메모
           },
         });
 
@@ -156,6 +158,7 @@ export async function PATCH(
             scheduleId: id,
             remainingPTAfter,
             notes: notes ? `[취소] ${notes}` : "[취소]",
+            internalNotes,
           },
         });
 

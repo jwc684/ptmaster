@@ -65,6 +65,7 @@ export async function GET(request: Request) {
         checkInTime: true,
         remainingPTAfter: true,
         notes: true,
+        internalNotes: true,
         memberProfile: {
           select: {
             id: true,
