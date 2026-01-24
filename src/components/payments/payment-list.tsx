@@ -4,9 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,12 +97,81 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
 
   return (
     <>
-      <div className="space-y-3">
+      {/* Desktop Table View */}
+      <div className="hidden md:block -mx-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>회원</TableHead>
+              <TableHead>상태</TableHead>
+              <TableHead>PT 횟수</TableHead>
+              <TableHead>결제금액</TableHead>
+              <TableHead>결제일</TableHead>
+              <TableHead>비고</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {payments.map((payment) => (
+              <TableRow key={payment.id}>
+                <TableCell>
+                  <Link
+                    href={`/members/${payment.memberProfile.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {payment.memberProfile.user.name}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={payment.status === "COMPLETED" ? "default" : "destructive"}
+                    className="text-xs"
+                  >
+                    {statusLabels[payment.status]}
+                  </Badge>
+                </TableCell>
+                <TableCell>PT {payment.ptCount}회</TableCell>
+                <TableCell className="font-medium">
+                  ₩{payment.amount.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {new Date(payment.paidAt).toLocaleDateString("ko-KR")}
+                </TableCell>
+                <TableCell className="max-w-[150px]">
+                  {payment.description ? (
+                    <span className="text-muted-foreground text-sm truncate block">
+                      {payment.description}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => openDeleteDialog(payment)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="space-y-3 md:hidden">
         {payments.map((payment) => (
           <div
             key={payment.id}
-            className="flex items-center justify-between py-3 border-b last:border-0"
+            className="flex items-center gap-3 py-3 border-b last:border-0"
           >
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <CreditCard className="h-5 w-5 text-primary" />
+            </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <Link

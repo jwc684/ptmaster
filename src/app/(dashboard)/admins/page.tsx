@@ -36,7 +36,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { UserPlus, Shield, Loader2, Mail, Phone, Calendar, Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import { UserPlus, Shield, Loader2, Mail, Phone, Calendar, Pencil, Trash2, MoreHorizontal, ChevronRight } from "lucide-react";
+import { Card as MobileCard, CardContent as MobileCardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -337,46 +338,93 @@ export default function AdminsPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : admins.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>이름</TableHead>
-                    <TableHead>이메일</TableHead>
-                    <TableHead className="hidden sm:table-cell">연락처</TableHead>
-                    <TableHead className="hidden sm:table-cell">등록일</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {admins.map((admin) => (
-                    <TableRow key={admin.id}>
-                      <TableCell className="font-medium">{admin.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3 text-muted-foreground hidden sm:inline" />
-                          <span className="text-sm">{admin.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {admin.phone ? (
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3 text-muted-foreground" />
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>이름</TableHead>
+                      <TableHead>이메일</TableHead>
+                      <TableHead>연락처</TableHead>
+                      <TableHead>등록일</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {admins.map((admin) => (
+                      <TableRow key={admin.id}>
+                        <TableCell className="font-medium">{admin.name}</TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">{admin.email}</span>
+                        </TableCell>
+                        <TableCell>
+                          {admin.phone ? (
                             <span className="text-sm">{admin.phone}</span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(admin.createdAt), "yyyy.MM.dd", {
+                              locale: ko,
+                            })}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(admin)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                수정
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => openDeleteDialog(admin)}
+                                disabled={admin.id === currentUserId}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                삭제
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="space-y-3 md:hidden -mx-6 -mb-6">
+                {admins.map((admin) => (
+                  <MobileCard key={admin.id} className="hover:bg-accent/50 transition-colors rounded-none border-x-0">
+                    <MobileCardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Shield className="h-5 w-5 text-primary" />
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(admin.createdAt), "yyyy.MM.dd", {
-                            locale: ko,
-                          })}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{admin.name}</p>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              <span className="truncate">{admin.email}</span>
+                            </div>
+                            {admin.phone && (
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                {admin.phone}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -398,12 +446,12 @@ export default function AdminsPage() {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      </div>
+                    </MobileCardContent>
+                  </MobileCard>
+                ))}
+              </div>
+            </>
           ) : (
             <p className="text-muted-foreground text-center py-8">
               등록된 관리자가 없습니다.

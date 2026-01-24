@@ -4,13 +4,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { CreditCard, Pencil, Trash2, Loader2 } from "lucide-react";
+import { CreditCard, Pencil, Trash2, Loader2, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -152,7 +160,84 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
 
   return (
     <>
-      <div className="space-y-3">
+      {/* Desktop Table View */}
+      <Card className="hidden md:block">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>회원</TableHead>
+                <TableHead>PT 횟수</TableHead>
+                <TableHead>결제금액</TableHead>
+                <TableHead>담당 트레이너</TableHead>
+                <TableHead>결제일</TableHead>
+                <TableHead>비고</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell>
+                    <Link
+                      href={`/members/${payment.memberProfile.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {payment.memberProfile.user.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="default">PT {payment.ptCount}회</Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    ₩{payment.amount.toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    {payment.memberProfile.trainer?.user.name || (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(payment.paidAt).toLocaleDateString("ko-KR")}
+                  </TableCell>
+                  <TableCell className="max-w-[150px]">
+                    {payment.description ? (
+                      <span className="text-muted-foreground text-sm truncate block">
+                        {payment.description}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => openEditDialog(payment)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => openDeleteDialog(payment)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Mobile Card View */}
+      <div className="space-y-3 md:hidden">
         {payments.map((payment) => (
           <Card key={payment.id} className="hover:bg-accent/50 transition-colors">
             <CardContent className="p-4">
