@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCog, CreditCard, Activity, ClipboardCheck } from "lucide-react";
+import { Users, UserCog, CreditCard, Activity, ClipboardCheck, TrendingUp, Banknote } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,47 @@ async function getTrainerStats(trainerId: string) {
   };
 }
 
+// Daily Stats for last 7 days
+async function getDailyStats(trainerId?: string) {
+  const days = 7;
+  const results: { date: string; count: number; revenue: number }[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - i);
+
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        checkInTime: {
+          gte: date,
+          lt: nextDate,
+        },
+        ...(trainerId && {
+          memberProfile: { is: { trainerId } },
+        }),
+      },
+      select: {
+        unitPrice: true,
+      },
+    });
+
+    const count = attendances.length;
+    const revenue = attendances.reduce((sum, a) => sum + (a.unitPrice || 0), 0);
+
+    results.push({
+      date: date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" }),
+      count,
+      revenue,
+    });
+  }
+
+  return results;
+}
+
 function StatCard({
   title,
   value,
@@ -96,6 +137,63 @@ function StatCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// Daily Trends Component
+async function DailyTrends({ trainerId }: { trainerId?: string }) {
+  const dailyStats = await getDailyStats(trainerId);
+  const totalRevenue = dailyStats.reduce((sum, d) => sum + d.revenue, 0);
+  const totalCount = dailyStats.reduce((sum, d) => sum + d.count, 0);
+  const maxCount = Math.max(...dailyStats.map((d) => d.count), 1);
+
+  return (
+    <div className="space-y-4">
+      {/* 7일 요약 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-full">
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold">{totalCount}회</p>
+            <p className="text-xs text-muted-foreground">7일 총 PT</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 rounded-full">
+            <Banknote className="h-4 w-4 text-green-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold">₩{totalRevenue.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">7일 매출</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 일별 추이 */}
+      <div className="space-y-2">
+        {dailyStats.map((day, index) => (
+          <div key={index} className="flex items-center gap-3">
+            <div className="w-14 text-xs text-muted-foreground">{day.date}</div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
+                  <div
+                    className="bg-primary h-full rounded-full transition-all"
+                    style={{ width: `${(day.count / maxCount) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium w-8">{day.count}회</span>
+              </div>
+            </div>
+            <div className="w-24 text-right text-xs text-muted-foreground">
+              ₩{day.revenue.toLocaleString()}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -140,6 +238,15 @@ async function AdminDashboard() {
         <CardContent>
           <p className="text-2xl font-bold">{stats.totalPTRemaining}회</p>
           <p className="text-xs text-muted-foreground">전체 회원 잔여 PT</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">최근 7일 PT 추이</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DailyTrends />
         </CardContent>
       </Card>
 
@@ -196,6 +303,15 @@ async function TrainerDashboard({ trainerId }: { trainerId: string }) {
         <CardContent>
           <p className="text-2xl font-bold">{stats.totalPTRemaining}회</p>
           <p className="text-xs text-muted-foreground">담당 회원 잔여 PT</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">최근 7일 PT 추이</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DailyTrends trainerId={trainerId} />
         </CardContent>
       </Card>
 
