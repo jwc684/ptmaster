@@ -116,8 +116,7 @@ export default async function MembersPage() {
                   {members.map((member) => (
                     <TableRow
                       key={member.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => {}}
+                      className="hover:bg-muted/50"
                     >
                       <TableCell>
                         <Link
