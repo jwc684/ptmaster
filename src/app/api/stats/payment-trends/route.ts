@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // Only ADMIN and SUPER_ADMIN can access payment trends
+    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "daily"; // daily, weekly, monthly
+
+    // Build shop filter
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
     const now = new Date();
     let results: { date: string; label: string; count: number; amount: number }[] = [];
@@ -27,6 +36,7 @@ export async function GET(request: Request) {
 
         const payments = await prisma.payment.findMany({
           where: {
+            ...shopFilter,
             status: "COMPLETED",
             paidAt: { gte: date, lt: nextDate },
           },
@@ -59,6 +69,7 @@ export async function GET(request: Request) {
 
         const payments = await prisma.payment.findMany({
           where: {
+            ...shopFilter,
             status: "COMPLETED",
             paidAt: { gte: weekStart, lt: weekEnd },
           },
@@ -82,6 +93,7 @@ export async function GET(request: Request) {
 
         const payments = await prisma.payment.findMany({
           where: {
+            ...shopFilter,
             status: "COMPLETED",
             paidAt: { gte: date, lt: nextDate },
           },

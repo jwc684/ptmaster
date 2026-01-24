@@ -4,7 +4,43 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("Seeding database...");
+
+  // First, create or get the default shop
+  let defaultShop = await prisma.pTShop.findFirst({
+    where: { slug: "default" },
+  });
+
+  if (!defaultShop) {
+    defaultShop = await prisma.pTShop.create({
+      data: {
+        name: "Default PT Shop",
+        slug: "default",
+        description: "기본 PT샵입니다.",
+        isActive: true,
+      },
+    });
+    console.log("Created default PT Shop");
+  } else {
+    console.log("Using existing default PT Shop");
+  }
+
+  // Create Super Admin
+  const superAdminPassword = await bcrypt.hash("superadmin123!", 12);
+  const superAdmin = await prisma.user.upsert({
+    where: { email: "superadmin@ptmaster.com" },
+    update: {},
+    create: {
+      email: "superadmin@ptmaster.com",
+      password: superAdminPassword,
+      name: "Super Admin",
+      phone: "010-0000-0000",
+      role: "SUPER_ADMIN",
+      shopId: null, // Super Admin has no shop
+    },
+  });
+
+  console.log("Created Super Admin: superadmin@ptmaster.com / superadmin123!");
 
   // Create admin user
   const hashedPassword = await bcrypt.hash("admin123!", 12);
@@ -17,10 +53,11 @@ async function main() {
       name: "관리자",
       phone: "010-1234-5678",
       role: "ADMIN",
+      shopId: defaultShop.id,
     },
   });
 
-  console.log("✅ Created admin user: admin@ptshop.com / admin123!");
+  console.log("Created admin user: admin@ptshop.com / admin123!");
 
   // Create trainer
   const trainerPassword = await bcrypt.hash("trainer123!", 12);
@@ -33,8 +70,10 @@ async function main() {
       name: "김트레이너",
       phone: "010-2345-6789",
       role: "TRAINER",
+      shopId: defaultShop.id,
       trainerProfile: {
         create: {
+          shopId: defaultShop.id,
           bio: "10년 경력의 전문 PT 트레이너입니다.",
         },
       },
@@ -42,7 +81,7 @@ async function main() {
     include: { trainerProfile: true },
   });
 
-  console.log("✅ Created trainer: trainer@ptshop.com / trainer123!");
+  console.log("Created trainer: trainer@ptshop.com / trainer123!");
 
   // Create member
   const memberPassword = await bcrypt.hash("member123!", 12);
@@ -55,8 +94,10 @@ async function main() {
       name: "박회원",
       phone: "010-3456-7890",
       role: "MEMBER",
+      shopId: defaultShop.id,
       memberProfile: {
         create: {
+          shopId: defaultShop.id,
           qrCode: "MEMBER001",
           remainingPT: 10,
           notes: "PT 열심히 하는 회원입니다.",
@@ -67,20 +108,24 @@ async function main() {
     include: { memberProfile: true },
   });
 
-  console.log("✅ Created member: member@ptshop.com / member123!");
+  console.log("Created member: member@ptshop.com / member123!");
 
   // Create sample payment
   if (member.memberProfile) {
-    await prisma.payment.create({
-      data: {
+    await prisma.payment.upsert({
+      where: { id: "sample-payment-1" },
+      update: {},
+      create: {
+        id: "sample-payment-1",
         memberProfileId: member.memberProfile.id,
+        shopId: defaultShop.id,
         amount: 500000,
         ptCount: 10,
         description: "PT 10회 결제",
       },
     });
 
-    console.log("✅ Created sample payment");
+    console.log("Created sample payment");
   }
 
   // Create a second member without trainer assignment
@@ -94,8 +139,10 @@ async function main() {
       name: "이회원",
       phone: "010-5678-1234",
       role: "MEMBER",
+      shopId: defaultShop.id,
       memberProfile: {
         create: {
+          shopId: defaultShop.id,
           qrCode: "MEMBER002",
           remainingPT: 0,
         },
@@ -103,14 +150,15 @@ async function main() {
     },
   });
 
-  console.log("✅ Created member2: member2@ptshop.com / member123!");
+  console.log("Created member2: member2@ptshop.com / member123!");
 
-  console.log("\n🎉 Seeding completed!");
-  console.log("\n📋 Test accounts:");
-  console.log("  Admin:   admin@ptshop.com / admin123!");
-  console.log("  Trainer: trainer@ptshop.com / trainer123!");
-  console.log("  Member:  member@ptshop.com / member123!");
-  console.log("  Member2: member2@ptshop.com / member123!");
+  console.log("\nSeeding completed!");
+  console.log("\nTest accounts:");
+  console.log("  Super Admin: superadmin@ptmaster.com / superadmin123!");
+  console.log("  Admin:       admin@ptshop.com / admin123!");
+  console.log("  Trainer:     trainer@ptshop.com / trainer123!");
+  console.log("  Member:      member@ptshop.com / member123!");
+  console.log("  Member2:     member2@ptshop.com / member123!");
 }
 
 main()

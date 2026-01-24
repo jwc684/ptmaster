@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMIN", "TRAINER"].includes(session.user.role)) {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // Only ADMIN, TRAINER, and SUPER_ADMIN can access PT trends
+    if (!["ADMIN", "TRAINER", "SUPER_ADMIN"].includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -16,9 +22,9 @@ export async function GET(request: Request) {
     let trainerFilter = {};
 
     // 트레이너인 경우 자신의 데이터만 조회
-    if (session.user.role === "TRAINER") {
+    if (authResult.userRole === "TRAINER") {
       const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
       });
       if (trainerProfile) {
         trainerFilter = { memberProfile: { is: { trainerId: trainerProfile.id } } };
@@ -26,6 +32,9 @@ export async function GET(request: Request) {
     } else if (trainerId) {
       trainerFilter = { memberProfile: { is: { trainerId } } };
     }
+
+    // Build shop filter
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
     const now = new Date();
     let results: { date: string; label: string; count: number; revenue: number }[] = [];
@@ -42,6 +51,7 @@ export async function GET(request: Request) {
 
         const attendances = await prisma.attendance.findMany({
           where: {
+            ...shopFilter,
             checkInTime: { gte: date, lt: nextDate },
             ...trainerFilter,
           },
@@ -74,6 +84,7 @@ export async function GET(request: Request) {
 
         const attendances = await prisma.attendance.findMany({
           where: {
+            ...shopFilter,
             checkInTime: { gte: weekStart, lt: weekEnd },
             ...trainerFilter,
           },
@@ -97,6 +108,7 @@ export async function GET(request: Request) {
 
         const attendances = await prisma.attendance.findMany({
           where: {
+            ...shopFilter,
             checkInTime: { gte: date, lt: nextDate },
             ...trainerFilter,
           },

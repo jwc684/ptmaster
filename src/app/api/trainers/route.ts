@@ -1,20 +1,31 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { trainerSchema } from "@/lib/validations/trainer";
+import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // Only ADMIN and SUPER_ADMIN can access trainer list
+    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
+    // Build shop filter
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
     const trainers = await prisma.trainerProfile.findMany({
+      where: shopFilter,
       select: {
         id: true,
         bio: true,
+        shopId: true,
         user: {
           select: {
             id: true,
@@ -25,6 +36,12 @@ export async function GET() {
         },
         members: {
           select: { id: true },
+        },
+        shop: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -42,9 +59,21 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // Only ADMIN and SUPER_ADMIN can create trainers
+    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    }
+
+    // Require shop context for creating trainers
+    const shopError = requireShopContext(authResult);
+    if (shopError) {
+      return NextResponse.json({ error: shopError }, { status: 400 });
     }
 
     const body = await request.json();
@@ -83,8 +112,10 @@ export async function POST(request: Request) {
         phone,
         password: hashedPassword,
         role: "TRAINER",
+        shopId: authResult.shopId!,
         trainerProfile: {
           create: {
+            shopId: authResult.shopId!,
             bio,
           },
         },

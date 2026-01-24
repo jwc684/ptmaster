@@ -14,6 +14,8 @@ import {
   PlusCircle,
   CalendarDays,
   Shield,
+  Crown,
+  Building2,
 } from "lucide-react";
 
 import {
@@ -41,6 +43,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   PlusCircle,
   CalendarDays,
   Shield,
+  Crown,
+  Building2,
 };
 
 export function AppSidebar() {

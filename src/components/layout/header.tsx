@@ -17,8 +17,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
+import { ShopSelector } from "@/components/layout/shop-selector";
 
 const roleLabels = {
+  SUPER_ADMIN: "슈퍼 관리자",
   ADMIN: "관리자",
   TRAINER: "트레이너",
   MEMBER: "회원",
@@ -52,6 +54,9 @@ export function Header() {
         <span className="sr-only">Toggle menu</span>
       </Button>
 
+      {/* Shop Selector for Super Admin */}
+      <ShopSelector />
+
       <div className="flex-1" />
 
       <div className="flex items-center gap-4">
@@ -82,7 +87,7 @@ export function Header() {
                     {user?.email}
                   </p>
                   <Badge variant="secondary" className="mt-1 w-fit">
-                    {user?.role ? roleLabels[user.role] : ""}
+                    {user?.role ? roleLabels[user.role as keyof typeof roleLabels] : ""}
                   </Badge>
                 </div>
               </DropdownMenuLabel>

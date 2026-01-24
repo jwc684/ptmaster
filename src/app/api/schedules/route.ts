@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 
 const scheduleSchema = z.object({
   memberProfileId: z.string().min(1, "회원을 선택해주세요."),
@@ -11,8 +11,9 @@ const scheduleSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
@@ -25,9 +26,9 @@ export async function GET(request: Request) {
     let trainerId: string | undefined;
 
     // 트레이너인 경우 자신의 일정만 조회
-    if (session.user.role === "TRAINER") {
+    if (authResult.userRole === "TRAINER") {
       const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
       });
       if (!trainerProfile) {
         return NextResponse.json({ error: "트레이너 프로필이 없습니다." }, { status: 404 });
@@ -67,8 +68,12 @@ export async function GET(request: Request) {
     // 상태 필터
     const statusFilter = status ? { status: status as "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" } : {};
 
+    // Build shop filter
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
     const schedules = await prisma.schedule.findMany({
       where: {
+        ...shopFilter,
         ...(trainerId && { trainerId }),
         ...dateFilter,
         ...statusFilter,
@@ -78,6 +83,7 @@ export async function GET(request: Request) {
         scheduledAt: true,
         status: true,
         notes: true,
+        shopId: true,
         memberProfile: {
           select: {
             id: true,
@@ -100,6 +106,12 @@ export async function GET(request: Request) {
             internalNotes: true,
           },
         },
+        shop: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { scheduledAt: "asc" },
     });
@@ -116,14 +128,21 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    // 트레이너 또는 관리자만 예약 가능
-    if (session.user.role === "MEMBER") {
+    // 트레이너, 관리자, Super Admin만 예약 가능
+    if (authResult.userRole === "MEMBER") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    }
+
+    // Require shop context for creating schedules
+    const shopError = requireShopContext(authResult);
+    if (shopError) {
+      return NextResponse.json({ error: shopError }, { status: 400 });
     }
 
     const body = await request.json();
@@ -138,11 +157,23 @@ export async function POST(request: Request) {
 
     const { memberProfileId, scheduledAt, notes } = validatedData.data;
 
+    // Verify member belongs to same shop
+    const member = await prisma.memberProfile.findFirst({
+      where: {
+        id: memberProfileId,
+        shopId: authResult.shopId!,
+      },
+    });
+
+    if (!member) {
+      return NextResponse.json({ error: "해당 회원을 찾을 수 없습니다." }, { status: 404 });
+    }
+
     // 트레이너 ID 가져오기
     let trainerId: string;
-    if (session.user.role === "TRAINER") {
+    if (authResult.userRole === "TRAINER") {
       const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
       });
       if (!trainerProfile) {
         return NextResponse.json({ error: "트레이너 프로필이 없습니다." }, { status: 404 });
@@ -150,10 +181,7 @@ export async function POST(request: Request) {
       trainerId = trainerProfile.id;
     } else {
       // 관리자인 경우 회원의 담당 트레이너 사용
-      const member = await prisma.memberProfile.findUnique({
-        where: { id: memberProfileId },
-      });
-      if (!member?.trainerId) {
+      if (!member.trainerId) {
         return NextResponse.json({ error: "회원에게 배정된 트레이너가 없습니다." }, { status: 400 });
       }
       trainerId = member.trainerId;
@@ -165,6 +193,7 @@ export async function POST(request: Request) {
         trainerId,
         scheduledAt: new Date(scheduledAt),
         notes,
+        shopId: authResult.shopId!,
       },
       select: {
         id: true,

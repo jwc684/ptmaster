@@ -35,6 +35,18 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Super Admin route protection
+  if (pathname.startsWith("/super-admin") || pathname.startsWith("/api/super-admin")) {
+    if (!isLoggedIn || userRole !== "SUPER_ADMIN") {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      const dashboardPath = userRole ? DASHBOARD_PATH[userRole] : "/login";
+      return NextResponse.redirect(new URL(dashboardPath, nextUrl));
+    }
+    return NextResponse.next();
+  }
+
   // Check role-based access for protected routes
   if (isLoggedIn && userRole) {
     const allowedRoutes = ROLE_ACCESS[userRole];

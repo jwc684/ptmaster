@@ -4,6 +4,17 @@ export type { UserRole } from "@prisma/client";
 
 // Route access configuration - Simplified for PT shop
 export const ROLE_ACCESS: Record<UserRole, string[]> = {
+  SUPER_ADMIN: [
+    "/super-admin",
+    "/dashboard",
+    "/members",
+    "/trainers",
+    "/registration",
+    "/schedule",
+    "/attendance",
+    "/payments",
+    "/admins",
+  ],
   ADMIN: [
     "/dashboard",
     "/members",
@@ -33,6 +44,7 @@ export const PUBLIC_API_ROUTES = ["/api/auth", "/api/health", "/api/debug", "/ap
 
 // Dashboard paths by role
 export const DASHBOARD_PATH: Record<UserRole, string> = {
+  SUPER_ADMIN: "/super-admin",
   ADMIN: "/dashboard",
   TRAINER: "/dashboard",
   MEMBER: "/my",
@@ -47,29 +59,43 @@ export interface NavItem {
 
 // Simplified navigation for PT shop
 export const NAV_ITEMS: NavItem[] = [
+  // Super Admin only
+  {
+    title: "Super Admin",
+    href: "/super-admin",
+    icon: "Crown",
+    roles: ["SUPER_ADMIN"],
+  },
+  {
+    title: "PT샵 관리",
+    href: "/super-admin/shops",
+    icon: "Building2",
+    roles: ["SUPER_ADMIN"],
+  },
+  // Regular navigation
   {
     title: "대시보드",
     href: "/dashboard",
     icon: "LayoutDashboard",
-    roles: ["ADMIN", "TRAINER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "TRAINER"],
   },
   {
     title: "회원 관리",
     href: "/members",
     icon: "Users",
-    roles: ["ADMIN"],
+    roles: ["SUPER_ADMIN", "ADMIN"],
   },
   {
     title: "트레이너 관리",
     href: "/trainers",
     icon: "UserCog",
-    roles: ["ADMIN"],
+    roles: ["SUPER_ADMIN", "ADMIN"],
   },
   {
     title: "PT 등록",
     href: "/registration",
     icon: "PlusCircle",
-    roles: ["ADMIN"],
+    roles: ["SUPER_ADMIN", "ADMIN"],
   },
   {
     title: "내 회원",
@@ -81,25 +107,25 @@ export const NAV_ITEMS: NavItem[] = [
     title: "일정 관리",
     href: "/schedule",
     icon: "CalendarDays",
-    roles: ["ADMIN", "TRAINER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "TRAINER"],
   },
   {
     title: "PT 출석",
     href: "/attendance",
     icon: "ClipboardCheck",
-    roles: ["ADMIN", "TRAINER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "TRAINER"],
   },
   {
     title: "결제 관리",
     href: "/payments",
     icon: "CreditCard",
-    roles: ["ADMIN"],
+    roles: ["SUPER_ADMIN", "ADMIN"],
   },
   {
     title: "관리자 관리",
     href: "/admins",
     icon: "Shield",
-    roles: ["ADMIN"],
+    roles: ["SUPER_ADMIN", "ADMIN"],
   },
   {
     title: "마이페이지",

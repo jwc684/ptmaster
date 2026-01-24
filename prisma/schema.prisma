@@ -8,10 +8,39 @@ datasource db {
 }
 
 // ============================================
+// PT Shop (Multi-tenant)
+// ============================================
+
+model PTShop {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  address     String?
+  phone       String?
+  email       String?
+  logo        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users           User[]
+  memberProfiles  MemberProfile[]
+  trainerProfiles TrainerProfile[]
+  schedules       Schedule[]
+  attendances     Attendance[]
+  payments        Payment[]
+
+  @@map("pt_shops")
+}
+
+// ============================================
 // User & Authentication
 // ============================================
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   TRAINER
   MEMBER
@@ -26,6 +55,10 @@ model User {
   role          UserRole  @default(MEMBER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  // PT Shop relation (null for SUPER_ADMIN)
+  shop          PTShop?   @relation(fields: [shopId], references: [id])
+  shopId        String?
 
   // Relations
   memberProfile  MemberProfile?
@@ -96,6 +129,10 @@ model MemberProfile {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
+  // PT Shop relation (nullable for migration, will be required after data migration)
+  shop             PTShop?         @relation(fields: [shopId], references: [id])
+  shopId           String?
+
   // 담당 트레이너
   trainer          TrainerProfile? @relation(fields: [trainerId], references: [id])
   trainerId        String?
@@ -119,6 +156,10 @@ model TrainerProfile {
   bio         String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // PT Shop relation (nullable for migration)
+  shop        PTShop?  @relation(fields: [shopId], references: [id])
+  shopId      String?
 
   // Relations
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -151,6 +192,10 @@ model Schedule {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  // PT Shop relation (nullable for migration)
+  shop            PTShop?        @relation(fields: [shopId], references: [id])
+  shopId          String?
+
   // 출석 기록 연결
   attendance      Attendance?
 
@@ -175,6 +220,10 @@ model Attendance {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @default(now()) @updatedAt
 
+  // PT Shop relation (nullable for migration)
+  shop             PTShop?        @relation(fields: [shopId], references: [id])
+  shopId           String?
+
   @@map("attendances")
 }
 
@@ -198,6 +247,10 @@ model Payment {
   paidAt          DateTime      @default(now())
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  // PT Shop relation (nullable for migration)
+  shop            PTShop?       @relation(fields: [shopId], references: [id])
+  shopId          String?
 
   @@map("payments")
 }

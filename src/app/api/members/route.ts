@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { memberSchema } from "@/lib/validations/member";
+import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 
 function generateQRCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -15,8 +15,14 @@ function generateQRCode(): string {
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // Only ADMIN and SUPER_ADMIN can access member list
+    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -26,15 +32,21 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const where = search
-      ? {
-          OR: [
-            { user: { name: { contains: search, mode: "insensitive" as const } } },
-            { user: { email: { contains: search, mode: "insensitive" as const } } },
-            { user: { phone: { contains: search } } },
-          ],
-        }
-      : {};
+    // Build shop filter
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const where = {
+      ...shopFilter,
+      ...(search
+        ? {
+            OR: [
+              { user: { name: { contains: search, mode: "insensitive" as const } } },
+              { user: { email: { contains: search, mode: "insensitive" as const } } },
+              { user: { phone: { contains: search } } },
+            ],
+          }
+        : {}),
+    };
 
     const [members, total] = await Promise.all([
       prisma.memberProfile.findMany({
@@ -44,6 +56,7 @@ export async function GET(request: Request) {
           remainingPT: true,
           joinDate: true,
           trainerId: true,
+          shopId: true,
           user: {
             select: {
               id: true,
@@ -56,6 +69,12 @@ export async function GET(request: Request) {
             select: {
               id: true,
               user: { select: { name: true } },
+            },
+          },
+          shop: {
+            select: {
+              id: true,
+              name: true,
             },
           },
         },
@@ -86,9 +105,21 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // Only ADMIN and SUPER_ADMIN can create members
+    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    }
+
+    // Require shop context for creating members
+    const shopError = requireShopContext(authResult);
+    if (shopError) {
+      return NextResponse.json({ error: shopError }, { status: 400 });
     }
 
     const body = await request.json();
@@ -116,6 +147,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // If trainerId is provided, verify trainer belongs to same shop
+    if (trainerId) {
+      const trainer = await prisma.trainerProfile.findFirst({
+        where: {
+          id: trainerId,
+          shopId: authResult.shopId!,
+        },
+      });
+      if (!trainer) {
+        return NextResponse.json(
+          { error: "해당 트레이너를 찾을 수 없습니다." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Hash password
     const hashedPassword = password
       ? await bcrypt.hash(password, 12)
@@ -128,8 +175,10 @@ export async function POST(request: Request) {
         phone,
         password: hashedPassword,
         role: "MEMBER",
+        shopId: authResult.shopId!,
         memberProfile: {
           create: {
+            shopId: authResult.shopId!,
             qrCode: generateQRCode(),
             trainerId: trainerId || null,
             remainingPT: remainingPT || 0,

@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMIN", "TRAINER"].includes(session.user.role)) {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    // Only ADMIN, TRAINER, and SUPER_ADMIN can access attendance
+    if (!["ADMIN", "TRAINER", "SUPER_ADMIN"].includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -35,9 +41,9 @@ export async function GET(request: Request) {
 
     // 트레이너인 경우 자신의 출석 기록만 조회
     let trainerFilter = {};
-    if (session.user.role === "TRAINER") {
+    if (authResult.userRole === "TRAINER") {
       const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
       });
       if (trainerProfile) {
         trainerFilter = {
@@ -51,8 +57,12 @@ export async function GET(request: Request) {
     // 회원 필터
     const memberFilter = memberIdParam ? { memberProfileId: memberIdParam } : {};
 
+    // Build shop filter
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
     const attendances = await prisma.attendance.findMany({
       where: {
+        ...shopFilter,
         checkInTime: {
           gte: startDate,
           lte: endDate,
@@ -67,6 +77,7 @@ export async function GET(request: Request) {
         unitPrice: true,
         notes: true,
         internalNotes: true,
+        shopId: true,
         memberProfile: {
           select: {
             id: true,
@@ -83,6 +94,12 @@ export async function GET(request: Request) {
                 user: { select: { name: true } },
               },
             },
+          },
+        },
+        shop: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

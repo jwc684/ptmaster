@@ -9,6 +9,7 @@ declare module "next-auth" {
   interface User {
     role: UserRole;
     phone?: string | null;
+    shopId?: string | null;
   }
 
   interface Session {
@@ -18,6 +19,7 @@ declare module "next-auth" {
       name: string;
       role: UserRole;
       phone?: string | null;
+      shopId?: string | null;
       image?: string | null;
     };
   }
@@ -28,6 +30,7 @@ declare module "@auth/core/jwt" {
     id: string;
     role: UserRole;
     phone?: string | null;
+    shopId?: string | null;
   }
 }
 
@@ -96,6 +99,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user.name,
             role: user.role,
             phone: user.phone,
+            shopId: user.shopId,
           };
         } catch (error) {
           console.error("[Auth] Login error:", error);
@@ -110,6 +114,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id!;
         token.role = user.role;
         token.phone = user.phone;
+        token.shopId = user.shopId;
       }
       return token;
     },
@@ -118,6 +123,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.phone = token.phone as string | null | undefined;
+        session.user.shopId = token.shopId as string | null | undefined;
       }
       return session;
     },
