@@ -344,35 +344,27 @@ export default function AdminsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>이름</TableHead>
-                      <TableHead>이메일</TableHead>
-                      <TableHead>연락처</TableHead>
-                      <TableHead>등록일</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="w-[140px]">이름</TableHead>
+                      <TableHead className="w-[240px]">이메일</TableHead>
+                      <TableHead className="w-[140px]">연락처</TableHead>
+                      <TableHead className="w-[120px]">등록일</TableHead>
+                      <TableHead className="w-[60px] text-right">관리</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {admins.map((admin) => (
                       <TableRow key={admin.id}>
                         <TableCell className="font-medium">{admin.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{admin.email}</TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">{admin.email}</span>
+                          {admin.phone || <span className="text-muted-foreground">-</span>}
                         </TableCell>
-                        <TableCell>
-                          {admin.phone ? (
-                            <span className="text-sm">{admin.phone}</span>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(admin.createdAt), "yyyy.MM.dd", {
+                            locale: ko,
+                          })}
                         </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(admin.createdAt), "yyyy.MM.dd", {
-                              locale: ko,
-                            })}
-                          </span>
-                        </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
