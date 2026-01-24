@@ -469,7 +469,7 @@ export default function ShopDetailPage() {
             관리자 추가
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>

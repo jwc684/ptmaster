@@ -375,20 +375,23 @@ export default function AttendancePage() {
       </Card>
 
       {/* 출석 기록 목록 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">출석 기록</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
+      {loading ? (
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : attendances.length > 0 ? (
-            <>
-              {/* Desktop Table View */}
-              <div className="hidden md:block -mx-6">
-                <Table>
+          </CardContent>
+        </Card>
+      ) : attendances.length > 0 ? (
+        <>
+          {/* Desktop Table View */}
+          <Card className="hidden md:block">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">출석 기록</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>상태</TableHead>
@@ -476,10 +479,16 @@ export default function AttendancePage() {
                     })}
                   </TableBody>
                 </Table>
-              </div>
+            </CardContent>
+          </Card>
 
-              {/* Mobile Card View */}
-              <div className="space-y-6 md:hidden">
+          {/* Mobile Card View */}
+          <Card className="md:hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">출석 기록</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
                 {sortedDates.map((date) => (
                   <div key={date} className="space-y-3">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -581,14 +590,17 @@ export default function AttendancePage() {
                   </div>
                 ))}
               </div>
-            </>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              출석 기록이 없습니다.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            출석 기록이 없습니다.
+          </CardContent>
+        </Card>
+      )}
 
       {/* 메모 수정 다이얼로그 */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
