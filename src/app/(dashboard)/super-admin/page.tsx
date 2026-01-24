@@ -10,6 +10,9 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  Key,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   Card,
@@ -52,6 +55,13 @@ interface Stats {
 export default function SuperAdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -255,6 +265,104 @@ export default function SuperAdminDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Default Account Info */}
+      <Card className="border-dashed">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Key className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>기본 계정 정보</CardTitle>
+          </div>
+          <CardDescription>
+            PT샵 생성 시 기본으로 사용되는 계정 정보입니다. 보안을 위해 첫 로그인 후 비밀번호를 변경해주세요.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Super Admin</p>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                    superadmin@ptmaster.com
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => copyToClipboard("superadmin@ptmaster.com", "superadmin-email")}
+                  >
+                    {copiedField === "superadmin-email" ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                    superadmin123!
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => copyToClipboard("superadmin123!", "superadmin-pw")}
+                  >
+                    {copiedField === "superadmin-pw" ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">기본 Admin 비밀번호</p>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                    admin123!
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => copyToClipboard("admin123!", "admin-pw")}
+                  >
+                    {copiedField === "admin-pw" ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">기본 Trainer/Member 비밀번호</p>
+                <div className="flex items-center gap-2">
+                  <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
+                    test1234!
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => copyToClipboard("test1234!", "test-pw")}
+                  >
+                    {copiedField === "test-pw" ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
