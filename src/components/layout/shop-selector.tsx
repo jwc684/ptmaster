@@ -33,9 +33,9 @@ export function ShopSelector() {
 
   if (isLoading) {
     return (
-      <Button variant="outline" size="sm" disabled className="w-[200px]">
-        <Building2 className="mr-2 h-4 w-4" />
-        로딩 중...
+      <Button variant="outline" size="sm" disabled className="max-w-[160px] sm:max-w-[200px]">
+        <Building2 className="mr-2 h-4 w-4 flex-shrink-0" />
+        <span className="truncate">로딩...</span>
       </Button>
     );
   }
@@ -47,23 +47,23 @@ export function ShopSelector() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between"
+          className="max-w-[140px] sm:max-w-[200px] justify-between"
           size="sm"
         >
-          <div className="flex items-center truncate">
+          <div className="flex items-center min-w-0 flex-1">
             {currentShop ? (
               <>
-                <Building2 className="mr-2 h-4 w-4 shrink-0" />
+                <Building2 className="mr-1.5 h-4 w-4 flex-shrink-0" />
                 <span className="truncate">{currentShop.name}</span>
               </>
             ) : (
               <>
-                <Globe className="mr-2 h-4 w-4 shrink-0" />
-                <span>전체 샵 보기</span>
+                <Globe className="mr-1.5 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">전체</span>
               </>
             )}
           </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-1 h-4 w-4 flex-shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[250px] p-0">
