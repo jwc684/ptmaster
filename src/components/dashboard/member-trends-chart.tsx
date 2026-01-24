@@ -132,7 +132,7 @@ export function MemberTrendsChart() {
                   border: "1px solid #e5e7eb",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                formatter={(value: number) => [`${value}명`, "신규 회원"]}
+                formatter={(value) => [`${value}명`, "신규 회원"]}
                 labelFormatter={(label) => label}
               />
               <Area

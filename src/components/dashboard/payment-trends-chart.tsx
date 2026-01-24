@@ -145,7 +145,7 @@ export function PaymentTrendsChart() {
                   border: "1px solid #e5e7eb",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                formatter={(value: number) => [`${value}건`, "등록 건수"]}
+                formatter={(value) => [`${value}건`, "등록 건수"]}
                 labelFormatter={(label) => label}
               />
               <Area
@@ -200,7 +200,7 @@ export function PaymentTrendsChart() {
                   border: "1px solid #e5e7eb",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                formatter={(value: number) => [`₩${value.toLocaleString()}`, "결제 금액"]}
+                formatter={(value) => [`₩${Number(value).toLocaleString()}`, "결제 금액"]}
                 labelFormatter={(label) => label}
               />
               <Area

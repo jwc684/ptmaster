@@ -148,7 +148,7 @@ export function PTTrendsChart({ trainerId }: { trainerId?: string }) {
                   border: "1px solid #e5e7eb",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                formatter={(value: number, name: string) => {
+                formatter={(value, name) => {
                   if (name === "count") return [`${value}회`, "PT 횟수"];
                   return [value, name];
                 }}
@@ -206,7 +206,7 @@ export function PTTrendsChart({ trainerId }: { trainerId?: string }) {
                   border: "1px solid #e5e7eb",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                formatter={(value: number) => [`₩${value.toLocaleString()}`, "매출"]}
+                formatter={(value) => [`₩${Number(value).toLocaleString()}`, "매출"]}
                 labelFormatter={(label) => label}
               />
               <Area
