@@ -37,11 +37,14 @@ if (!process.env.AUTH_SECRET && process.env.NODE_ENV === "production") {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma) as any,
+  // Credentials 프로바이더 + JWT 사용 시 adapter 제거 (adapter는 OAuth용)
+  // adapter: PrismaAdapter(prisma) as any,
   trustHost: true,
   secret: process.env.AUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30일
   },
   pages: {
     signIn: "/login",
