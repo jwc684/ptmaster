@@ -36,8 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { UserPlus, Shield, Loader2, Mail, Phone, Calendar, Pencil, Trash2, MoreHorizontal, ChevronRight } from "lucide-react";
-import { Card as MobileCard, CardContent as MobileCardContent } from "@/components/ui/card";
+import { UserPlus, Shield, Loader2, Mail, Phone, Pencil, Trash2, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -325,23 +324,26 @@ export default function AdminsPage() {
             </DialogContent>
           </Dialog>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            관리자 목록
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center py-8">
+      {loading ? (
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : admins.length > 0 ? (
-            <>
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
+          </CardContent>
+        </Card>
+      ) : admins.length > 0 ? (
+        <>
+          {/* Desktop Table View */}
+          <Card className="hidden md:block">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                관리자 목록
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[140px]">이름</TableHead>
@@ -391,66 +393,76 @@ export default function AdminsPage() {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+            </CardContent>
+          </Card>
 
-              {/* Mobile Card View */}
-              <div className="space-y-3 md:hidden -mx-6 -mb-6">
+          {/* Mobile Card View */}
+          <Card className="md:hidden">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                관리자 목록
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
                 {admins.map((admin) => (
-                  <MobileCard key={admin.id} className="hover:bg-accent/50 transition-colors rounded-none border-x-0">
-                    <MobileCardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Shield className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium truncate">{admin.name}</p>
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Mail className="h-3 w-3" />
-                              <span className="truncate">{admin.email}</span>
-                            </div>
-                            {admin.phone && (
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Phone className="h-3 w-3" />
-                                {admin.phone}
-                              </div>
-                            )}
-                          </div>
+                  <div key={admin.id} className="p-4 hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Shield className="h-5 w-5 text-primary" />
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(admin)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              수정
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => openDeleteDialog(admin)}
-                              disabled={admin.id === currentUserId}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              삭제
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">{admin.name}</p>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            <span className="truncate">{admin.email}</span>
+                          </div>
+                          {admin.phone && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              {admin.phone}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </MobileCardContent>
-                  </MobileCard>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(admin)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            수정
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openDeleteDialog(admin)}
+                            disabled={admin.id === currentUserId}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            삭제
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
                 ))}
               </div>
-            </>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              등록된 관리자가 없습니다.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            등록된 관리자가 없습니다.
+          </CardContent>
+        </Card>
+      )}
 
       {/* 삭제 확인 다이얼로그 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
