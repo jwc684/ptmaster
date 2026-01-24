@@ -103,7 +103,7 @@ export default function AdminsPage() {
       <PageHeader
         title="관리자 관리"
         description="시스템 관리자를 관리합니다."
-        action={
+        customAction={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
