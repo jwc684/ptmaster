@@ -25,6 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { NAV_ITEMS } from "@/types";
 import type { UserRole } from "@/types";
@@ -43,16 +44,23 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { setOpenMobile, isMobile } = useSidebar();
   const userRole = session?.user?.role as UserRole | undefined;
 
   const filteredNavItems = NAV_ITEMS.filter(
     (item) => userRole && item.roles.includes(userRole)
   );
 
+  const handleMenuClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-6 py-4">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2" onClick={handleMenuClick}>
           <Dumbbell className="h-6 w-6 text-primary" />
           <span className="text-lg font-bold">PT Shop</span>
         </Link>
@@ -67,7 +75,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive}>
-                      <Link href={item.href}>
+                      <Link href={item.href} onClick={handleMenuClick}>
                         {Icon && <Icon className="h-4 w-4" />}
                         <span>{item.title}</span>
                       </Link>
