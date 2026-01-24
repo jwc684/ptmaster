@@ -71,15 +71,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
-        <Link href={dashboardLink} className="flex items-center gap-2" onClick={handleMenuClick}>
-          <Dumbbell className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold truncate max-w-[160px]" title={displayName}>
+      <SidebarHeader className="border-b border-sidebar-border">
+        <Link href={dashboardLink} className="flex items-center gap-4 group" onClick={handleMenuClick}>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/15">
+            <Dumbbell className="h-6 w-6 text-primary" />
+          </div>
+          <span className="text-xl font-bold truncate max-w-[140px] text-foreground" title={displayName}>
             {displayName}
           </span>
         </Link>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="pt-1">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -89,8 +91,18 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive}>
-                      <Link href={item.href} onClick={handleMenuClick}>
-                        {Icon && <Icon className="h-4 w-4" />}
+                      <Link href={item.href} onClick={handleMenuClick} className="group/item">
+                        {Icon && (
+                          <div className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${
+                            isActive
+                              ? 'bg-primary/15'
+                              : 'bg-muted group-hover/item:bg-muted/80'
+                          }`}>
+                            <Icon className={`h-5 w-5 transition-colors ${
+                              isActive ? 'text-primary' : 'text-muted-foreground group-hover/item:text-foreground'
+                            }`} />
+                          </div>
+                        )}
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
