@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCog, CreditCard, Activity, ClipboardCheck, TrendingUp, Banknote } from "lucide-react";
+import { Users, UserCog, CreditCard, Activity, ClipboardCheck, TrendingUp, Banknote, UserPlus, Receipt } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -113,6 +113,73 @@ async function getDailyStats(trainerId?: string) {
   return results;
 }
 
+// Daily New Members for last 7 days
+async function getDailyNewMembers() {
+  const days = 7;
+  const results: { date: string; count: number }[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - i);
+
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const count = await prisma.memberProfile.count({
+      where: {
+        joinDate: {
+          gte: date,
+          lt: nextDate,
+        },
+      },
+    });
+
+    results.push({
+      date: date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" }),
+      count,
+    });
+  }
+
+  return results;
+}
+
+// Daily Payments for last 7 days
+async function getDailyPayments() {
+  const days = 7;
+  const results: { date: string; count: number; amount: number }[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - i);
+
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    const payments = await prisma.payment.findMany({
+      where: {
+        status: "COMPLETED",
+        paidAt: {
+          gte: date,
+          lt: nextDate,
+        },
+      },
+      select: {
+        amount: true,
+      },
+    });
+
+    results.push({
+      date: date.toLocaleDateString("ko-KR", { month: "short", day: "numeric" }),
+      count: payments.length,
+      amount: payments.reduce((sum, p) => sum + p.amount, 0),
+    });
+  }
+
+  return results;
+}
+
 function StatCard({
   title,
   value,
@@ -197,6 +264,105 @@ async function DailyTrends({ trainerId }: { trainerId?: string }) {
   );
 }
 
+// New Member Trends Component
+async function NewMemberTrends() {
+  const dailyMembers = await getDailyNewMembers();
+  const totalNewMembers = dailyMembers.reduce((sum, d) => sum + d.count, 0);
+  const maxCount = Math.max(...dailyMembers.map((d) => d.count), 1);
+
+  return (
+    <div className="space-y-4">
+      {/* 요약 */}
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-purple-100 rounded-full">
+          <UserPlus className="h-4 w-4 text-purple-600" />
+        </div>
+        <div>
+          <p className="text-lg font-bold">{totalNewMembers}명</p>
+          <p className="text-xs text-muted-foreground">7일 신규 가입</p>
+        </div>
+      </div>
+
+      {/* 일별 추이 */}
+      <div className="space-y-2">
+        {dailyMembers.map((day, index) => (
+          <div key={index} className="flex items-center gap-3">
+            <div className="w-14 text-xs text-muted-foreground">{day.date}</div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
+                  <div
+                    className="bg-purple-500 h-full rounded-full transition-all"
+                    style={{ width: `${(day.count / maxCount) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium w-8">{day.count}명</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Payment Trends Component
+async function PaymentTrends() {
+  const dailyPayments = await getDailyPayments();
+  const totalAmount = dailyPayments.reduce((sum, d) => sum + d.amount, 0);
+  const totalCount = dailyPayments.reduce((sum, d) => sum + d.count, 0);
+  const maxAmount = Math.max(...dailyPayments.map((d) => d.amount), 1);
+
+  return (
+    <div className="space-y-4">
+      {/* 요약 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-orange-100 rounded-full">
+            <Receipt className="h-4 w-4 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold">{totalCount}건</p>
+            <p className="text-xs text-muted-foreground">7일 등록</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-100 rounded-full">
+            <CreditCard className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-lg font-bold">₩{totalAmount.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">7일 결제</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 일별 추이 */}
+      <div className="space-y-2">
+        {dailyPayments.map((day, index) => (
+          <div key={index} className="flex items-center gap-3">
+            <div className="w-14 text-xs text-muted-foreground">{day.date}</div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
+                  <div
+                    className="bg-orange-500 h-full rounded-full transition-all"
+                    style={{ width: `${(day.amount / maxAmount) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium w-8">{day.count}건</span>
+              </div>
+            </div>
+            <div className="w-24 text-right text-xs text-muted-foreground">
+              ₩{day.amount.toLocaleString()}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Admin Dashboard
 async function AdminDashboard() {
   const stats = await getAdminStats();
@@ -247,6 +413,24 @@ async function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <DailyTrends />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">최근 7일 신규 회원</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NewMemberTrends />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">최근 7일 PT 등록</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PaymentTrends />
         </CardContent>
       </Card>
 
