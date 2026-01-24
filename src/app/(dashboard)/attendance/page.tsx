@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User, Pencil, MessageSquare, Lock } from "lucide-react";
+import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User, Pencil, MessageSquare, Lock, Banknote } from "lucide-react";
 
 interface Member {
   id: string;
@@ -35,6 +35,7 @@ interface Attendance {
   id: string;
   checkInTime: string;
   remainingPTAfter: number | null;
+  unitPrice: number | null;
   notes: string | null;
   internalNotes: string | null;
   memberProfile: {
@@ -250,40 +251,56 @@ export default function AttendancePage() {
       </Card>
 
       {/* 출석 통계 */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm sm:text-base text-muted-foreground">
-                {startDate === endDate
-                  ? format(new Date(startDate), "M월 d일", { locale: ko })
-                  : `${format(new Date(startDate), "M/d", { locale: ko })} ~ ${format(new Date(endDate), "M/d", { locale: ko })}`
-                }
-              </span>
-              {selectedMemberId !== "all" && members.find(m => m.id === selectedMemberId) && (
-                <Badge variant="secondary">
-                  {members.find(m => m.id === selectedMemberId)?.user.name}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center justify-between sm:justify-end gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="font-medium text-sm">
-                    {attendances.filter(a => a.schedule?.status === "COMPLETED").length}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <XCircle className="h-4 w-4 text-red-500" />
-                  <span className="font-medium text-sm">
-                    {attendances.filter(a => a.schedule?.status === "CANCELLED").length}
-                  </span>
-                </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Users className="h-4 w-4 text-primary" />
               </div>
-              <span className="text-lg sm:text-xl font-bold">총 {attendances.length}건</span>
+              <div>
+                <p className="text-lg font-bold">{attendances.length}건</p>
+                <p className="text-xs text-muted-foreground">
+                  출석 {attendances.filter(a => a.schedule?.status === "COMPLETED").length} /
+                  취소 {attendances.filter(a => a.schedule?.status === "CANCELLED").length}
+                </p>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-full">
+                <Banknote className="h-4 w-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">
+                  ₩{attendances.reduce((sum, a) => sum + (a.unitPrice || 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">실제 매출</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 기간 정보 */}
+      <Card>
+        <CardContent className="py-3">
+          <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>
+              {startDate === endDate
+                ? format(new Date(startDate), "M월 d일", { locale: ko })
+                : `${format(new Date(startDate), "M/d", { locale: ko })} ~ ${format(new Date(endDate), "M/d", { locale: ko })}`
+              }
+            </span>
+            {selectedMemberId !== "all" && members.find(m => m.id === selectedMemberId) && (
+              <Badge variant="secondary">
+                {members.find(m => m.id === selectedMemberId)?.user.name}
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -365,6 +382,11 @@ export default function AttendancePage() {
                               {isCancelled ? "취소 " : ""}
                               {format(new Date(attendance.checkInTime), "HH:mm")}
                             </div>
+                            {attendance.unitPrice && (
+                              <Badge variant="secondary" className="shrink-0 text-xs">
+                                ₩{attendance.unitPrice.toLocaleString()}
+                              </Badge>
+                            )}
                             <Badge variant="outline" className="shrink-0">
                               잔여 {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
                             </Badge>

@@ -95,6 +95,7 @@ export async function GET(request: Request) {
           select: {
             id: true,
             checkInTime: true,
+            unitPrice: true,
             notes: true,
             internalNotes: true,
           },

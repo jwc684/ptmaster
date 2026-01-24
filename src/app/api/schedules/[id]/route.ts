@@ -68,6 +68,15 @@ export async function PATCH(
 
       const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
 
+      // 건당 PT 비용 계산 (회원의 모든 결제 기록 기반)
+      const payments = await prisma.payment.findMany({
+        where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
+        select: { amount: true, ptCount: true },
+      });
+      const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+      const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
+      const unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
+
       // 트랜잭션으로 출석 처리
       const updatedSchedule = await prisma.$transaction(async (tx) => {
         const updated = await tx.schedule.update({
@@ -75,12 +84,13 @@ export async function PATCH(
           data: { status: "COMPLETED", notes },
         });
 
-        // 출석 기록 생성 (차감 후 잔여 회수 저장)
+        // 출석 기록 생성 (차감 후 잔여 회수 저장 + 건당 비용)
         await tx.attendance.create({
           data: {
             memberProfileId: schedule.memberProfileId,
             scheduleId: id,
             remainingPTAfter,
+            unitPrice,       // 건당 PT 비용
             notes,           // 공유 메모
             internalNotes,   // 내부 메모
           },
@@ -144,6 +154,15 @@ export async function PATCH(
 
       const remainingPTAfter = schedule.memberProfile.remainingPT - 1;
 
+      // 건당 PT 비용 계산 (회원의 모든 결제 기록 기반)
+      const payments = await prisma.payment.findMany({
+        where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
+        select: { amount: true, ptCount: true },
+      });
+      const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+      const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
+      const unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
+
       // 트랜잭션으로 취소 처리
       const updatedSchedule = await prisma.$transaction(async (tx) => {
         const updated = await tx.schedule.update({
@@ -151,12 +170,13 @@ export async function PATCH(
           data: { status: "CANCELLED", notes },
         });
 
-        // 취소 기록 생성 (차감 후 잔여 회수 저장)
+        // 취소 기록 생성 (차감 후 잔여 회수 저장 + 건당 비용)
         await tx.attendance.create({
           data: {
             memberProfileId: schedule.memberProfileId,
             scheduleId: id,
             remainingPTAfter,
+            unitPrice,       // 건당 PT 비용
             notes: notes ? `[취소] ${notes}` : "[취소]",
             internalNotes,
           },

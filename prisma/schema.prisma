@@ -169,6 +169,7 @@ model Attendance {
   scheduleId       String?        @unique
   checkInTime      DateTime       @default(now())
   remainingPTAfter Int?           // 기록 시점 차감 후 잔여 PT
+  unitPrice        Int?           // 건당 PT 비용 (원) - 출석 시점 기준 계산
   notes            String?        @db.Text  // 공유 메모 (회원에게 보이는 메모)
   internalNotes    String?        @db.Text  // 내부 메모 (트레이너/관리자만 보이는 메모)
   createdAt        DateTime       @default(now())

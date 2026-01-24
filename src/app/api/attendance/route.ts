@@ -64,6 +64,7 @@ export async function GET(request: Request) {
         id: true,
         checkInTime: true,
         remainingPTAfter: true,
+        unitPrice: true,
         notes: true,
         internalNotes: true,
         memberProfile: {
