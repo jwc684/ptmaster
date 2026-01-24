@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CreditCard, ChevronRight } from "lucide-react";
+import { RegistrationList } from "@/components/registration/registration-list";
 
 async function getPayments() {
   return prisma.payment.findMany({
@@ -68,64 +66,12 @@ export default async function RegistrationListPage() {
       </div>
 
       {/* 등록 리스트 */}
-      <div className="space-y-3">
-        {payments.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              등록된 내역이 없습니다.
-            </CardContent>
-          </Card>
-        ) : (
-          payments.map((payment) => (
-            <Link
-              key={payment.id}
-              href={`/members/${payment.memberProfile.id}`}
-              className="block"
-            >
-              <Card className="hover:bg-accent/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <CreditCard className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium truncate">
-                            {payment.memberProfile.user.name}
-                          </p>
-                          <Badge variant="default">
-                            PT {payment.ptCount}회
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          ₩{payment.amount.toLocaleString()}
-                          {payment.memberProfile.trainer && (
-                            <span> · {payment.memberProfile.trainer.user.name}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </p>
-                        {payment.description && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {payment.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        )}
-      </div>
+      <RegistrationList
+        payments={payments.map((p) => ({
+          ...p,
+          paidAt: p.paidAt.toISOString(),
+        }))}
+      />
     </div>
   );
 }
