@@ -60,6 +60,14 @@ export function PaymentForm({ members }: PaymentFormProps) {
     },
   });
 
+  // 회당 비용 계산
+  const watchAmount = form.watch("amount");
+  const watchPtCount = form.watch("ptCount");
+  const costPerSession =
+    watchAmount && watchPtCount && parseInt(watchPtCount) > 0
+      ? Math.round(parseInt(watchAmount) / parseInt(watchPtCount))
+      : null;
+
   async function onSubmit(data: PaymentFormData) {
     setIsLoading(true);
 
@@ -162,6 +170,18 @@ export function PaymentForm({ members }: PaymentFormProps) {
                 </FormItem>
               )}
             />
+
+            {/* 회당 비용 표시 */}
+            {costPerSession !== null && (
+              <div className="rounded-lg bg-muted p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">회당 비용</span>
+                  <span className="text-lg font-semibold">
+                    {costPerSession.toLocaleString()}원
+                  </span>
+                </div>
+              </div>
+            )}
 
             <FormField
               control={form.control}
