@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { CreditCard, TrendingUp } from "lucide-react";
+import { PaymentList } from "@/components/payments/payment-list";
 
 async function getPaymentStats() {
   const now = new Date();
@@ -48,10 +47,6 @@ async function getPaymentStats() {
   };
 }
 
-const statusLabels: Record<string, string> = {
-  COMPLETED: "완료",
-  REFUNDED: "환불",
-};
 
 export default async function PaymentsPage() {
   const session = await auth();
@@ -111,51 +106,12 @@ export default async function PaymentsPage() {
           <CardTitle className="text-base">최근 결제 내역</CardTitle>
         </CardHeader>
         <CardContent>
-          {payments.length > 0 ? (
-            <div className="space-y-3">
-              {payments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between py-3 border-b last:border-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/members/${payment.memberProfile.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {payment.memberProfile.user.name}
-                      </Link>
-                      <Badge
-                        variant={payment.status === "COMPLETED" ? "default" : "destructive"}
-                        className="text-xs"
-                      >
-                        {statusLabels[payment.status]}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      PT {payment.ptCount}회
-                      {payment.description && ` - ${payment.description}`}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {payment.paidAt.toLocaleDateString("ko-KR", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <p className="font-bold text-right">
-                    ₩{payment.amount.toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              결제 내역이 없습니다.
-            </p>
-          )}
+          <PaymentList
+            payments={payments.map((p) => ({
+              ...p,
+              paidAt: p.paidAt.toISOString(),
+            }))}
+          />
         </CardContent>
       </Card>
     </div>
