@@ -15,16 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -333,128 +324,67 @@ export default function AdminsPage() {
           </CardContent>
         </Card>
       ) : admins.length > 0 ? (
-        <>
-          {/* Desktop Table View */}
-          <Card className="hidden md:block">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                관리자 목록
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[140px]">이름</TableHead>
-                      <TableHead className="w-[240px]">이메일</TableHead>
-                      <TableHead className="w-[140px]">연락처</TableHead>
-                      <TableHead className="w-[120px]">등록일</TableHead>
-                      <TableHead className="w-[60px] text-right">관리</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {admins.map((admin) => (
-                      <TableRow key={admin.id}>
-                        <TableCell className="font-medium">{admin.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{admin.email}</TableCell>
-                        <TableCell>
-                          {admin.phone || <span className="text-muted-foreground">-</span>}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(admin.createdAt), "yyyy.MM.dd", {
-                            locale: ko,
-                          })}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openEditDialog(admin)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                수정
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => openDeleteDialog(admin)}
-                                disabled={admin.id === currentUserId}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                삭제
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-            </CardContent>
-          </Card>
-
-          {/* Mobile Card View */}
-          <Card className="md:hidden">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                관리자 목록
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-border">
-                {admins.map((admin) => (
-                  <div key={admin.id} className="p-4 hover:bg-accent/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Shield className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{admin.name}</p>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            <span className="truncate">{admin.email}</span>
-                          </div>
-                          {admin.phone && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              {admin.phone}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(admin)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            수정
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => openDeleteDialog(admin)}
-                            disabled={admin.id === currentUserId}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            삭제
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/50">
+              {admins.map((admin) => (
+                <div
+                  key={admin.id}
+                  className="flex items-center gap-4 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
+                  onClick={() => openEditDialog(admin)}
+                >
+                  {/* 아이콘 */}
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Shield className="h-6 w-6 text-primary" />
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </>
+
+                  {/* 정보 */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[17px] font-semibold text-foreground truncate">
+                      {admin.name}
+                    </p>
+                    <p className="text-[15px] text-muted-foreground truncate">
+                      {admin.email}
+                    </p>
+                    {admin.phone && (
+                      <p className="text-[13px] text-muted-foreground/70 mt-0.5">
+                        {admin.phone}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 등록일 & 메뉴 */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-[13px] text-muted-foreground hidden sm:block">
+                      {format(new Date(admin.createdAt), "M월 d일", { locale: ko })}
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(admin); }}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          수정
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => { e.stopPropagation(); openDeleteDialog(admin); }}
+                          disabled={admin.id === currentUserId}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          삭제
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
