@@ -421,14 +421,14 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
   return (
     <div className="space-y-4">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">일정 관리</h1>
-          <p className="text-sm text-muted-foreground">
-            총 {schedules.length}건의 일정
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-bold truncate">일정 관리</h1>
+          <p className="text-sm text-muted-foreground truncate">
+            총 {schedules.length}건
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 flex-shrink-0">
           <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -633,61 +633,61 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                     {groupedSchedules[date].map((schedule) => (
                       <div
                         key={schedule.id}
-                        className="flex items-center gap-4 px-4 py-4 hover:bg-accent/30 transition-colors"
+                        className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors"
                       >
                         {/* 상태 아이콘 */}
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                           schedule.status === "COMPLETED" ? "bg-green-500/10" :
                           schedule.status === "CANCELLED" ? "bg-gray-500/10" :
                           schedule.status === "NO_SHOW" ? "bg-red-500/10" :
                           "bg-blue-500/10"
                         }`}>
                           {schedule.status === "COMPLETED" ? (
-                            <Check className="h-6 w-6 text-green-500" />
+                            <Check className="h-5 w-5 text-green-500" />
                           ) : schedule.status === "CANCELLED" ? (
-                            <X className="h-6 w-6 text-gray-500" />
+                            <X className="h-5 w-5 text-gray-500" />
                           ) : schedule.status === "NO_SHOW" ? (
-                            <X className="h-6 w-6 text-red-500" />
+                            <X className="h-5 w-5 text-red-500" />
                           ) : (
-                            <Clock className="h-6 w-6 text-blue-500" />
+                            <Clock className="h-5 w-5 text-blue-500" />
                           )}
                         </div>
 
                         {/* 정보 */}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <p className="text-[17px] font-semibold text-foreground truncate">
+                            <p className="text-[15px] font-semibold text-foreground truncate">
                               {schedule.memberProfile.user.name}
                             </p>
-                            <Badge className={statusColors[schedule.status]}>
+                            <Badge className={`text-xs ${statusColors[schedule.status]}`}>
                               {statusLabels[schedule.status]}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-2 text-[15px] text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
-                            {format(new Date(schedule.scheduledAt), "HH:mm")}
-                            <span className="hidden sm:inline">
-                              · {schedule.trainer.user.name} 트레이너
+                          <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                            <Clock className="h-3 w-3 flex-shrink-0" />
+                            <span>{format(new Date(schedule.scheduledAt), "HH:mm")}</span>
+                            <span className="hidden sm:inline truncate">
+                              · {schedule.trainer.user.name}
                             </span>
                           </div>
                           {/* 메모 */}
                           {schedule.notes && (
-                            <p className="text-[13px] text-muted-foreground/70 mt-0.5 truncate">
+                            <p className="text-[12px] text-muted-foreground/70 mt-0.5 truncate">
                               {schedule.notes}
                             </p>
                           )}
                           {schedule.attendance?.notes && (
                             <div className="flex items-center gap-1 mt-0.5">
-                              <MessageSquare className="h-3 w-3 text-muted-foreground/70" />
-                              <p className="text-[13px] text-muted-foreground/70 truncate">
+                              <MessageSquare className="h-3 w-3 text-muted-foreground/70 flex-shrink-0" />
+                              <p className="text-[12px] text-muted-foreground/70 truncate">
                                 {schedule.attendance.notes}
                               </p>
                             </div>
                           )}
                           {schedule.attendance?.internalNotes && (
                             <div className="flex items-center gap-1 mt-0.5">
-                              <Lock className="h-3 w-3 text-orange-500" />
-                              <p className="text-[13px] text-orange-600 dark:text-orange-400 truncate">
+                              <Lock className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                              <p className="text-[12px] text-orange-600 dark:text-orange-400 truncate">
                                 {schedule.attendance.internalNotes}
                               </p>
                             </div>
@@ -695,9 +695,9 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                         </div>
 
                         {/* 오른쪽: 잔여PT, 액션 */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Badge variant={schedule.memberProfile.remainingPT > 0 ? "outline" : "secondary"}>
-                            {schedule.memberProfile.remainingPT}회
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Badge variant={schedule.memberProfile.remainingPT > 0 ? "outline" : "secondary"} className="text-xs hidden sm:inline-flex">
+                            {schedule.memberProfile.remainingPT}
                           </Badge>
 
                           {schedule.status === "SCHEDULED" && (
@@ -705,21 +705,21 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 w-8 p-0"
+                                className="h-7 w-7 p-0"
                                 onClick={() => openCancelDialog(schedule)}
                                 disabled={!!actionLoading}
                                 title="취소"
                               >
-                                <X className="h-4 w-4" />
+                                <X className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 size="sm"
-                                className="h-8 w-8 p-0"
+                                className="h-7 w-7 p-0"
                                 onClick={() => openCheckInDialog(schedule)}
                                 disabled={!!actionLoading}
                                 title="출석"
                               >
-                                <Check className="h-4 w-4" />
+                                <Check className="h-3.5 w-3.5" />
                               </Button>
                             </>
                           )}
@@ -728,15 +728,15 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 w-8 p-0"
+                              className="h-7 w-7 p-0"
                               onClick={() => handleRevert(schedule.id)}
                               disabled={actionLoading === schedule.id}
                               title="되돌리기"
                             >
                               {actionLoading === schedule.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               ) : (
-                                <RotateCcw className="h-4 w-4" />
+                                <RotateCcw className="h-3.5 w-3.5" />
                               )}
                             </Button>
                           )}
@@ -746,9 +746,9 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-8 w-8 p-0"
+                                className="h-7 w-7 p-0"
                               >
-                                <MoreHorizontal className="h-4 w-4" />
+                                <MoreHorizontal className="h-3.5 w-3.5" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">

@@ -405,53 +405,53 @@ export default function AttendancePage() {
                       return (
                         <div
                           key={attendance.id}
-                          className={`flex items-center gap-4 px-4 py-4 hover:bg-accent/30 transition-colors ${
+                          className={`flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors ${
                             isCancelled ? "opacity-60" : ""
                           }`}
                         >
                           {/* 상태 아이콘 */}
-                          <div className={`h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                             isCancelled ? "bg-destructive/10" : "bg-green-500/10"
                           }`}>
                             {isCancelled ? (
-                              <XCircle className="h-6 w-6 text-destructive" />
+                              <XCircle className="h-5 w-5 text-destructive" />
                             ) : (
-                              <CheckCircle className="h-6 w-6 text-green-500" />
+                              <CheckCircle className="h-5 w-5 text-green-500" />
                             )}
                           </div>
 
                           {/* 정보 */}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="text-[17px] font-semibold text-foreground truncate">
+                              <p className="text-[15px] font-semibold text-foreground truncate">
                                 {attendance.memberProfile.user.name}
                               </p>
                               {isCancelled && (
-                                <Badge variant="destructive" className="text-xs">취소</Badge>
+                                <Badge variant="destructive" className="text-xs flex-shrink-0">취소</Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-[15px] text-muted-foreground">
-                              <Clock className="h-3.5 w-3.5" />
-                              {format(new Date(attendance.checkInTime), "HH:mm")}
+                            <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span>{format(new Date(attendance.checkInTime), "HH:mm")}</span>
                               {attendance.schedule?.trainer && (
-                                <span className="hidden sm:inline">
-                                  · 담당: {attendance.schedule.trainer.user.name}
+                                <span className="hidden sm:inline truncate">
+                                  · {attendance.schedule.trainer.user.name}
                                 </span>
                               )}
                             </div>
                             {/* 메모 */}
                             {(attendance.notes && !attendance.notes.startsWith("[취소]")) && (
                               <div className="flex items-center gap-1 mt-1">
-                                <MessageSquare className="h-3 w-3 text-muted-foreground/70" />
-                                <p className="text-[13px] text-muted-foreground/70 truncate">
+                                <MessageSquare className="h-3 w-3 text-muted-foreground/70 flex-shrink-0" />
+                                <p className="text-[12px] text-muted-foreground/70 truncate">
                                   {attendance.notes}
                                 </p>
                               </div>
                             )}
                             {attendance.internalNotes && (
                               <div className="flex items-center gap-1 mt-0.5">
-                                <Lock className="h-3 w-3 text-orange-500" />
-                                <p className="text-[13px] text-orange-600 dark:text-orange-400 truncate">
+                                <Lock className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                                <p className="text-[12px] text-orange-600 dark:text-orange-400 truncate">
                                   {attendance.internalNotes}
                                 </p>
                               </div>
@@ -459,33 +459,33 @@ export default function AttendancePage() {
                           </div>
 
                           {/* 오른쪽: 단가, 잔여PT, 액션 */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <div className="hidden sm:flex flex-col items-end gap-1">
                               {attendance.unitPrice && (
-                                <span className="text-[13px] text-muted-foreground">
+                                <span className="text-[12px] text-muted-foreground">
                                   ₩{attendance.unitPrice.toLocaleString()}
                                 </span>
                               )}
                             </div>
-                            <Badge variant="outline">
-                              {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
+                            <Badge variant="outline" className="text-xs">
+                              {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}
                             </Badge>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0"
+                              className="h-7 w-7 p-0"
                               onClick={() => openEditDialog(attendance)}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             {(userRole === "ADMIN" || userRole === "SUPER_ADMIN") && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                                 onClick={() => openDeleteDialog(attendance)}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
                           </div>

@@ -18,30 +18,34 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, action, customAction }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+    <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">{title}</h1>
         {description && (
-          <p className="text-muted-foreground">{description}</p>
+          <p className="text-sm text-muted-foreground truncate">{description}</p>
         )}
       </div>
-      {customAction ? (
-        customAction
-      ) : action && (
-        action.href ? (
-          <Button asChild>
-            <Link href={action.href}>
-              <Plus className="mr-2 h-4 w-4" />
-              {action.label}
-            </Link>
-          </Button>
-        ) : (
-          <Button onClick={action.onClick}>
-            <Plus className="mr-2 h-4 w-4" />
-            {action.label}
-          </Button>
-        )
-      )}
+      <div className="flex-shrink-0">
+        {customAction ? (
+          customAction
+        ) : action && (
+          action.href ? (
+            <Button asChild size="sm" className="whitespace-nowrap">
+              <Link href={action.href}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">{action.label}</span>
+                <span className="sm:hidden">추가</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button onClick={action.onClick} size="sm" className="whitespace-nowrap">
+              <Plus className="mr-1.5 h-4 w-4" />
+              <span className="hidden sm:inline">{action.label}</span>
+              <span className="sm:hidden">추가</span>
+            </Button>
+          )
+        )}
+      </div>
     </div>
   );
 }
