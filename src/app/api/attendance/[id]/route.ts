@@ -172,7 +172,7 @@ export async function DELETE(
     }
 
     // 관리자만 삭제 가능
-    if (session.user.role !== "ADMIN") {
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "관리자만 삭제할 수 있습니다." }, { status: 403 });
     }
 
