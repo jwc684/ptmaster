@@ -36,6 +36,15 @@ interface ShopContextValue {
 const ShopContext = createContext<ShopContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "selected-shop-id";
+const COOKIE_KEY = "selected-shop-id";
+
+function setShopCookie(shopId: string | null) {
+  if (shopId) {
+    document.cookie = `${COOKIE_KEY}=${shopId}; path=/; max-age=31536000; SameSite=Lax`;
+  } else {
+    document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`;
+  }
+}
 
 interface ShopProviderProps {
   children: ReactNode;
@@ -131,6 +140,8 @@ export function ShopProvider({ children }: ShopProviderProps) {
         const savedShop = shops.find((s) => s.id === savedShopId);
         if (savedShop) {
           setCurrentShop(savedShop);
+          // Sync cookie with localStorage
+          setShopCookie(savedShopId);
         }
       }
     }
@@ -144,6 +155,7 @@ export function ShopProvider({ children }: ShopProviderProps) {
       if (shop) {
         setCurrentShop(shop);
         localStorage.setItem(STORAGE_KEY, shopId);
+        setShopCookie(shopId);
       }
     },
     [shops, isSuperAdmin]
@@ -154,6 +166,7 @@ export function ShopProvider({ children }: ShopProviderProps) {
 
     setCurrentShop(null);
     localStorage.removeItem(STORAGE_KEY);
+    setShopCookie(null);
   }, [isSuperAdmin]);
 
   const getShopHeader = useCallback((): Record<string, string> => {

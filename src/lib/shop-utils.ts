@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import type { UserRole } from "@prisma/client";
 
 export interface ShopAuthResult {
@@ -33,10 +33,19 @@ export async function getAuthWithShop(): Promise<AuthWithShopResult> {
   const isSuperAdmin = session.user.role === "SUPER_ADMIN";
   let effectiveShopId = session.user.shopId ?? null;
 
-  // Super Admin can override shop context via header
+  // Super Admin can override shop context via header or cookie
   if (isSuperAdmin) {
     const headersList = await headers();
-    const overrideShopId = headersList.get("x-shop-id");
+    const cookieStore = await cookies();
+
+    // First check header (for API calls)
+    let overrideShopId = headersList.get("x-shop-id");
+
+    // If no header, check cookie (for page renders)
+    if (!overrideShopId) {
+      overrideShopId = cookieStore.get("selected-shop-id")?.value ?? null;
+    }
+
     if (overrideShopId) {
       // Validate that the shop exists
       const shop = await prisma.pTShop.findUnique({

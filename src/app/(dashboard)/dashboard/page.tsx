@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, UserCog, CreditCard, Activity, ClipboardCheck } from "lucide-react";
@@ -12,18 +12,19 @@ import { MemberTrendsChart } from "@/components/dashboard/member-trends-chart";
 import { PaymentTrendsChart } from "@/components/dashboard/payment-trends-chart";
 
 // Admin Dashboard Stats
-async function getAdminStats() {
+async function getAdminStats(shopFilter: { shopId?: string }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
   const [totalMembers, totalTrainers, todayAttendance, monthlyRevenue, totalPTRemaining] =
     await Promise.all([
-      prisma.memberProfile.count(),
-      prisma.trainerProfile.count(),
+      prisma.memberProfile.count({ where: shopFilter }),
+      prisma.trainerProfile.count({ where: shopFilter }),
       prisma.attendance.count({
         where: {
           checkInTime: { gte: today },
+          ...shopFilter,
         },
       }),
       prisma.payment.aggregate({
@@ -31,10 +32,12 @@ async function getAdminStats() {
         where: {
           status: "COMPLETED",
           paidAt: { gte: monthStart },
+          ...shopFilter,
         },
       }),
       prisma.memberProfile.aggregate({
         _sum: { remainingPT: true },
+        where: shopFilter,
       }),
     ]);
 
@@ -99,8 +102,8 @@ function CompactStat({
 }
 
 // Admin Dashboard
-async function AdminDashboard() {
-  const stats = await getAdminStats();
+async function AdminDashboard({ shopFilter }: { shopFilter: { shopId?: string } }) {
+  const stats = await getAdminStats(shopFilter);
 
   return (
     <div className="space-y-4">
@@ -155,7 +158,7 @@ async function AdminDashboard() {
             <CardTitle className="text-base">최근 가입 회원</CardTitle>
           </CardHeader>
           <CardContent>
-            <RecentMembers />
+            <RecentMembers shopFilter={shopFilter} />
           </CardContent>
         </Card>
         <Card>
@@ -163,7 +166,7 @@ async function AdminDashboard() {
             <CardTitle className="text-base">오늘 PT 출석</CardTitle>
           </CardHeader>
           <CardContent>
-            <TodayAttendances />
+            <TodayAttendances shopFilter={shopFilter} />
           </CardContent>
         </Card>
       </div>
@@ -229,8 +232,9 @@ async function TrainerDashboard({ trainerId }: { trainerId: string }) {
   );
 }
 
-async function RecentMembers() {
+async function RecentMembers({ shopFilter }: { shopFilter: { shopId?: string } }) {
   const recentMembers = await prisma.memberProfile.findMany({
+    where: shopFilter,
     take: 5,
     orderBy: { createdAt: "desc" },
     select: {
@@ -265,7 +269,7 @@ async function RecentMembers() {
   );
 }
 
-async function TodayAttendances() {
+async function TodayAttendances({ shopFilter }: { shopFilter: { shopId?: string } }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -273,6 +277,7 @@ async function TodayAttendances() {
     take: 5,
     where: {
       checkInTime: { gte: today },
+      ...shopFilter,
     },
     orderBy: { checkInTime: "desc" },
     select: {
@@ -367,31 +372,33 @@ async function TrainerTodayAttendances({ trainerId }: { trainerId: string }) {
 }
 
 export default async function DashboardPage() {
-  const session = await auth();
+  const authResult = await getAuthWithShop();
 
-  if (!session?.user) {
+  if (!authResult.isAuthenticated) {
     redirect("/login");
   }
 
   // Members should be redirected to their my page
-  if (session.user.role === "MEMBER") {
+  if (authResult.userRole === "MEMBER") {
     redirect("/my");
   }
 
   // Get trainer profile if trainer
   let trainerId: string | null = null;
-  if (session.user.role === "TRAINER") {
+  if (authResult.userRole === "TRAINER") {
     const trainerProfile = await prisma.trainerProfile.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: authResult.userId },
       select: { id: true },
     });
     trainerId = trainerProfile?.id || null;
   }
 
+  const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
   return (
     <Suspense fallback={<DashboardSkeleton />}>
-      {session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN" ? (
-        <AdminDashboard />
+      {authResult.userRole === "ADMIN" || authResult.userRole === "SUPER_ADMIN" ? (
+        <AdminDashboard shopFilter={shopFilter} />
       ) : trainerId ? (
         <TrainerDashboard trainerId={trainerId} />
       ) : (

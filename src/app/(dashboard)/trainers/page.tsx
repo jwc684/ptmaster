@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserCog, Phone, Users, ChevronRight } from "lucide-react";
 
-async function getTrainers() {
+async function getTrainers(shopFilter: { shopId?: string }) {
   return prisma.trainerProfile.findMany({
+    where: shopFilter,
     select: {
       id: true,
       bio: true,
@@ -29,13 +30,18 @@ async function getTrainers() {
 }
 
 export default async function TrainersPage() {
-  const session = await auth();
+  const authResult = await getAuthWithShop();
 
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!authResult.isAuthenticated) {
+    redirect("/login");
+  }
+
+  if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
     redirect("/dashboard");
   }
 
-  const trainers = await getTrainers();
+  const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+  const trainers = await getTrainers(shopFilter);
 
   return (
     <div className="space-y-4">

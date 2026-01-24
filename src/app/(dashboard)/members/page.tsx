@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { User, Phone, ChevronRight } from "lucide-react";
 
-async function getMembers() {
+async function getMembers(shopFilter: { shopId?: string }) {
   return prisma.memberProfile.findMany({
+    where: shopFilter,
     select: {
       id: true,
       remainingPT: true,
@@ -33,13 +34,18 @@ async function getMembers() {
 }
 
 export default async function MembersPage() {
-  const session = await auth();
+  const authResult = await getAuthWithShop();
 
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!authResult.isAuthenticated) {
+    redirect("/login");
+  }
+
+  if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
     redirect("/dashboard");
   }
 
-  const members = await getMembers();
+  const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+  const members = await getMembers(shopFilter);
 
   return (
     <div className="space-y-4">

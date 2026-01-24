@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { RegistrationList } from "@/components/registration/registration-list";
 
-async function getPayments() {
+async function getPayments(shopFilter: { shopId?: string }) {
   return prisma.payment.findMany({
+    where: shopFilter,
     select: {
       id: true,
       amount: true,
@@ -27,13 +28,18 @@ async function getPayments() {
 }
 
 export default async function RegistrationListPage() {
-  const session = await auth();
+  const authResult = await getAuthWithShop();
 
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!authResult.isAuthenticated) {
+    redirect("/login");
+  }
+
+  if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
     redirect("/dashboard");
   }
 
-  const payments = await getPayments();
+  const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+  const payments = await getPayments(shopFilter);
 
   const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
   const totalPT = payments.reduce((sum, p) => sum + p.ptCount, 0);

@@ -1,17 +1,18 @@
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, TrendingUp } from "lucide-react";
 import { PaymentList } from "@/components/payments/payment-list";
 
-async function getPaymentStats() {
+async function getPaymentStats(shopFilter: { shopId?: string }) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [payments, monthlyStats] = await Promise.all([
     prisma.payment.findMany({
+      where: shopFilter,
       select: {
         id: true,
         amount: true,
@@ -35,6 +36,7 @@ async function getPaymentStats() {
       where: {
         status: "COMPLETED",
         paidAt: { gte: startOfMonth },
+        ...shopFilter,
       },
     }),
   ]);
@@ -49,13 +51,18 @@ async function getPaymentStats() {
 
 
 export default async function PaymentsPage() {
-  const session = await auth();
+  const authResult = await getAuthWithShop();
 
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!authResult.isAuthenticated) {
+    redirect("/login");
+  }
+
+  if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
     redirect("/dashboard");
   }
 
-  const { payments, monthlyTotal, monthlyPTCount, monthlyCount } = await getPaymentStats();
+  const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+  const { payments, monthlyTotal, monthlyPTCount, monthlyCount } = await getPaymentStats(shopFilter);
 
   return (
     <div className="space-y-4">
