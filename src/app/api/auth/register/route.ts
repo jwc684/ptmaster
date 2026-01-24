@@ -5,73 +5,152 @@ import { registerApiSchema } from "@/lib/validations/auth";
 import { Prisma } from "@prisma/client";
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  console.log("[Register] ===== Starting registration =====");
+
   try {
-    // 1. 요청 본문 파싱
+    // Step 1: Parse request body
+    console.log("[Register] Step 1: Parsing request body...");
     let body;
     try {
       body = await request.json();
+      console.log("[Register] Step 1: Body parsed, email:", body?.email);
     } catch {
+      console.error("[Register] Step 1: Failed to parse body");
       return NextResponse.json(
-        { error: "잘못된 요청 형식입니다." },
+        { error: "잘못된 요청 형식입니다.", step: "parse_body" },
         { status: 400 }
       );
     }
 
-    // 2. 데이터 검증
+    // Step 2: Validate data
+    console.log("[Register] Step 2: Validating data...");
     const validatedData = registerApiSchema.safeParse(body);
     if (!validatedData.success) {
+      console.error("[Register] Step 2: Validation failed:", validatedData.error.issues);
       return NextResponse.json(
-        { error: validatedData.error.issues[0].message },
+        { error: validatedData.error.issues[0].message, step: "validation" },
         { status: 400 }
       );
     }
 
     const { name, email, phone, password } = validatedData.data;
+    console.log("[Register] Step 2: Validation passed for:", email);
 
-    // 3. 데이터베이스 연결 확인
+    // Step 3: Test database connection
+    console.log("[Register] Step 3: Testing database connection...");
     const dbTest = await testDbConnection();
     if (!dbTest.ok) {
-      console.error("Database connection failed:", dbTest.error);
+      console.error("[Register] Step 3: Database connection failed:", dbTest.error);
+      console.error("[Register] Step 3: Details:", dbTest.details);
       return NextResponse.json(
         {
-          error: "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-          code: "DB_CONNECTION_ERROR"
+          error: "데이터베이스 연결에 실패했습니다.",
+          step: "db_connection",
+          code: "DB_CONNECTION_ERROR",
+          details: dbTest.details
+        },
+        { status: 500 }
+      );
+    }
+    console.log("[Register] Step 3: Database connection OK");
+
+    // Step 4: Check for existing user
+    console.log("[Register] Step 4: Checking for existing user...");
+    let existingUser;
+    try {
+      existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+    } catch (findError) {
+      console.error("[Register] Step 4: Error finding user:", findError);
+      return NextResponse.json(
+        {
+          error: "사용자 확인 중 오류가 발생했습니다.",
+          step: "find_user",
+          details: findError instanceof Error ? findError.message : "Unknown"
         },
         { status: 500 }
       );
     }
 
-    // 4. 이메일 중복 확인
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
     if (existingUser) {
+      console.log("[Register] Step 4: User already exists:", email);
       return NextResponse.json(
-        { error: "이미 등록된 이메일입니다." },
+        { error: "이미 등록된 이메일입니다.", step: "duplicate" },
         { status: 400 }
       );
     }
+    console.log("[Register] Step 4: No existing user found");
 
-    // 5. 비밀번호 해시
+    // Step 5: Hash password
+    console.log("[Register] Step 5: Hashing password...");
     const hashedPassword = await bcrypt.hash(password, 12);
+    console.log("[Register] Step 5: Password hashed");
 
-    // 6. 사용자 생성
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        phone,
-        password: hashedPassword,
-        role: "MEMBER",
-        memberProfile: {
-          create: {},
+    // Step 6: Create user
+    console.log("[Register] Step 6: Creating user...");
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          phone,
+          password: hashedPassword,
+          role: "MEMBER",
+          memberProfile: {
+            create: {},
+          },
         },
-      },
-      include: {
-        memberProfile: true,
-      },
-    });
+        include: {
+          memberProfile: true,
+        },
+      });
+      console.log("[Register] Step 6: User created successfully, id:", user.id);
+    } catch (createError) {
+      console.error("[Register] Step 6: Failed to create user:", createError);
+
+      if (createError instanceof Prisma.PrismaClientKnownRequestError) {
+        console.error("[Register] Prisma error code:", createError.code);
+        console.error("[Register] Prisma error meta:", createError.meta);
+
+        if (createError.code === "P2002") {
+          return NextResponse.json(
+            { error: "이미 등록된 이메일입니다.", step: "create_duplicate" },
+            { status: 400 }
+          );
+        }
+
+        if (createError.code === "P2003") {
+          return NextResponse.json(
+            {
+              error: "참조 오류가 발생했습니다.",
+              step: "create_fk",
+              code: createError.code
+            },
+            { status: 500 }
+          );
+        }
+      }
+
+      if (createError instanceof Prisma.PrismaClientValidationError) {
+        console.error("[Register] Validation error - schema mismatch likely");
+        return NextResponse.json(
+          {
+            error: "데이터 형식 오류입니다. 관리자에게 문의하세요.",
+            step: "create_validation",
+            code: "SCHEMA_MISMATCH"
+          },
+          { status: 500 }
+        );
+      }
+
+      throw createError;
+    }
+
+    const duration = Date.now() - startTime;
+    console.log(`[Register] ===== Registration completed in ${duration}ms =====`);
 
     return NextResponse.json(
       {
@@ -86,65 +165,28 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Registration error:", error);
-
-    // Prisma 에러 상세 분류
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error("Prisma error code:", error.code, "meta:", error.meta, "message:", error.message);
-
-      // P2002: Unique constraint violation
-      if (error.code === "P2002") {
-        const target = error.meta?.target as string[] | undefined;
-        if (target?.includes("email")) {
-          return NextResponse.json(
-            { error: "이미 등록된 이메일입니다." },
-            { status: 400 }
-          );
-        }
-      }
-
-      // P2003: Foreign key constraint
-      // P2025: Record not found
-      return NextResponse.json(
-        {
-          error: "데이터베이스 오류가 발생했습니다.",
-          code: error.code,
-          details: process.env.NODE_ENV === "development" ? error.message : undefined
-        },
-        { status: 500 }
-      );
-    }
+    const duration = Date.now() - startTime;
+    console.error(`[Register] ===== Registration failed after ${duration}ms =====`);
+    console.error("[Register] Unhandled error:", error);
 
     if (error instanceof Prisma.PrismaClientInitializationError) {
-      console.error("Prisma initialization error:", error.message);
+      console.error("[Register] Prisma initialization error - check DATABASE_URL");
       return NextResponse.json(
         {
-          error: "서버 초기화 오류가 발생했습니다.",
-          code: "PRISMA_INIT_ERROR",
-          details: process.env.NODE_ENV === "development" ? error.message : undefined
-        },
-        { status: 500 }
-      );
-    }
-
-    if (error instanceof Prisma.PrismaClientValidationError) {
-      console.error("Prisma validation error:", error.message);
-      return NextResponse.json(
-        {
-          error: "데이터 유효성 검사 오류가 발생했습니다.",
-          code: "PRISMA_VALIDATION_ERROR",
-          details: process.env.NODE_ENV === "development" ? error.message : undefined
+          error: "서버 초기화 오류입니다. 관리자에게 문의하세요.",
+          step: "init",
+          code: "PRISMA_INIT_ERROR"
         },
         { status: 500 }
       );
     }
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Unknown registration error:", errorMessage);
     return NextResponse.json(
       {
         error: "회원가입 중 오류가 발생했습니다.",
-        details: process.env.NODE_ENV === "development" ? errorMessage : undefined
+        step: "unknown",
+        details: errorMessage
       },
       { status: 500 }
     );
