@@ -33,6 +33,8 @@ const memberFormSchema = z.object({
   email: z.string().email("올바른 이메일 주소를 입력해주세요."),
   phone: z.string().optional(),
   password: z.string().optional(),
+  birthDate: z.string().optional(),
+  gender: z.enum(["MALE", "FEMALE", ""]).optional(),
   trainerId: z.string().optional(),
   remainingPT: z.number().min(0),
   notes: z.string().optional(),
@@ -56,6 +58,8 @@ interface MemberFormProps {
     trainerId: string | null;
     remainingPT: number;
     notes: string | null;
+    birthDate: string | null;
+    gender: "MALE" | "FEMALE" | null;
   };
   trainers: Trainer[];
 }
@@ -72,6 +76,8 @@ export function MemberForm({ initialData, trainers }: MemberFormProps) {
       email: initialData?.user.email || "",
       phone: initialData?.user.phone || "",
       password: "",
+      birthDate: initialData?.birthDate || "",
+      gender: initialData?.gender || "",
       trainerId: initialData?.trainerId || "",
       remainingPT: initialData?.remainingPT || 0,
       notes: initialData?.notes || "",
@@ -159,6 +165,47 @@ export function MemberForm({ initialData, trainers }: MemberFormProps) {
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="birthDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>생년월일</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>성별</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="선택" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="MALE">남성</SelectItem>
+                        <SelectItem value="FEMALE">여성</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

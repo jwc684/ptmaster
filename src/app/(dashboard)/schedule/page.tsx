@@ -13,12 +13,40 @@ async function getTrainerMembers(userId: string) {
           id: true,
           remainingPT: true,
           user: { select: { name: true, phone: true } },
+          trainer: {
+            select: {
+              id: true,
+              user: { select: { name: true } },
+            },
+          },
         },
         orderBy: { user: { name: "asc" } },
       },
     },
   });
   return trainerProfile;
+}
+
+async function getAllMembersWithTrainer() {
+  // 관리자용: 트레이너가 배정된 모든 회원 조회
+  const members = await prisma.memberProfile.findMany({
+    where: {
+      trainerId: { not: null },
+    },
+    select: {
+      id: true,
+      remainingPT: true,
+      user: { select: { name: true, phone: true } },
+      trainer: {
+        select: {
+          id: true,
+          user: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: { user: { name: "asc" } },
+  });
+  return members;
 }
 
 export default async function SchedulePage() {
@@ -33,13 +61,26 @@ export default async function SchedulePage() {
     redirect("/my");
   }
 
-  const trainerData = await getTrainerMembers(session.user.id);
+  const isAdmin = session.user.role === "ADMIN";
 
-  return (
-    <ScheduleView
-      members={trainerData?.members || []}
-      trainerId={trainerData?.id}
-      isAdmin={session.user.role === "ADMIN"}
-    />
-  );
+  if (isAdmin) {
+    // 관리자: 트레이너가 배정된 모든 회원
+    const members = await getAllMembersWithTrainer();
+    return (
+      <ScheduleView
+        members={members}
+        isAdmin={true}
+      />
+    );
+  } else {
+    // 트레이너: 자신의 회원만
+    const trainerData = await getTrainerMembers(session.user.id);
+    return (
+      <ScheduleView
+        members={trainerData?.members || []}
+        trainerId={trainerData?.id}
+        isAdmin={false}
+      />
+    );
+  }
 }

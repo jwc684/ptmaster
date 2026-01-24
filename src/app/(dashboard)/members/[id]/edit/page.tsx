@@ -5,13 +5,15 @@ import { PageHeader } from "@/components/layout/page-header";
 import { MemberForm } from "@/components/forms/member-form";
 
 async function getMember(id: string) {
-  return prisma.memberProfile.findUnique({
+  const member = await prisma.memberProfile.findUnique({
     where: { id },
     select: {
       id: true,
       trainerId: true,
       remainingPT: true,
       notes: true,
+      birthDate: true,
+      gender: true,
       user: {
         select: {
           name: true,
@@ -21,6 +23,14 @@ async function getMember(id: string) {
       },
     },
   });
+
+  if (!member) return null;
+
+  // birthDate를 문자열 형식으로 변환
+  return {
+    ...member,
+    birthDate: member.birthDate ? member.birthDate.toISOString().split("T")[0] : null,
+  };
 }
 
 async function getTrainers() {

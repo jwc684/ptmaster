@@ -13,6 +13,8 @@ export const memberSchema = z.object({
       "비밀번호는 영문과 숫자를 포함해야 합니다."
     )
     .optional(),
+  birthDate: z.string().optional(), // 생년월일
+  gender: z.enum(["MALE", "FEMALE"]).optional(), // 성별
   trainerId: z.string().optional(), // 담당 트레이너
   remainingPT: z.number().min(0).default(0), // 잔여 PT 횟수
   notes: z.string().optional(), // 메모
@@ -28,6 +30,8 @@ export const memberUpdateSchema = memberSchema.omit({ password: true }).extend({
     )
     .optional()
     .or(z.literal("")),
+  birthDate: z.string().optional().or(z.literal("")),
+  gender: z.enum(["MALE", "FEMALE"]).optional().or(z.literal("")),
 });
 
 // PT 결제 스키마

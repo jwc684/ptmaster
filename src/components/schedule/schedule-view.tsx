@@ -60,6 +60,10 @@ interface Member {
   id: string;
   remainingPT: number;
   user: { name: string; phone: string | null };
+  trainer?: {
+    id: string;
+    user: { name: string };
+  } | null;
 }
 
 interface Schedule {
@@ -473,6 +477,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                       {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.user.name} (잔여 PT: {member.remainingPT}회)
+                          {isAdmin && member.trainer && ` - ${member.trainer.user.name} 트레이너`}
                         </SelectItem>
                       ))}
                     </SelectContent>

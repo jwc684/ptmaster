@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Phone, Mail, Calendar, CreditCard } from "lucide-react";
+import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake } from "lucide-react";
 
 async function getMember(id: string) {
   return prisma.memberProfile.findUnique({
@@ -15,6 +15,8 @@ async function getMember(id: string) {
       id: true,
       remainingPT: true,
       notes: true,
+      birthDate: true,
+      gender: true,
       joinDate: true,
       user: {
         select: {
@@ -101,6 +103,22 @@ export default async function MemberDetailPage({
               <span className="text-sm">이메일</span>
             </div>
             <span className="text-sm">{member.user.email}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Cake className="h-4 w-4" />
+              <span className="text-sm">생년월일</span>
+            </div>
+            <span>{member.birthDate ? member.birthDate.toLocaleDateString("ko-KR") : "-"}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <User className="h-4 w-4" />
+              <span className="text-sm">성별</span>
+            </div>
+            <span>{member.gender === "MALE" ? "남성" : member.gender === "FEMALE" ? "여성" : "-"}</span>
           </div>
 
           <div className="flex items-center justify-between">

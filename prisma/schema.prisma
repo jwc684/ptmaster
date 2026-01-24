@@ -79,12 +79,19 @@ model VerificationToken {
 // Member Profile (Simplified)
 // ============================================
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 model MemberProfile {
   id               String          @id @default(cuid())
   userId           String          @unique
   qrCode           String?         @unique
   remainingPT      Int             @default(0)  // 잔여 PT 횟수
   notes            String?         @db.Text     // 메모
+  birthDate        DateTime?                    // 생년월일
+  gender           Gender?                      // 성별
   joinDate         DateTime        @default(now())
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt

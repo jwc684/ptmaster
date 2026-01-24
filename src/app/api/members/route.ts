@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, phone, password, trainerId, remainingPT, notes } =
+    const { name, email, phone, password, birthDate, gender, trainerId, remainingPT, notes } =
       validatedData.data;
 
     // Check if user already exists
@@ -134,6 +134,8 @@ export async function POST(request: Request) {
             trainerId: trainerId || null,
             remainingPT: remainingPT || 0,
             notes,
+            birthDate: birthDate ? new Date(birthDate) : null,
+            gender: gender || null,
           },
         },
       },

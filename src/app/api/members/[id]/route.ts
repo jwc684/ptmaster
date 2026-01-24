@@ -23,6 +23,8 @@ export async function GET(
         qrCode: true,
         remainingPT: true,
         notes: true,
+        birthDate: true,
+        gender: true,
         joinDate: true,
         trainerId: true,
         user: {
@@ -151,7 +153,7 @@ export async function PATCH(
       );
     }
 
-    const { name, email, phone, password, trainerId, remainingPT, notes } =
+    const { name, email, phone, password, birthDate, gender, trainerId, remainingPT, notes } =
       validatedData.data;
 
     // Check if email is being changed and if it's already taken
@@ -184,6 +186,8 @@ export async function PATCH(
         trainerId: trainerId || null,
         remainingPT: remainingPT ?? member.remainingPT,
         notes,
+        birthDate: birthDate ? new Date(birthDate) : null,
+        gender: gender || null,
       },
       select: {
         id: true,
