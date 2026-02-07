@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +20,6 @@ import {
   ClipboardCheck,
   UserPlus,
   LinkIcon,
-  Search,
   Copy,
   Check,
   Loader2,
@@ -34,50 +32,16 @@ interface MyMember {
   attendances: { checkInTime: string }[];
 }
 
-interface ShopMember {
-  id: string;
-  name: string;
-  phone: string | null;
-  trainerName: string | null;
-}
-
 interface Props {
   members: MyMember[];
-  shopMembers: ShopMember[];
   trainerProfileId: string;
 }
 
-export function MyMembersClient({ members, shopMembers, trainerProfileId }: Props) {
-  const router = useRouter();
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+export function MyMembersClient({ members, trainerProfileId }: Props) {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [assigning, setAssigning] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  const filteredShopMembers = shopMembers.filter((m) =>
-    m.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  async function handleAssignMember(memberId: string) {
-    setAssigning(memberId);
-    try {
-      const res = await fetch(`/api/members/${memberId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trainerId: trainerProfileId }),
-      });
-      if (res.ok) {
-        setAddDialogOpen(false);
-        setSearchQuery("");
-        router.refresh();
-      }
-    } finally {
-      setAssigning(null);
-    }
-  }
 
   async function handleCreateInvite() {
     setInviteLoading(true);
@@ -111,14 +75,12 @@ export function MyMembersClient({ members, shopMembers, trainerProfileId }: Prop
       />
 
       <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setAddDialogOpen(true)}
-        >
-          <UserPlus className="h-4 w-4 mr-1" />
-          내 회원 추가
-        </Button>
+        <Link href="/my-members/add">
+          <Button variant="outline" size="sm">
+            <UserPlus className="h-4 w-4 mr-1" />
+            내 회원 추가
+          </Button>
+        </Link>
         <Button
           variant="outline"
           size="sm"
@@ -185,64 +147,6 @@ export function MyMembersClient({ members, shopMembers, trainerProfileId }: Prop
           })
         )}
       </div>
-
-      {/* 내 회원 추가 Dialog */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>내 회원 추가</DialogTitle>
-            <DialogDescription>
-              같은 PT샵의 회원을 내 담당으로 배정합니다.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="이름으로 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          <div className="max-h-64 overflow-y-auto space-y-1">
-            {filteredShopMembers.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                {shopMembers.length === 0
-                  ? "배정 가능한 회원이 없습니다."
-                  : "검색 결과가 없습니다."}
-              </p>
-            ) : (
-              filteredShopMembers.map((member) => (
-                <button
-                  key={member.id}
-                  onClick={() => handleAssignMember(member.id)}
-                  disabled={assigning !== null}
-                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors text-left disabled:opacity-50"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm">{member.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {member.trainerName ? `담당: ${member.trainerName}` : "미배정"}
-                      </p>
-                    </div>
-                  </div>
-                  {assigning === member.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <UserPlus className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* 회원 가입 링크 Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>

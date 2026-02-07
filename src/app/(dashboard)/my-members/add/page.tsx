@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { MyMembersClient } from "./my-members-client";
+import { AddMemberClient } from "./add-member-client";
 
 async function getTrainerProfile(userId: string) {
   return prisma.trainerProfile.findUnique({
@@ -10,29 +10,29 @@ async function getTrainerProfile(userId: string) {
   });
 }
 
-async function getMyMembers(trainerId: string) {
+async function getAvailableMembers(shopId: string, trainerProfileId: string) {
   return prisma.memberProfile.findMany({
-    where: { trainerId },
+    where: {
+      shopId,
+      trainerId: { not: trainerProfileId },
+    },
     select: {
       id: true,
       remainingPT: true,
       user: {
-        select: {
-          name: true,
-          phone: true,
-        },
+        select: { name: true, phone: true },
       },
-      attendances: {
-        select: { checkInTime: true },
-        orderBy: { checkInTime: "desc" },
-        take: 1,
+      trainer: {
+        select: {
+          user: { select: { name: true } },
+        },
       },
     },
     orderBy: { user: { name: "asc" } },
   });
 }
 
-export default async function MyMembersPage() {
+export default async function AddMemberPage() {
   const session = await auth();
 
   if (!session?.user || session.user.role !== "TRAINER") {
@@ -44,19 +44,22 @@ export default async function MyMembersPage() {
     redirect("/dashboard");
   }
 
-  const members = await getMyMembers(trainerProfile.id);
+  const availableMembers = await getAvailableMembers(
+    trainerProfile.shopId!,
+    trainerProfile.id
+  );
 
-  // Serialize dates for client component
-  const serializedMembers = members.map((m) => ({
-    ...m,
-    attendances: m.attendances.map((a) => ({
-      checkInTime: a.checkInTime.toISOString(),
-    })),
+  const serialized = availableMembers.map((m) => ({
+    id: m.id,
+    name: m.user.name,
+    phone: m.user.phone,
+    remainingPT: m.remainingPT,
+    trainerName: m.trainer?.user?.name || null,
   }));
 
   return (
-    <MyMembersClient
-      members={serializedMembers}
+    <AddMemberClient
+      members={serialized}
       trainerProfileId={trainerProfile.id}
     />
   );
