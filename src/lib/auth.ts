@@ -171,7 +171,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return "/login?error=InvalidInvitation";
           }
 
-          if (invitation.usedAt) {
+          if (invitation.usedAt && !invitation.reusable) {
             console.log("[Auth] Invite token already used");
             return "/login?error=InvitationUsed";
           }
@@ -251,14 +251,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           });
 
-          // 7. Invitation 사용 처리
-          await prisma.invitation.update({
-            where: { id: invitation.id },
-            data: {
-              usedAt: new Date(),
-              usedBy: dbUser.id,
-            },
-          });
+          // 7. Invitation 사용 처리 (reusable 초대는 사용 처리하지 않음)
+          if (!invitation.reusable) {
+            await prisma.invitation.update({
+              where: { id: invitation.id },
+              data: {
+                usedAt: new Date(),
+                usedBy: dbUser.id,
+              },
+            });
+          }
 
           // 8. invite-token, invite-name 쿠키 삭제
           cookieStore.delete("invite-token");

@@ -315,6 +315,7 @@ model Invitation {
   role      UserRole
   shopId    String
   metadata  Json?
+  reusable  Boolean   @default(false)
   expiresAt DateTime
   usedAt    DateTime?
   usedBy    String?

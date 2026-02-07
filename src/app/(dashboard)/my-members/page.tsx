@@ -1,4 +1,6 @@
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { MyMembersClient } from "./my-members-client";
@@ -32,6 +34,44 @@ async function getMyMembers(trainerId: string) {
   });
 }
 
+async function getOrCreateInviteUrl(trainerId: string, shopId: string, userId: string) {
+  // Find existing reusable invite for this trainer
+  const existing = await prisma.invitation.findFirst({
+    where: {
+      createdBy: userId,
+      reusable: true,
+      role: "MEMBER",
+      shopId,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  if (existing) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || "http://localhost:3000";
+    return `${appUrl}/invite/${existing.token}`;
+  }
+
+  // Create new reusable invite
+  const token = crypto.randomUUID();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 365);
+
+  await prisma.invitation.create({
+    data: {
+      token,
+      role: "MEMBER",
+      shopId,
+      reusable: true,
+      metadata: { trainerId } as Prisma.InputJsonValue,
+      expiresAt,
+      createdBy: userId,
+    },
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || "http://localhost:3000";
+  return `${appUrl}/invite/${token}`;
+}
+
 export default async function MyMembersPage() {
   const session = await auth();
 
@@ -44,7 +84,10 @@ export default async function MyMembersPage() {
     redirect("/dashboard");
   }
 
-  const members = await getMyMembers(trainerProfile.id);
+  const [members, inviteUrl] = await Promise.all([
+    getMyMembers(trainerProfile.id),
+    getOrCreateInviteUrl(trainerProfile.id, trainerProfile.shopId, session.user.id),
+  ]);
 
   // Serialize dates for client component
   const serializedMembers = members.map((m) => ({
@@ -58,6 +101,7 @@ export default async function MyMembersPage() {
     <MyMembersClient
       members={serializedMembers}
       trainerProfileId={trainerProfile.id}
+      inviteUrl={inviteUrl}
     />
   );
 }

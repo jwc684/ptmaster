@@ -6,22 +6,13 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   User,
   Phone,
   UserPlus,
   LinkIcon,
-  Copy,
   Check,
-  Loader2,
 } from "lucide-react";
 
 interface MyMember {
@@ -34,36 +25,21 @@ interface MyMember {
 interface Props {
   members: MyMember[];
   trainerProfileId: string;
+  inviteUrl: string;
 }
 
-export function MyMembersClient({ members, trainerProfileId }: Props) {
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
-  const [inviteLoading, setInviteLoading] = useState(false);
+export function MyMembersClient({ members, trainerProfileId, inviteUrl }: Props) {
   const [copied, setCopied] = useState(false);
 
-  async function handleCreateInvite() {
-    setInviteLoading(true);
+  async function handleCopyInviteLink() {
     try {
-      const res = await fetch("/api/invitations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "MEMBER" }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setInviteUrl(data.inviteUrl);
-      }
-    } finally {
-      setInviteLoading(false);
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      toast.success("회원 가입 링크가 복사되었습니다.");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("클립보드 복사에 실패했습니다.");
     }
-  }
-
-  async function handleCopy() {
-    if (!inviteUrl) return;
-    await navigator.clipboard.writeText(inviteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -83,14 +59,14 @@ export function MyMembersClient({ members, trainerProfileId }: Props) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            setInviteUrl(null);
-            setCopied(false);
-            setInviteDialogOpen(true);
-          }}
+          onClick={handleCopyInviteLink}
         >
-          <LinkIcon className="h-4 w-4 mr-1" />
-          회원 가입 링크
+          {copied ? (
+            <Check className="h-4 w-4 mr-1 text-green-500" />
+          ) : (
+            <LinkIcon className="h-4 w-4 mr-1" />
+          )}
+          {copied ? "복사됨" : "회원 가입 링크"}
         </Button>
       </div>
 
@@ -142,54 +118,6 @@ export function MyMembersClient({ members, trainerProfileId }: Props) {
           </CardContent>
         </Card>
       )}
-
-      {/* 회원 가입 링크 Dialog */}
-      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>회원 가입 링크</DialogTitle>
-            <DialogDescription>
-              링크를 공유하면 신규 회원이 가입 시 자동으로 내 담당으로 배정됩니다.
-            </DialogDescription>
-          </DialogHeader>
-
-          {inviteUrl ? (
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Input value={inviteUrl} readOnly className="text-xs" />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={handleCopy}
-                  className="flex-shrink-0"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                30일 유효, 1회 사용 가능
-              </p>
-            </div>
-          ) : (
-            <Button
-              onClick={handleCreateInvite}
-              disabled={inviteLoading}
-              className="w-full"
-            >
-              {inviteLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <LinkIcon className="h-4 w-4 mr-2" />
-              )}
-              초대 링크 생성
-            </Button>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

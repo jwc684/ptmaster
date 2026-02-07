@@ -61,12 +61,15 @@ export async function POST(request: Request) {
       metadata = { ...(metadata || {}), trainerId: trainerProfile.id };
     }
 
+    // 트레이너가 생성하는 MEMBER 초대는 reusable
+    const isReusable = authResult.userRole === "TRAINER" && role === "MEMBER";
+
     // 토큰 생성
     const token = crypto.randomUUID();
 
-    // 30일 만료
+    // reusable은 1년, 일반은 30일 만료
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + (isReusable ? 365 : 30));
 
     // 초대 생성
     const invitation = await prisma.invitation.create({
@@ -76,6 +79,7 @@ export async function POST(request: Request) {
         role,
         shopId: authResult.shopId!,
         metadata: (metadata as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+        reusable: isReusable,
         expiresAt,
         createdBy: authResult.userId,
       },
