@@ -301,7 +301,7 @@ export function ScheduleItemRow({
   );
 
   return (
-    <>
+    <div>
       {/* Mobile: swipeable */}
       <div className="sm:hidden">
         <SwipeableRow
@@ -313,6 +313,6 @@ export function ScheduleItemRow({
       </div>
       {/* Desktop: plain row */}
       <div className="hidden sm:block">{rowContent}</div>
-    </>
+    </div>
   );
 }

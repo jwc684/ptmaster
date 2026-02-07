@@ -47,29 +47,31 @@ export function MyMembersClient({ members, trainerProfileId, inviteUrl }: Props)
       <PageHeader
         title="내 회원"
         description={`담당 회원 ${members.length}명`}
+        customAction={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleCopyInviteLink}
+              title="회원 가입 링크 복사"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <LinkIcon className="h-4 w-4" />
+              )}
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/my-members/add">
+                <UserPlus className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">내 회원 추가</span>
+                <span className="sm:hidden">추가</span>
+              </Link>
+            </Button>
+          </div>
+        }
       />
-
-      <div className="flex gap-2">
-        <Link href="/my-members/add">
-          <Button size="sm">
-            <UserPlus className="h-4 w-4 mr-1" />
-            내 회원 추가
-          </Button>
-        </Link>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          onClick={handleCopyInviteLink}
-          title="회원 가입 링크 복사"
-        >
-          {copied ? (
-            <Check className="h-4 w-4 text-green-500" />
-          ) : (
-            <LinkIcon className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
 
       {/* 회원 목록 */}
       {members.length === 0 ? (

@@ -325,7 +325,7 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
 
       {/* Add Schedule Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>PT 예약 추가</DialogTitle>
             <DialogDescription>
