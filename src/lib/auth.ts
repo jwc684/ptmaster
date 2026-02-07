@@ -60,9 +60,47 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        impersonateToken: { label: "Impersonate Token", type: "text" },
       },
       async authorize(credentials) {
         try {
+          // Impersonation path: Super Admin이 관리자로 로그인
+          if (credentials?.impersonateToken) {
+            const { jwtVerify } = await import("jose");
+            const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
+
+            const { payload } = await jwtVerify(
+              credentials.impersonateToken as string,
+              secret
+            );
+
+            if (payload.purpose !== "impersonate" || !payload.targetUserId) {
+              throw new Error("Invalid impersonation token");
+            }
+
+            const targetUser = await prisma.user.findUnique({
+              where: { id: payload.targetUserId as string },
+            });
+
+            if (!targetUser || targetUser.role !== "ADMIN") {
+              throw new Error("Target user not found or not an admin");
+            }
+
+            console.log(
+              `[Auth] Impersonation login: Super Admin ${payload.superAdminId} -> ${targetUser.email}`
+            );
+
+            return {
+              id: targetUser.id,
+              email: targetUser.email,
+              name: targetUser.name,
+              role: targetUser.role,
+              phone: targetUser.phone,
+              shopId: targetUser.shopId,
+            };
+          }
+
+          // Normal login path
           console.log("[Auth] Login attempt for:", credentials?.email);
 
           if (!credentials?.email || !credentials?.password) {

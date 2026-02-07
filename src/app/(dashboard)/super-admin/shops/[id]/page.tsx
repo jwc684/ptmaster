@@ -15,6 +15,7 @@ import {
   Pencil,
   Save,
   X,
+  LogIn,
 } from "lucide-react";
 import {
   Card,
@@ -48,6 +49,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { signIn } from "next-auth/react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Shop {
   id: string;
@@ -109,6 +112,14 @@ export default function ShopDetailPage() {
     phone: "",
   });
   const [addingAdmin, setAddingAdmin] = useState(false);
+
+  // Impersonation state
+  const [impersonateAdmin, setImpersonateAdmin] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
+  const [impersonating, setImpersonating] = useState(false);
 
   const fetchShop = async () => {
     try {
@@ -199,6 +210,46 @@ export default function ShopDetailPage() {
       toast.error("관리자 추가에 실패했습니다.");
     } finally {
       setAddingAdmin(false);
+    }
+  };
+
+  const handleImpersonate = async () => {
+    if (!impersonateAdmin) return;
+
+    setImpersonating(true);
+    try {
+      const tokenResponse = await fetch("/api/super-admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: impersonateAdmin.id }),
+      });
+
+      if (!tokenResponse.ok) {
+        const data = await tokenResponse.json();
+        toast.error(data.error || "로그인 토큰 생성에 실패했습니다.");
+        return;
+      }
+
+      const { token } = await tokenResponse.json();
+
+      const result = await signIn("credentials", {
+        impersonateToken: token,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error("관리자 계정으로 로그인하는데 실패했습니다.");
+        return;
+      }
+
+      toast.success(`${impersonateAdmin.name} 계정으로 로그인했습니다.`);
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      toast.error("관리자 계정으로 로그인하는데 실패했습니다.");
+    } finally {
+      setImpersonating(false);
+      setImpersonateAdmin(null);
     }
   };
 
@@ -477,12 +528,13 @@ export default function ShopDetailPage() {
                 <TableHead>이메일</TableHead>
                 <TableHead>전화번호</TableHead>
                 <TableHead>등록일</TableHead>
+                <TableHead className="w-[80px]">액션</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {shop.admins.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <p className="text-muted-foreground">등록된 관리자가 없습니다.</p>
                   </TableCell>
                 </TableRow>
@@ -494,6 +546,22 @@ export default function ShopDetailPage() {
                     <TableCell>{admin.phone || "-"}</TableCell>
                     <TableCell>
                       {new Date(admin.createdAt).toLocaleDateString("ko-KR")}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setImpersonateAdmin({
+                            id: admin.id,
+                            name: admin.name,
+                            email: admin.email,
+                          })
+                        }
+                        title="관리자로 로그인"
+                      >
+                        <LogIn className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -574,6 +642,23 @@ export default function ShopDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Impersonate Admin Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!impersonateAdmin}
+        onOpenChange={(open) => {
+          if (!open) setImpersonateAdmin(null);
+        }}
+        title="관리자 계정으로 로그인"
+        description={
+          impersonateAdmin
+            ? `${impersonateAdmin.name} (${impersonateAdmin.email}) 계정으로 로그인하시겠습니까? 현재 세션이 종료됩니다.`
+            : ""
+        }
+        confirmLabel="로그인"
+        onConfirm={handleImpersonate}
+        isLoading={impersonating}
+      />
     </div>
   );
 }
