@@ -1,15 +1,14 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export function ImpersonateBanner() {
-  const { data: session, update } = useSession();
-  const router = useRouter();
+  const { data: session } = useSession();
   const [stopping, setStopping] = useState(false);
 
   if (!session?.user?.isImpersonating) return null;
@@ -18,10 +17,8 @@ export function ImpersonateBanner() {
     setStopping(true);
     try {
       await fetch("/api/super-admin/impersonate", { method: "DELETE" });
-      await update(); // Refresh session
       toast.success("Super Admin으로 돌아갔습니다.");
-      router.push("/super-admin");
-      router.refresh();
+      window.location.href = "/super-admin";
     } catch {
       toast.error("세션 복구에 실패했습니다.");
     } finally {

@@ -97,7 +97,12 @@ export async function PATCH(
 ) {
   try {
     const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    if (!session?.user) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+
+    const allowedRoles = ["ADMIN", "SUPER_ADMIN", "TRAINER"];
+    if (!allowedRoles.includes(session.user.role)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -116,6 +121,31 @@ export async function PATCH(
         );
       }
 
+      // TRAINER: 자기 trainerProfileId만 지정 가능 + 같은 shopId 회원만
+      if (session.user.role === "TRAINER") {
+        const trainerProfile = await prisma.trainerProfile.findUnique({
+          where: { userId: session.user.id },
+          select: { id: true, shopId: true },
+        });
+
+        if (!trainerProfile) {
+          return NextResponse.json({ error: "트레이너 프로필을 찾을 수 없습니다." }, { status: 403 });
+        }
+
+        if (assignData.data.trainerId !== trainerProfile.id) {
+          return NextResponse.json({ error: "자신의 회원으로만 배정할 수 있습니다." }, { status: 403 });
+        }
+
+        const memberProfile = await prisma.memberProfile.findUnique({
+          where: { id },
+          select: { shopId: true },
+        });
+
+        if (!memberProfile || memberProfile.shopId !== trainerProfile.shopId) {
+          return NextResponse.json({ error: "같은 PT샵의 회원만 배정할 수 있습니다." }, { status: 403 });
+        }
+      }
+
       const updatedProfile = await prisma.memberProfile.update({
         where: { id },
         data: { trainerId: assignData.data.trainerId },
@@ -130,6 +160,11 @@ export async function PATCH(
         message: "트레이너가 배정되었습니다.",
         member: updatedProfile,
       });
+    }
+
+    // 전체 회원 수정은 ADMIN/SUPER_ADMIN만 허용
+    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const validatedData = memberUpdateSchema.safeParse(body);

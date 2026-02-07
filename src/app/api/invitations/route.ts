@@ -20,8 +20,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    // ADMIN 또는 SUPER_ADMIN만 초대 생성 가능
-    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
+    // ADMIN, SUPER_ADMIN, 또는 TRAINER만 초대 생성 가능
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "TRAINER" && !authResult.isSuperAdmin) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -41,7 +41,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const { role, email, metadata } = validatedData.data;
+    let { role, email, metadata } = validatedData.data;
+
+    // TRAINER는 MEMBER 초대만 생성 가능, trainerId 자동 주입
+    if (authResult.userRole === "TRAINER") {
+      if (role !== "MEMBER") {
+        return NextResponse.json({ error: "트레이너는 회원만 초대할 수 있습니다." }, { status: 403 });
+      }
+
+      const trainerProfile = await prisma.trainerProfile.findUnique({
+        where: { userId: authResult.userId },
+        select: { id: true },
+      });
+
+      if (!trainerProfile) {
+        return NextResponse.json({ error: "트레이너 프로필을 찾을 수 없습니다." }, { status: 403 });
+      }
+
+      metadata = { ...(metadata || {}), trainerId: trainerProfile.id };
+    }
 
     // 토큰 생성
     const token = crypto.randomUUID();
