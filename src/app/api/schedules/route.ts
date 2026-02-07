@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
+import { sendScheduleNotification } from "@/lib/kakao-message";
 
 const scheduleSchema = z.object({
   memberProfileId: z.string().min(1, "회원을 선택해주세요."),
@@ -213,9 +214,18 @@ export async function POST(request: Request) {
           status: true,
           memberProfile: {
             select: {
+              userId: true,
               user: { select: { name: true } },
               remainingPT: true,
             },
+          },
+          trainer: {
+            select: {
+              user: { select: { name: true } },
+            },
+          },
+          shop: {
+            select: { name: true },
           },
         },
       });
@@ -234,6 +244,16 @@ export async function POST(request: Request) {
     const remainingAfter = isFree
       ? schedule.memberProfile.remainingPT
       : schedule.memberProfile.remainingPT - 1;
+
+    // 카카오톡 알림 전송 (비동기, 실패해도 예약은 성공)
+    if (schedule.shop && schedule.trainer) {
+      sendScheduleNotification({
+        memberUserId: schedule.memberProfile.userId,
+        shopName: schedule.shop.name,
+        trainerName: schedule.trainer.user.name,
+        scheduledAt: schedule.scheduledAt,
+      }).catch((err) => console.error("[Schedule] Kakao notification error:", err));
+    }
 
     return NextResponse.json(
       {
