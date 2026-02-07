@@ -182,8 +182,8 @@ export default function ShopDetailPage() {
   };
 
   const handleAddAdmin = async () => {
-    if (!adminData.name || !adminData.email) {
-      toast.error("이름과 이메일을 입력해주세요.");
+    if (!adminData.name) {
+      toast.error("이름을 입력해주세요.");
       return;
     }
 
@@ -197,7 +197,7 @@ export default function ShopDetailPage() {
         },
         body: JSON.stringify({
           role: "ADMIN",
-          email: adminData.email,
+          ...(adminData.email && { email: adminData.email }),
           metadata: { name: adminData.name },
         }),
       });
@@ -615,7 +615,7 @@ export default function ShopDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="admin-email">이메일</Label>
+                  <Label htmlFor="admin-email">이메일 (선택)</Label>
                   <Input
                     id="admin-email"
                     type="email"
