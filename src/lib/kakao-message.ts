@@ -108,14 +108,16 @@ async function sendKakaoMemo(accessToken: string, text: string, url?: string): P
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 function formatKoreanDateTime(d: Date, includeDay = false): string {
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const hours = d.getHours();
-  const minutes = d.getMinutes();
+  // KST (UTC+9) 기준으로 변환
+  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  const month = kst.getUTCMonth() + 1;
+  const day = kst.getUTCDate();
+  const hours = kst.getUTCHours();
+  const minutes = kst.getUTCMinutes();
   const ampm = hours < 12 ? "오전" : "오후";
   const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
   const displayMin = String(minutes).padStart(2, "0");
-  const dayStr = includeDay ? `(${DAY_NAMES[d.getDay()]})` : "";
+  const dayStr = includeDay ? `(${DAY_NAMES[kst.getUTCDay()]})` : "";
   return `${month}월 ${day}일${dayStr} ${ampm} ${displayHour}시 ${displayMin}분`;
 }
 
