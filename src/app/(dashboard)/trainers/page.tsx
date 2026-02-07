@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
-import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,8 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserCog, Phone, Users } from "lucide-react";
+import { UserCog, Users } from "lucide-react";
 import { TrainerLoginButton } from "@/components/trainer/trainer-login-button";
+import { ClickableRow } from "@/components/ui/clickable-row";
 
 async function getTrainers(shopFilter: { shopId?: string }) {
   const hasShopFilter = shopFilter.shopId !== undefined;
@@ -83,15 +83,15 @@ export default async function TrainersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>이름</TableHead>
-                <TableHead>연락처</TableHead>
+                <TableHead className="hidden sm:table-cell">연락처</TableHead>
                 <TableHead>담당 회원</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
+                {authResult.isSuperAdmin && <TableHead className="w-[60px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {trainers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={authResult.isSuperAdmin ? 4 : 3} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <UserCog className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">등록된 트레이너가 없습니다.</p>
@@ -100,26 +100,24 @@ export default async function TrainersPage() {
                 </TableRow>
               ) : (
                 trainers.map((trainer) => (
-                  <TableRow key={trainer.id} className="group">
+                  <ClickableRow key={trainer.id} href={`/trainers/${trainer.id}`}>
                     <TableCell>
-                      <Link href={`/trainers/${trainer.id}`} className="block">
-                        <div className="font-medium hover:underline">{trainer.user.name}</div>
+                      <div>
+                        <div className="font-medium">{trainer.user.name}</div>
                         {trainer.bio && (
                           <div className="text-xs text-muted-foreground truncate max-w-[200px]">
                             {trainer.bio}
                           </div>
                         )}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {trainer.user.phone ? (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Phone className="h-3.5 w-3.5" />
-                          {trainer.user.phone}
+                        <div className="sm:hidden text-xs text-muted-foreground">
+                          {trainer.user.phone || ""}
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-muted-foreground">
+                        {trainer.user.phone || "-"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -127,15 +125,15 @@ export default async function TrainersPage() {
                         {trainer._count.members}명
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {authResult.isSuperAdmin && (
+                    {authResult.isSuperAdmin && (
+                      <TableCell>
                         <TrainerLoginButton
                           userId={trainer.userId}
                           trainerName={trainer.user.name}
                         />
-                      )}
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                    )}
+                  </ClickableRow>
                 ))
               )}
             </TableBody>

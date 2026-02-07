@@ -181,8 +181,8 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
             <TableHead>회원</TableHead>
             <TableHead>PT 횟수</TableHead>
             <TableHead>금액</TableHead>
-            <TableHead>트레이너</TableHead>
-            <TableHead>날짜</TableHead>
+            <TableHead className="hidden sm:table-cell">트레이너</TableHead>
+            <TableHead className="hidden sm:table-cell">날짜</TableHead>
             <TableHead className="w-[80px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -190,13 +190,20 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
           {payments.map((payment) => (
             <TableRow key={payment.id} className="group">
               <TableCell>
-                {payment.memberProfile ? (
-                  <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
-                    {payment.memberProfile.user.name}
-                  </Link>
-                ) : (
-                  <span className="text-muted-foreground">삭제된 회원</span>
-                )}
+                <div>
+                  {payment.memberProfile ? (
+                    <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
+                      {payment.memberProfile.user.name}
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">삭제된 회원</span>
+                  )}
+                  <div className="sm:hidden text-xs text-muted-foreground">
+                    {payment.memberProfile?.trainer?.user.name || ""}
+                    {payment.memberProfile?.trainer && " · "}
+                    {new Date(payment.paidAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}
+                  </div>
+                </div>
               </TableCell>
               <TableCell>
                 <Badge variant="default" className="text-xs">
@@ -208,12 +215,12 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
                   {payment.amount.toLocaleString()}원
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <span className="text-muted-foreground">
                   {payment.memberProfile?.trainer?.user.name || "-"}
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <span className="text-muted-foreground">
                   {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
                     year: "numeric",

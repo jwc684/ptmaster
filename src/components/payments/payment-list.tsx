@@ -119,10 +119,10 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
         <TableHeader>
           <TableRow>
             <TableHead>회원</TableHead>
-            <TableHead>상태</TableHead>
+            <TableHead className="hidden sm:table-cell">상태</TableHead>
             <TableHead>PT 횟수</TableHead>
             <TableHead>금액</TableHead>
-            <TableHead>날짜</TableHead>
+            <TableHead className="hidden sm:table-cell">날짜</TableHead>
             <TableHead className="w-[60px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -130,15 +130,23 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
           {payments.map((payment) => (
             <TableRow key={payment.id} className="group">
               <TableCell>
-                {payment.memberProfile ? (
-                  <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
-                    {payment.memberProfile.user.name}
-                  </Link>
-                ) : (
-                  <span className="text-muted-foreground">삭제된 회원</span>
-                )}
+                <div>
+                  {payment.memberProfile ? (
+                    <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
+                      {payment.memberProfile.user.name}
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">삭제된 회원</span>
+                  )}
+                  <div className="sm:hidden text-xs text-muted-foreground">
+                    {new Date(payment.paidAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}
+                    {payment.status === "REFUNDED" && (
+                      <Badge variant="destructive" className="ml-1 text-[10px] px-1 py-0">환불</Badge>
+                    )}
+                  </div>
+                </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <Badge
                   variant={payment.status === "COMPLETED" ? "default" : "destructive"}
                 >
@@ -153,7 +161,7 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
                   {payment.amount.toLocaleString()}원
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="hidden sm:table-cell">
                 <span className="text-muted-foreground">
                   {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
                     year: "numeric",

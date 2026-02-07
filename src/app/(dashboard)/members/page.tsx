@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
-import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, Building2, Phone } from "lucide-react";
+import { Users, Building2 } from "lucide-react";
 import { MemberLoginButton } from "@/components/members/member-login-button";
+import { ClickableRow } from "@/components/ui/clickable-row";
 
 async function getMembers(shopFilter: { shopId?: string }) {
   const hasShopFilter = shopFilter.shopId !== undefined;
@@ -92,11 +92,11 @@ export default async function MembersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>이름</TableHead>
-                <TableHead>연락처</TableHead>
-                {authResult.isSuperAdmin && <TableHead>샵</TableHead>}
-                <TableHead>트레이너</TableHead>
+                <TableHead className="hidden sm:table-cell">연락처</TableHead>
+                {authResult.isSuperAdmin && <TableHead className="hidden md:table-cell">샵</TableHead>}
+                <TableHead className="hidden sm:table-cell">트레이너</TableHead>
                 <TableHead>잔여 PT</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
+                {authResult.isSuperAdmin && <TableHead className="w-[60px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -111,24 +111,25 @@ export default async function MembersPage() {
                 </TableRow>
               ) : (
                 members.map((member) => (
-                  <TableRow key={member.id} className="group">
+                  <ClickableRow key={member.id} href={`/members/${member.id}`}>
                     <TableCell>
-                      <Link href={`/members/${member.id}`} className="font-medium hover:underline">
-                        {member.user.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {member.user.phone ? (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Phone className="h-3.5 w-3.5" />
-                          {member.user.phone}
+                      <div>
+                        <div className="font-medium">{member.user.name}</div>
+                        <div className="sm:hidden text-xs text-muted-foreground">
+                          {member.trainer ? member.trainer.user.name : ""}
+                          {member.user.phone && (
+                            <span>{member.trainer ? " · " : ""}{member.user.phone}</span>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-muted-foreground">
+                        {member.user.phone || "-"}
+                      </span>
                     </TableCell>
                     {authResult.isSuperAdmin && (
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {member.shop ? (
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Building2 className="h-3.5 w-3.5" />
@@ -139,7 +140,7 @@ export default async function MembersPage() {
                         )}
                       </TableCell>
                     )}
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <span className="text-muted-foreground">
                         {member.trainer ? member.trainer.user.name : "-"}
                       </span>
@@ -151,15 +152,15 @@ export default async function MembersPage() {
                         {member.remainingPT}회
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {authResult.isSuperAdmin && (
+                    {authResult.isSuperAdmin && (
+                      <TableCell>
                         <MemberLoginButton
                           userId={member.userId}
                           userName={member.user.name}
                         />
-                      )}
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                    )}
+                  </ClickableRow>
                 ))
               )}
             </TableBody>

@@ -488,13 +488,13 @@ export function ScheduleView({ members, trainerId, isAdmin, tableView }: Schedul
                             {format(new Date(schedule.scheduledAt), "M/d (EEE)", { locale: ko })}
                           </span>
                           <span className="sm:hidden text-xs text-muted-foreground ml-1">
-                            {format(new Date(schedule.scheduledAt), "HH:mm")}
+                            {format(new Date(schedule.scheduledAt), "a h:mm", { locale: ko })}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <span className="font-medium">
-                          {format(new Date(schedule.scheduledAt), "HH:mm")}
+                          {format(new Date(schedule.scheduledAt), "a h:mm", { locale: ko })}
                         </span>
                       </TableCell>
                       <TableCell>

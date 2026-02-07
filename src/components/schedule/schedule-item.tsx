@@ -1,6 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import {
   Check,
   X,
@@ -99,11 +100,9 @@ export function ScheduleItemRow({
       </div>
       <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
         <Clock className="h-3 w-3 flex-shrink-0" />
-        <span>{format(new Date(schedule.scheduledAt), "HH:mm")}</span>
+        <span>{format(new Date(schedule.scheduledAt), "a h:mm", { locale: ko })}</span>
         {showTrainerName && schedule.trainerName && (
-          <span className="hidden sm:inline truncate">
-            · {schedule.trainerName}
-          </span>
+          <span className="truncate">· {schedule.trainerName}</span>
         )}
       </div>
       {schedule.notes && (
