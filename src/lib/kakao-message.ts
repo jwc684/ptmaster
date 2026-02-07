@@ -423,3 +423,103 @@ export async function sendCancellationNotification({
     return false;
   }
 }
+
+/**
+ * Send a PT schedule reminder notification to a member via KakaoTalk
+ * (수업 하루 전 리마인더)
+ */
+export async function sendReminderNotification({
+  memberUserId,
+  shopName,
+  trainerName,
+  scheduledAt,
+  remainingPT,
+  shopId,
+}: {
+  memberUserId: string;
+  shopName: string;
+  trainerName: string;
+  scheduledAt: Date;
+  remainingPT: number;
+  shopId?: string;
+}): Promise<boolean> {
+  let message = "";
+  let success = false;
+  let errorMsg: string | undefined;
+
+  try {
+    const memberProfile = await prisma.memberProfile.findUnique({
+      where: { userId: memberUserId },
+      select: { kakaoNotification: true, user: { select: { name: true } } },
+    });
+
+    if (!memberProfile?.kakaoNotification) {
+      return false;
+    }
+
+    const accessToken = await getKakaoAccessToken(memberUserId);
+    if (!accessToken) {
+      errorMsg = "No valid access token";
+
+      await prisma.notificationLog.create({
+        data: {
+          type: "KAKAO",
+          senderName: trainerName,
+          receiverName: memberProfile.user.name,
+          receiverUserId: memberUserId,
+          message: "(메세지 생성 전 토큰 오류)",
+          success: false,
+          error: errorMsg,
+          shopId,
+        },
+      });
+
+      return false;
+    }
+
+    const dateStr = formatKoreanDateTime(new Date(scheduledAt));
+
+    message = `[${shopName}] PT 수업 알림\n트레이너명: ${trainerName}\n수업일자: ${dateStr}\n현재 남은 PT: ${remainingPT}회\n앱에서 확인: ptmaster.onrender.com`;
+
+    success = await sendKakaoMemo(accessToken, message);
+    if (!success) {
+      errorMsg = "Failed to send KakaoTalk message";
+    }
+
+    await prisma.notificationLog.create({
+      data: {
+        type: "KAKAO",
+        senderName: trainerName,
+        receiverName: memberProfile.user.name,
+        receiverUserId: memberUserId,
+        message,
+        success,
+        error: errorMsg,
+        shopId,
+      },
+    });
+
+    return success;
+  } catch (error) {
+    console.error("[KakaoMessage] Reminder notification error:", error);
+
+    try {
+      await prisma.notificationLog.create({
+        data: {
+          type: "KAKAO",
+          senderName: trainerName,
+          receiverName: "(unknown)",
+          receiverUserId: memberUserId,
+          message: message || "(메세지 생성 전 오류)",
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          shopId,
+        },
+      });
+    } catch {
+      console.error("[KakaoMessage] Failed to log notification error");
+    }
+
+    return false;
+  }
+}
