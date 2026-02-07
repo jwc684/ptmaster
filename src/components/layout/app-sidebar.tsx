@@ -17,6 +17,7 @@ import {
   Crown,
   Building2,
   Activity,
+  MessageSquare,
 } from "lucide-react";
 
 import {
@@ -48,6 +49,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Crown,
   Building2,
   Activity,
+  MessageSquare,
 };
 
 export function AppSidebar() {

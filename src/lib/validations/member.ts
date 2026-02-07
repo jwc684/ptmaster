@@ -15,7 +15,7 @@ export const memberSchema = z.object({
     .optional(),
   birthDate: z.string().optional(), // 생년월일
   gender: z.enum(["MALE", "FEMALE"]).optional(), // 성별
-  trainerId: z.string().optional(), // 담당 트레이너
+  trainerId: z.string().nullable().optional(), // 담당 트레이너
   remainingPT: z.number().min(0).default(0), // 잔여 PT 횟수
   notes: z.string().optional(), // 메모
 });

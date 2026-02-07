@@ -252,6 +252,8 @@ export async function POST(request: Request) {
         shopName: schedule.shop.name,
         trainerName: schedule.trainer.user.name,
         scheduledAt: schedule.scheduledAt,
+        remainingPT: remainingAfter,
+        shopId: authResult.shopId || undefined,
       }).catch((err) => console.error("[Schedule] Kakao notification error:", err));
     }
 

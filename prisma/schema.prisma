@@ -305,6 +305,26 @@ model AccessLog {
 }
 
 // ============================================
+// Notification Log (알림 발송 기록)
+// ============================================
+
+model NotificationLog {
+  id             String   @id @default(cuid())
+  type           String   // "KAKAO"
+  senderName     String
+  receiverName   String
+  receiverUserId String
+  message        String   @db.Text
+  success        Boolean
+  error          String?
+  shopId         String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
+// ============================================
 // Invitation (초대 시스템)
 // ============================================
 

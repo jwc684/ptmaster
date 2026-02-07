@@ -14,6 +14,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
     "/attendance",
     "/payments",
     "/admins",
+    "/super-admin/notification-logs",
   ],
   ADMIN: [
     "/dashboard",
@@ -166,7 +167,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: "Settings",
     roles: ["MEMBER"],
   },
-  // Super Admin - Access Logs (bottom)
+  // Super Admin - Logs (bottom)
+  {
+    title: "알림 로그",
+    href: "/super-admin/notification-logs",
+    icon: "MessageSquare",
+    roles: ["SUPER_ADMIN"],
+  },
   {
     title: "접근 기록",
     href: "/super-admin/logs",

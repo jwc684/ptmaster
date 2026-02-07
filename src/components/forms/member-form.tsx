@@ -35,7 +35,7 @@ const memberInviteSchema = z.object({
   phone: z.string().optional(),
   birthDate: z.string().optional(),
   gender: z.enum(["MALE", "FEMALE", ""]).optional(),
-  trainerId: z.string().optional(),
+  trainerId: z.string().nullable().optional(),
   remainingPT: z.number().min(0),
   notes: z.string().optional(),
 });
@@ -47,7 +47,7 @@ const memberEditSchema = z.object({
   phone: z.string().optional(),
   birthDate: z.string().optional().or(z.literal("")),
   gender: z.enum(["MALE", "FEMALE"]).optional().or(z.literal("")),
-  trainerId: z.string().optional(),
+  trainerId: z.string().nullable().optional(),
   remainingPT: z.number().min(0),
   notes: z.string().optional(),
 });

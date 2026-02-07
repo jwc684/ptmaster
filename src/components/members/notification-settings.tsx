@@ -43,8 +43,8 @@ export function NotificationSettings({
   }
 
   return (
-    <div className="flex items-center justify-between">
-      <Label htmlFor="kakao-notification" className="flex flex-col gap-1">
+    <div className="flex items-start justify-between gap-4">
+      <Label htmlFor="kakao-notification" className="flex flex-col gap-1 text-left">
         <span className="text-sm font-medium">카카오 알림톡</span>
         <span className="text-xs text-muted-foreground font-normal">
           수업 알림, 공지사항 등을 카카오톡으로 받습니다.
