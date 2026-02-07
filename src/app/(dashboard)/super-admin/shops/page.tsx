@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   Eye,
+  LogIn,
 } from "lucide-react";
 import {
   Card,
@@ -118,6 +119,31 @@ export default function ShopsPage() {
     } finally {
       setDeleting(false);
       setDeleteShopId(null);
+    }
+  };
+
+  const handleImpersonateShopAdmin = async (shopId: string, shopName: string) => {
+    try {
+      const tokenResponse = await fetch("/api/super-admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId }),
+      });
+
+      if (!tokenResponse.ok) {
+        const data = await tokenResponse.json();
+        toast.error(data.error || "로그인 토큰 생성에 실패했습니다.");
+        return;
+      }
+
+      const { token } = await tokenResponse.json();
+      window.open(
+        `/login?impersonateToken=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent("/dashboard")}`,
+        "_blank"
+      );
+      toast.success(`${shopName} 관리자 계정으로 새 탭에서 로그인합니다.`);
+    } catch {
+      toast.error("관리자 계정으로 로그인하는데 실패했습니다.");
     }
   };
 
@@ -277,6 +303,12 @@ export default function ShopsPage() {
                               <Pencil className="mr-2 h-4 w-4" />
                               수정
                             </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleImpersonateShopAdmin(shop.id, shop.name)}
+                          >
+                            <LogIn className="mr-2 h-4 w-4" />
+                            관리자로 로그인
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem

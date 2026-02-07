@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -15,7 +13,6 @@ interface ImpersonateButtonProps {
 }
 
 export function ImpersonateButton({ userId, userName, userEmail }: ImpersonateButtonProps) {
-  const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -36,19 +33,11 @@ export function ImpersonateButton({ userId, userName, userEmail }: ImpersonateBu
 
       const { token } = await tokenResponse.json();
 
-      const result = await signIn("credentials", {
-        impersonateToken: token,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error("회원 계정으로 로그인하는데 실패했습니다.");
-        return;
-      }
-
-      toast.success(`${userName} 계정으로 로그인했습니다.`);
-      router.push("/my");
-      router.refresh();
+      window.open(
+        `/login?impersonateToken=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent("/my")}`,
+        "_blank"
+      );
+      toast.success(`${userName} 계정으로 새 탭에서 로그인합니다.`);
     } catch {
       toast.error("회원 계정으로 로그인하는데 실패했습니다.");
     } finally {
@@ -67,7 +56,7 @@ export function ImpersonateButton({ userId, userName, userEmail }: ImpersonateBu
         open={showConfirm}
         onOpenChange={setShowConfirm}
         title="회원 계정으로 로그인"
-        description={`${userName} (${userEmail}) 계정으로 로그인하시겠습니까? 현재 세션이 종료됩니다.`}
+        description={`${userName} (${userEmail}) 계정으로 새 탭에서 로그인하시겠습니까?`}
         confirmLabel="로그인"
         onConfirm={handleImpersonate}
         isLoading={loading}

@@ -17,39 +17,63 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId } = body;
+    const { userId, shopId } = body;
 
-    if (!userId || typeof userId !== "string") {
+    if (!userId && !shopId) {
       return NextResponse.json(
-        { error: "userId is required" },
+        { error: "userId or shopId is required" },
         { status: 400 }
       );
     }
 
-    const targetUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        shopId: true,
-        shop: { select: { name: true } },
-      },
-    });
+    let targetUser;
 
-    if (!targetUser) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
+    if (shopId) {
+      // Find the first admin of the shop
+      targetUser = await prisma.user.findFirst({
+        where: { shopId, role: "ADMIN" },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          shopId: true,
+          shop: { select: { name: true } },
+        },
+      });
 
-    if (targetUser.role === "SUPER_ADMIN") {
-      return NextResponse.json(
-        { error: "Cannot impersonate SUPER_ADMIN users" },
-        { status: 400 }
-      );
+      if (!targetUser) {
+        return NextResponse.json(
+          { error: "해당 PT샵에 등록된 관리자가 없습니다." },
+          { status: 404 }
+        );
+      }
+    } else {
+      targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          shopId: true,
+          shop: { select: { name: true } },
+        },
+      });
+
+      if (!targetUser) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      if (targetUser.role === "SUPER_ADMIN") {
+        return NextResponse.json(
+          { error: "Cannot impersonate SUPER_ADMIN users" },
+          { status: 400 }
+        );
+      }
     }
 
     const secret = new TextEncoder().encode(process.env.AUTH_SECRET);

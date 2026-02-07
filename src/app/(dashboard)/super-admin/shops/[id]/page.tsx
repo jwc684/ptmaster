@@ -49,7 +49,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { signIn } from "next-auth/react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Shop {
@@ -232,19 +231,11 @@ export default function ShopDetailPage() {
 
       const { token } = await tokenResponse.json();
 
-      const result = await signIn("credentials", {
-        impersonateToken: token,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error("관리자 계정으로 로그인하는데 실패했습니다.");
-        return;
-      }
-
-      toast.success(`${impersonateAdmin.name} 계정으로 로그인했습니다.`);
-      router.push("/dashboard");
-      router.refresh();
+      window.open(
+        `/login?impersonateToken=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent("/dashboard")}`,
+        "_blank"
+      );
+      toast.success(`${impersonateAdmin.name} 계정으로 새 탭에서 로그인합니다.`);
     } catch {
       toast.error("관리자 계정으로 로그인하는데 실패했습니다.");
     } finally {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
@@ -28,8 +28,36 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const impersonateToken = searchParams.get("impersonateToken");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Auto sign-in with impersonation token (opened from Super Admin in new tab)
+  useEffect(() => {
+    if (!impersonateToken) return;
+
+    setIsLoading(true);
+    (async () => {
+      try {
+        const result = await signIn("credentials", {
+          impersonateToken,
+          redirect: false,
+        });
+
+        if (result?.error) {
+          setError("로그인 토큰이 만료되었거나 유효하지 않습니다.");
+          return;
+        }
+
+        router.push(callbackUrl);
+        router.refresh();
+      } catch {
+        setError("로그인 중 오류가 발생했습니다.");
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [impersonateToken, callbackUrl, router]);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -68,6 +96,30 @@ export function LoginForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (impersonateToken) {
+    return (
+      <Card>
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-center">로그인 중...</CardTitle>
+          <CardDescription className="text-center">
+            {error || "계정 전환 중입니다. 잠시만 기다려주세요."}
+          </CardDescription>
+        </CardHeader>
+        {error && (
+          <CardContent>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => router.push("/login")}
+            >
+              로그인 페이지로 돌아가기
+            </Button>
+          </CardContent>
+        )}
+      </Card>
+    );
   }
 
   return (
