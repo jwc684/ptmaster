@@ -8,6 +8,7 @@ import {
   Users,
   CalendarDays,
   ClipboardCheck,
+  User,
 } from "lucide-react";
 
 import { NAV_ITEMS } from "@/types";
@@ -18,23 +19,27 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Users,
   CalendarDays,
   ClipboardCheck,
+  User,
 };
+
+// Roles that use bottom navigation on mobile instead of sidebar
+const BOTTOM_NAV_ROLES: UserRole[] = ["TRAINER", "MEMBER"];
 
 export function BottomNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const userRole = session?.user?.role as UserRole | undefined;
 
-  if (userRole !== "TRAINER") return null;
+  if (!userRole || !BOTTOM_NAV_ROLES.includes(userRole)) return null;
 
-  const trainerItems = NAV_ITEMS.filter(
-    (item) => item.roles.includes("TRAINER")
+  const navItems = NAV_ITEMS.filter(
+    (item) => item.roles.includes(userRole)
   );
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-16">
-        {trainerItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = iconMap[item.icon];
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`);

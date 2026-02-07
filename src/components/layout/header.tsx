@@ -36,7 +36,7 @@ export function Header() {
   }, []);
 
   const user = session?.user;
-  const isTrainer = user?.role === "TRAINER";
+  const useBottomNav = user?.role === "TRAINER" || user?.role === "MEMBER";
   const initials = user?.name
     ?.split(" ")
     .map((n) => n[0])
@@ -45,8 +45,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background px-3 sm:px-4 w-full">
-      {/* Left: Menu button (mobile only, hidden for trainers who use bottom nav) */}
-      {!isTrainer && (
+      {/* Left: Menu button (mobile only, hidden for roles using bottom nav) */}
+      {!useBottomNav && (
         <Button
           variant="ghost"
           size="icon"

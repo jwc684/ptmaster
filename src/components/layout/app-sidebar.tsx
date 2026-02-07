@@ -71,8 +71,8 @@ export function AppSidebar() {
   const displayName = currentShop?.name || "PT Shop";
   const dashboardLink = isSuperAdmin ? "/super-admin" : "/dashboard";
 
-  // TRAINER uses bottom navigation on mobile — hide sidebar entirely on mobile
-  if (userRole === "TRAINER" && isMobile) {
+  // TRAINER/MEMBER use bottom navigation on mobile — hide sidebar entirely on mobile
+  if ((userRole === "TRAINER" || userRole === "MEMBER") && isMobile) {
     return null;
   }
 
