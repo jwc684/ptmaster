@@ -6,12 +6,20 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Calendar, Clock, Loader2, CheckCircle, XCircle, User, Pencil, MessageSquare, Lock, Banknote, Trash2 } from "lucide-react";
+import { Users, Calendar, Loader2, CheckCircle, XCircle, User, Pencil, MessageSquare, Lock, Banknote, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -225,18 +233,9 @@ export default function AttendancePage() {
     }
   }
 
-  // 날짜별로 그룹화
-  const groupedAttendances = attendances.reduce((groups, attendance) => {
-    const date = format(new Date(attendance.checkInTime), "yyyy-MM-dd");
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(attendance);
-    return groups;
-  }, {} as Record<string, Attendance[]>);
-
-  const sortedDates = Object.keys(groupedAttendances).sort((a, b) =>
-    new Date(b).getTime() - new Date(a).getTime()
+  // Sort attendances by checkInTime descending (flat, no grouping)
+  const sortedAttendances = [...attendances].sort(
+    (a, b) => new Date(b.checkInTime).getTime() - new Date(a.checkInTime).getTime()
   );
 
   return (
@@ -339,7 +338,7 @@ export default function AttendancePage() {
               </div>
               <div>
                 <p className="text-lg font-bold">
-                  ₩{attendances.reduce((sum, a) => sum + (a.unitPrice || 0), 0).toLocaleString()}
+                  {attendances.reduce((sum, a) => sum + (a.unitPrice || 0), 0).toLocaleString()}원
                 </p>
                 <p className="text-xs text-muted-foreground">실제 매출</p>
               </div>
@@ -348,27 +347,7 @@ export default function AttendancePage() {
         </Card>
       </div>
 
-      {/* 기간 정보 */}
-      <Card>
-        <CardContent className="py-3">
-          <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>
-              {startDate === endDate
-                ? format(new Date(startDate), "M월 d일", { locale: ko })
-                : `${format(new Date(startDate), "M/d", { locale: ko })} ~ ${format(new Date(endDate), "M/d", { locale: ko })}`
-              }
-            </span>
-            {selectedMemberId !== "all" && members.find(m => m.id === selectedMemberId) && (
-              <Badge variant="secondary">
-                {members.find(m => m.id === selectedMemberId)?.user.name}
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 출석 기록 목록 */}
+      {/* 출석 기록 테이블 */}
       {loading ? (
         <Card>
           <CardContent className="py-8">
@@ -377,135 +356,130 @@ export default function AttendancePage() {
             </div>
           </CardContent>
         </Card>
-      ) : attendances.length > 0 ? (
+      ) : (
         <Card>
-          <CardHeader className="pb-0">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              출석 기록
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 pt-4">
-            <div className="divide-y divide-border/50">
-              {sortedDates.map((date) => (
-                <div key={date}>
-                  {/* 날짜 헤더 */}
-                  <div className="flex items-center gap-2 px-4 py-3 bg-muted/30">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[15px] font-medium">
-                      {format(new Date(date), "M월 d일 (EEEE)", { locale: ko })}
-                    </span>
-                    <Badge variant="outline" className="ml-auto">
-                      {groupedAttendances[date].length}건
-                    </Badge>
-                  </div>
-
-                  {/* 해당 날짜의 출석 기록 */}
-                  <div className="divide-y divide-border/30">
-                    {groupedAttendances[date].map((attendance) => {
-                      const isCancelled = attendance.schedule?.status === "CANCELLED";
-                      return (
-                        <div
-                          key={attendance.id}
-                          className={`flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer ${
-                            isCancelled ? "opacity-60" : ""
-                          }`}
-                          onClick={() => router.push(`/members/${attendance.memberProfile.id}`)}
-                        >
-                          {/* 상태 아이콘 */}
-                          <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            isCancelled ? "bg-destructive/10" : "bg-green-500/10"
-                          }`}>
-                            {isCancelled ? (
-                              <XCircle className="h-5 w-5 text-destructive" />
-                            ) : (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
-                            )}
-                          </div>
-
-                          {/* 정보 */}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-[15px] font-semibold text-foreground truncate">
-                                {attendance.memberProfile.user.name}
-                              </p>
-                              {isCancelled && (
-                                <Badge variant="destructive" className="text-xs flex-shrink-0">취소</Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                              <Clock className="h-3 w-3 flex-shrink-0" />
-                              <span>{format(new Date(attendance.checkInTime), "HH:mm")}</span>
-                              {attendance.schedule?.trainer && (
-                                <span className="hidden sm:inline truncate">
-                                  · {attendance.schedule.trainer.user.name}
-                                </span>
-                              )}
-                            </div>
-                            {/* 메모 */}
-                            {(attendance.notes && !attendance.notes.startsWith("[취소]")) && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <MessageSquare className="h-3 w-3 text-muted-foreground/70 flex-shrink-0" />
-                                <p className="text-[12px] text-muted-foreground/70 truncate">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>날짜</TableHead>
+                  <TableHead>시간</TableHead>
+                  <TableHead>회원</TableHead>
+                  <TableHead>트레이너</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead>단가</TableHead>
+                  <TableHead>잔여PT</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedAttendances.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Users className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-muted-foreground">출석 기록이 없습니다.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sortedAttendances.map((attendance) => {
+                    const isCancelled = attendance.schedule?.status === "CANCELLED";
+                    return (
+                      <TableRow
+                        key={attendance.id}
+                        className={`cursor-pointer ${isCancelled ? "opacity-60" : ""}`}
+                        onClick={() => router.push(`/members/${attendance.memberProfile.id}`)}
+                      >
+                        <TableCell>
+                          <span className="text-muted-foreground">
+                            {format(new Date(attendance.checkInTime), "M/d (EEE)", { locale: ko })}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium">
+                            {format(new Date(attendance.checkInTime), "HH:mm")}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{attendance.memberProfile.user.name}</div>
+                            {attendance.notes && !attendance.notes.startsWith("[취소]") && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <MessageSquare className="h-3 w-3 text-muted-foreground/70" />
+                                <span className="text-xs text-muted-foreground/70 truncate max-w-[120px]">
                                   {attendance.notes}
-                                </p>
+                                </span>
                               </div>
                             )}
                             {attendance.internalNotes && (
                               <div className="flex items-center gap-1 mt-0.5">
-                                <Lock className="h-3 w-3 text-orange-500 flex-shrink-0" />
-                                <p className="text-[12px] text-orange-600 dark:text-orange-400 truncate">
+                                <Lock className="h-3 w-3 text-orange-500" />
+                                <span className="text-xs text-orange-600 dark:text-orange-400 truncate max-w-[120px]">
                                   {attendance.internalNotes}
-                                </p>
+                                </span>
                               </div>
                             )}
                           </div>
-
-                          {/* 오른쪽: 단가, 잔여PT, 액션 */}
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <div className="hidden sm:flex flex-col items-end gap-1">
-                              {attendance.unitPrice && (
-                                <span className="text-[12px] text-muted-foreground">
-                                  ₩{attendance.unitPrice.toLocaleString()}
-                                </span>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground">
+                            {attendance.schedule?.trainer?.user.name || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {isCancelled ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <XCircle className="h-3 w-3" />
+                              취소
                             </Badge>
+                          ) : (
+                            <Badge variant="default" className="gap-1 bg-green-600">
+                              <CheckCircle className="h-3 w-3" />
+                              출석
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground">
+                            {attendance.unitPrice
+                              ? `${attendance.unitPrice.toLocaleString()}원`
+                              : "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={(e) => { e.stopPropagation(); openEditDialog(attendance); }}
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => openEditDialog(attendance)}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             {(userRole === "ADMIN" || userRole === "SUPER_ADMIN") && (
                               <Button
                                 variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                onClick={(e) => { e.stopPropagation(); openDeleteDialog(attendance); }}
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={() => openDeleteDialog(attendance)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            출석 기록이 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard, TrendingUp } from "lucide-react";
 import { PaymentList } from "@/components/payments/payment-list";
 
@@ -109,13 +109,7 @@ export default async function PaymentsPage() {
 
       {/* Payment List */}
       <Card>
-        <CardHeader className="pb-0">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            최근 결제 내역
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 pt-4">
+        <CardContent className="p-0">
           <PaymentList
             payments={payments.map((p) => ({
               ...p,

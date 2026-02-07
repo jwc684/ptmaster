@@ -6,7 +6,6 @@ export type { UserRole } from "@prisma/client";
 export const ROLE_ACCESS: Record<UserRole, string[]> = {
   SUPER_ADMIN: [
     "/super-admin",
-    "/dashboard",
     "/members",
     "/trainers",
     "/registration",
@@ -65,7 +64,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   // Super Admin only
   {
-    title: "Super Admin",
+    title: "Dashboard",
     href: "/super-admin",
     icon: "Crown",
     roles: ["SUPER_ADMIN"],
@@ -81,7 +80,7 @@ export const NAV_ITEMS: NavItem[] = [
     title: "대시보드",
     href: "/dashboard",
     icon: "LayoutDashboard",
-    roles: ["SUPER_ADMIN", "ADMIN", "TRAINER"],
+    roles: ["ADMIN", "TRAINER"],
   },
   {
     title: "회원 관리",

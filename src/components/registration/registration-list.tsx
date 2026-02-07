@@ -11,6 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -95,7 +103,6 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
 
       if (res.ok) {
         toast.success("PT 등록 정보가 수정되었습니다.");
-        // 로컬 상태 업데이트
         setPayments(payments.map((p) =>
           p.id === selectedPayment.id
             ? { ...p, ...editForm }
@@ -141,86 +148,100 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
 
   if (payments.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        등록된 내역이 없습니다.
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>회원</TableHead>
+            <TableHead>PT 횟수</TableHead>
+            <TableHead>금액</TableHead>
+            <TableHead>트레이너</TableHead>
+            <TableHead>날짜</TableHead>
+            <TableHead className="w-[80px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={6} className="text-center py-8">
+              <div className="flex flex-col items-center gap-2">
+                <CreditCard className="h-8 w-8 text-muted-foreground" />
+                <p className="text-muted-foreground">등록된 내역이 없습니다.</p>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     );
   }
 
   return (
     <>
-      <div className="divide-y divide-border/50">
-        {payments.map((payment) => (
-          <Link
-            key={payment.id}
-            href={`/members/${payment.memberProfile.id}`}
-            className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
-          >
-            {/* 아이콘 */}
-            <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <CreditCard className="h-5 w-5 text-primary" />
-            </div>
-
-            {/* 정보 */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-[16px] font-semibold text-foreground truncate">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>회원</TableHead>
+            <TableHead>PT 횟수</TableHead>
+            <TableHead>금액</TableHead>
+            <TableHead>트레이너</TableHead>
+            <TableHead>날짜</TableHead>
+            <TableHead className="w-[80px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {payments.map((payment) => (
+            <TableRow key={payment.id} className="group">
+              <TableCell>
+                <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
                   {payment.memberProfile.user.name}
-                </p>
-                <Badge variant="default" className="text-xs flex-shrink-0">
-                  PT {payment.ptCount}
+                </Link>
+              </TableCell>
+              <TableCell>
+                <Badge variant="default" className="text-xs">
+                  {payment.ptCount}회
                 </Badge>
-              </div>
-              <p className="text-[14px] text-muted-foreground truncate">
-                ₩{payment.amount.toLocaleString()}
-                {payment.memberProfile.trainer && (
-                  <span className="hidden sm:inline"> · {payment.memberProfile.trainer.user.name}</span>
-                )}
-              </p>
-              {payment.description && (
-                <p className="text-[12px] text-muted-foreground/70 mt-0.5 truncate">
-                  {payment.description}
-                </p>
-              )}
-            </div>
-
-            {/* 오른쪽: 날짜, 액션 */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <span className="text-[12px] text-muted-foreground hidden sm:block mr-1">
-                {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openEditDialog(payment);
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openDeleteDialog(payment);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </Link>
-        ))}
-      </div>
+              </TableCell>
+              <TableCell>
+                <span className="font-medium">
+                  {payment.amount.toLocaleString()}원
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-muted-foreground">
+                  {payment.memberProfile.trainer?.user.name || "-"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-muted-foreground">
+                  {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  })}
+                </span>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => openEditDialog(payment)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => openDeleteDialog(payment)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       {/* 수정 다이얼로그 */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

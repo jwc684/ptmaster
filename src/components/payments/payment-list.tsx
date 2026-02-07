@@ -8,6 +8,14 @@ import { Trash2, Loader2, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -80,83 +88,90 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
 
   if (payments.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        결제 내역이 없습니다.
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>회원</TableHead>
+            <TableHead>상태</TableHead>
+            <TableHead>PT 횟수</TableHead>
+            <TableHead>금액</TableHead>
+            <TableHead>날짜</TableHead>
+            <TableHead className="w-[60px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={6} className="text-center py-8">
+              <div className="flex flex-col items-center gap-2">
+                <CreditCard className="h-8 w-8 text-muted-foreground" />
+                <p className="text-muted-foreground">결제 내역이 없습니다.</p>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     );
   }
 
   return (
     <>
-      <div className="divide-y divide-border/50">
-        {payments.map((payment) => (
-          <Link
-            key={payment.id}
-            href={`/members/${payment.memberProfile.id}`}
-            className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
-          >
-            {/* 아이콘 */}
-            <div className={`h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0 ${
-              payment.status === "COMPLETED" ? "bg-primary/10" : "bg-destructive/10"
-            }`}>
-              <CreditCard className={`h-5 w-5 ${
-                payment.status === "COMPLETED" ? "text-primary" : "text-destructive"
-              }`} />
-            </div>
-
-            {/* 정보 */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-[16px] font-semibold text-foreground truncate">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>회원</TableHead>
+            <TableHead>상태</TableHead>
+            <TableHead>PT 횟수</TableHead>
+            <TableHead>금액</TableHead>
+            <TableHead>날짜</TableHead>
+            <TableHead className="w-[60px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {payments.map((payment) => (
+            <TableRow key={payment.id} className="group">
+              <TableCell>
+                <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
                   {payment.memberProfile.user.name}
-                </p>
+                </Link>
+              </TableCell>
+              <TableCell>
                 <Badge
                   variant={payment.status === "COMPLETED" ? "default" : "destructive"}
-                  className="text-xs flex-shrink-0"
                 >
                   {statusLabels[payment.status]}
                 </Badge>
-              </div>
-              <p className="text-[14px] text-muted-foreground">
-                PT {payment.ptCount}회
-              </p>
-              {payment.description && (
-                <p className="text-[12px] text-muted-foreground/70 mt-0.5 truncate">
-                  {payment.description}
-                </p>
-              )}
-            </div>
-
-            {/* 오른쪽: 금액, 날짜, 삭제 */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="text-right">
-                <p className="text-[15px] font-semibold">
-                  ₩{payment.amount.toLocaleString()}
-                </p>
-                <p className="text-[12px] text-muted-foreground">
+              </TableCell>
+              <TableCell>
+                <span className="text-muted-foreground">{payment.ptCount}회</span>
+              </TableCell>
+              <TableCell>
+                <span className="font-medium">
+                  {payment.amount.toLocaleString()}원
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-muted-foreground">
                   {new Date(payment.paidAt).toLocaleDateString("ko-KR", {
-                    month: "short",
-                    day: "numeric",
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
                   })}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openDeleteDialog(payment);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </Link>
-        ))}
-      </div>
+                </span>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => openDeleteDialog(payment)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

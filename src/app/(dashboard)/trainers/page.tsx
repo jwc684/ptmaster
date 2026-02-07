@@ -3,13 +3,19 @@ import { redirect } from "next/navigation";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { UserCog, Phone, Users, ChevronRight } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { UserCog, Phone, Users } from "lucide-react";
 import { TrainerLoginButton } from "@/components/trainer/trainer-login-button";
 
 async function getTrainers(shopFilter: { shopId?: string }) {
-  // Limit results for "all shops" view
   const hasShopFilter = shopFilter.shopId !== undefined;
 
   return prisma.trainerProfile.findMany({
@@ -30,7 +36,7 @@ async function getTrainers(shopFilter: { shopId?: string }) {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: hasShopFilter ? undefined : 50, // Limit when viewing all shops
+    take: hasShopFilter ? undefined : 50,
   });
 }
 
@@ -51,7 +57,6 @@ export default async function TrainersPage() {
 
   const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
-  // Run queries in parallel
   const [trainers, totalCount] = await Promise.all([
     getTrainers(shopFilter),
     getTrainerCount(shopFilter),
@@ -72,72 +77,71 @@ export default async function TrainersPage() {
         }}
       />
 
-      {trainers.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <UserCog className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            등록된 트레이너가 없습니다.
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader className="pb-0">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <UserCog className="h-5 w-5" />
-              트레이너 목록
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 pt-4">
-            <div className="divide-y divide-border/50">
-              {trainers.map((trainer) => (
-                <Link
-                  key={trainer.id}
-                  href={`/trainers/${trainer.id}`}
-                  className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
-                >
-                  {/* 아이콘 */}
-                  <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <UserCog className="h-5 w-5 text-primary" />
-                  </div>
-
-                  {/* 정보 */}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[16px] font-semibold text-foreground truncate">
-                      {trainer.user.name}
-                    </p>
-                    {trainer.user.phone && (
-                      <p className="text-[14px] text-muted-foreground flex items-center gap-1 truncate">
-                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="truncate">{trainer.user.phone}</span>
-                      </p>
-                    )}
-                    {trainer.bio && (
-                      <p className="text-[12px] text-muted-foreground/70 mt-0.5 truncate">
-                        {trainer.bio}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* 담당 회원 & 액션 */}
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <Badge variant="outline" className="text-xs">
-                      <Users className="h-3 w-3 mr-1" />
-                      {trainer._count.members}
-                    </Badge>
-                    {authResult.isSuperAdmin && (
-                      <TrainerLoginButton
-                        userId={trainer.userId}
-                        trainerName={trainer.user.name}
-                      />
-                    )}
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>이름</TableHead>
+                <TableHead>연락처</TableHead>
+                <TableHead>담당 회원</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {trainers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">
+                    <div className="flex flex-col items-center gap-2">
+                      <UserCog className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-muted-foreground">등록된 트레이너가 없습니다.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                trainers.map((trainer) => (
+                  <TableRow key={trainer.id} className="group">
+                    <TableCell>
+                      <Link href={`/trainers/${trainer.id}`} className="block">
+                        <div className="font-medium hover:underline">{trainer.user.name}</div>
+                        {trainer.bio && (
+                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                            {trainer.bio}
+                          </div>
+                        )}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {trainer.user.phone ? (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5" />
+                          {trainer.user.phone}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        {trainer._count.members}명
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {authResult.isSuperAdmin && (
+                        <TrainerLoginButton
+                          userId={trainer.userId}
+                          trainerName={trainer.user.name}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -4,10 +4,18 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { UserPlus, Shield, Loader2, Mail, Phone, Pencil, Trash2, MoreHorizontal, Link2 } from "lucide-react";
+import { Shield, Loader2, Pencil, Trash2, MoreHorizontal, Link2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -145,18 +153,6 @@ export default function AdminsPage() {
     }
   }
 
-  function openEditDialog_original(admin: Admin) {
-    // Keep original edit dialog for existing admins
-    setEditingAdmin(admin);
-    setFormData({
-      name: admin.name,
-      email: admin.email,
-      password: "",
-      phone: admin.phone || "",
-    });
-    setIsDialogOpen(true);
-  }
-
   function openEditDialog(admin: Admin) {
     setEditingAdmin(admin);
     setFormData({
@@ -168,9 +164,6 @@ export default function AdminsPage() {
     setIsDialogOpen(true);
   }
 
-  // Keep backward compat for row click → edit
-  // (openCreateDialog now opens invite dialog instead)
-
   function openDeleteDialog(admin: Admin) {
     setAdminToDelete(admin);
     setDeleteDialogOpen(true);
@@ -179,7 +172,6 @@ export default function AdminsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Manual validation (HTML5 validation doesn't work well inside Dialog portals)
     if (!formData.name.trim()) {
       toast.error("이름을 입력해주세요.");
       return;
@@ -201,7 +193,6 @@ export default function AdminsPage() {
 
     try {
       if (editingAdmin) {
-        // 수정 모드
         const updateData: Record<string, string> = {
           name: formData.name,
           email: formData.email,
@@ -231,7 +222,6 @@ export default function AdminsPage() {
           toast.error(data.error || "관리자 수정에 실패했습니다.");
         }
       } else {
-        // 생성 모드
         const response = await fetch("/api/admins", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -297,7 +287,7 @@ export default function AdminsPage() {
         }
       />
 
-      {/* 관리자 추가/수정 다이얼로그 */}
+      {/* 관리자 수정 다이얼로그 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <form onSubmit={handleSubmit}>
@@ -311,78 +301,78 @@ export default function AdminsPage() {
                   : "새로운 관리자 계정을 생성합니다."}
               </DialogDescription>
             </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">이름 *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="홍길동"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">이메일 *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="admin@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">
-                      비밀번호 {editingAdmin ? "(변경 시에만 입력)" : "*"}
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) =>
-                        setFormData({ ...formData, password: e.target.value })
-                      }
-                      placeholder={editingAdmin ? "변경하지 않으려면 비워두세요" : "최소 8자 이상"}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">연락처</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                      placeholder="010-1234-5678"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    취소
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {editingAdmin ? "저장 중..." : "추가 중..."}
-                      </>
-                    ) : (
-                      editingAdmin ? "저장" : "추가"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">이름 *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="홍길동"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">이메일 *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="admin@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  비밀번호 {editingAdmin ? "(변경 시에만 입력)" : "*"}
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  placeholder={editingAdmin ? "변경하지 않으려면 비워두세요" : "최소 8자 이상"}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">연락처</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  placeholder="010-1234-5678"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                취소
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {editingAdmin ? "저장 중..." : "추가 중..."}
+                  </>
+                ) : (
+                  editingAdmin ? "저장" : "추가"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <Card>
@@ -392,79 +382,80 @@ export default function AdminsPage() {
             </div>
           </CardContent>
         </Card>
-      ) : admins.length > 0 ? (
-        <Card>
-          <CardHeader className="pb-0">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              관리자 목록
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 pt-4">
-            <div className="divide-y divide-border/50">
-              {admins.map((admin) => (
-                <div
-                  key={admin.id}
-                  className="flex items-center gap-4 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
-                  onClick={() => openEditDialog(admin)}
-                >
-                  {/* 아이콘 */}
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Shield className="h-6 w-6 text-primary" />
-                  </div>
-
-                  {/* 정보 */}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[17px] font-semibold text-foreground truncate">
-                      {admin.name}
-                    </p>
-                    <p className="text-[15px] text-muted-foreground truncate">
-                      {admin.email}
-                    </p>
-                    {admin.phone && (
-                      <p className="text-[13px] text-muted-foreground/70 mt-0.5">
-                        {admin.phone}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* 등록일 & 메뉴 */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[13px] text-muted-foreground hidden sm:block">
-                      {format(new Date(admin.createdAt), "M월 d일", { locale: ko })}
-                    </span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(admin); }}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          수정
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => { e.stopPropagation(); openDeleteDialog(admin); }}
-                          disabled={admin.id === currentUserId}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          삭제
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       ) : (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            등록된 관리자가 없습니다.
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>이름</TableHead>
+                  <TableHead>이메일</TableHead>
+                  <TableHead>연락처</TableHead>
+                  <TableHead>등록일</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {admins.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Shield className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-muted-foreground">등록된 관리자가 없습니다.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  admins.map((admin) => (
+                    <TableRow
+                      key={admin.id}
+                      className="cursor-pointer"
+                      onClick={() => openEditDialog(admin)}
+                    >
+                      <TableCell>
+                        <div className="font-medium">{admin.name}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">{admin.email}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">
+                          {admin.phone || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">
+                          {format(new Date(admin.createdAt), "yyyy.MM.dd", { locale: ko })}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(admin); }}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              수정
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => { e.stopPropagation(); openDeleteDialog(admin); }}
+                              disabled={admin.id === currentUserId}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              삭제
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
