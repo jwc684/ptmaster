@@ -160,7 +160,11 @@ function DateGroupedList({
                     onRevert={actions.handleRevert}
                     onEdit={actions.openEditDialog}
                     onDelete={actions.openDeleteDialog}
-                    onClick={(s) => router.push(`/members/${s.memberProfileId}`)}
+                    onClick={(s) => router.push(
+                      isAdmin
+                        ? `/members/${s.memberProfileId}`
+                        : `/my-members/${s.memberProfileId}`
+                    )}
                   />
                 ))}
               </div>
