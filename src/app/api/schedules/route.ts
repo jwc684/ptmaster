@@ -7,6 +7,7 @@ const scheduleSchema = z.object({
   memberProfileId: z.string().min(1, "회원을 선택해주세요."),
   scheduledAt: z.string().min(1, "예약 일시를 선택해주세요."),
   notes: z.string().optional(),
+  isFree: z.boolean().optional(),
 });
 
 export async function GET(request: Request) {
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { memberProfileId, scheduledAt, notes } = validatedData.data;
+    const { memberProfileId, scheduledAt, notes, isFree } = validatedData.data;
 
     // Verify member belongs to same shop
     const member = await prisma.memberProfile.findFirst({
@@ -169,8 +170,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "해당 회원을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    // 잔여 PT 확인
-    if (member.remainingPT <= 0) {
+    // 잔여 PT 확인 (무료 PT가 아닌 경우만)
+    if (!isFree && member.remainingPT <= 0) {
       return NextResponse.json(
         { error: "잔여 PT가 없습니다. PT를 등록해주세요." },
         { status: 400 }
@@ -195,7 +196,7 @@ export async function POST(request: Request) {
       trainerId = member.trainerId;
     }
 
-    // 트랜잭션으로 일정 생성 + PT 차감
+    // 트랜잭션으로 일정 생성 + PT 차감 (무료가 아닌 경우)
     const schedule = await prisma.$transaction(async (tx) => {
       // 일정 생성
       const newSchedule = await tx.schedule.create({
@@ -203,7 +204,7 @@ export async function POST(request: Request) {
           memberProfileId,
           trainerId,
           scheduledAt: new Date(scheduledAt),
-          notes,
+          notes: isFree ? (notes ? `[무료] ${notes}` : "[무료]") : notes,
           shopId: authResult.shopId!,
         },
         select: {
@@ -219,18 +220,24 @@ export async function POST(request: Request) {
         },
       });
 
-      // PT 1회 차감
-      await tx.memberProfile.update({
-        where: { id: memberProfileId },
-        data: { remainingPT: { decrement: 1 } },
-      });
+      // 무료 PT가 아닌 경우에만 PT 1회 차감
+      if (!isFree) {
+        await tx.memberProfile.update({
+          where: { id: memberProfileId },
+          data: { remainingPT: { decrement: 1 } },
+        });
+      }
 
       return newSchedule;
     });
 
+    const remainingAfter = isFree
+      ? schedule.memberProfile.remainingPT
+      : schedule.memberProfile.remainingPT - 1;
+
     return NextResponse.json(
       {
-        message: `${schedule.memberProfile.user.name}님 예약이 등록되었습니다. (잔여 PT: ${schedule.memberProfile.remainingPT - 1}회)`,
+        message: `${schedule.memberProfile.user.name}님 ${isFree ? "무료 " : ""}예약이 등록되었습니다. (잔여 PT: ${remainingAfter}회)`,
         schedule,
       },
       { status: 201 }

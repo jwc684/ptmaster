@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,7 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState("");
   const [notes, setNotes] = useState("");
+  const [isFree, setIsFree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const now = new Date().toISOString();
@@ -99,6 +101,7 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
           memberProfileId: member.id,
           scheduledAt: new Date(scheduledAt).toISOString(),
           notes: notes || undefined,
+          isFree: isFree || undefined,
         }),
       });
 
@@ -113,6 +116,7 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
       setAddDialogOpen(false);
       setScheduledAt("");
       setNotes("");
+      setIsFree(false);
       router.refresh();
     } catch {
       toast.error("예약 등록에 실패했습니다.");
@@ -314,11 +318,6 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
             <DialogTitle>PT 예약 추가</DialogTitle>
             <DialogDescription>
               {member.user.name}님의 PT 예약을 등록합니다.
-              {member.remainingPT <= 0 && (
-                <span className="block text-destructive mt-1">
-                  잔여 PT가 없습니다. PT 등록 후 예약해주세요.
-                </span>
-              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -343,9 +342,28 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
               />
             </div>
 
+            {member.remainingPT <= 0 && (
+              <div className="flex items-center gap-2 rounded-md border p-3 bg-muted/50">
+                <Checkbox
+                  id="isFree"
+                  checked={isFree}
+                  onCheckedChange={(checked) => setIsFree(checked === true)}
+                />
+                <Label htmlFor="isFree" className="text-sm cursor-pointer">
+                  무료 PT (잔여 PT 차감 없음)
+                </Label>
+              </div>
+            )}
+
+            {member.remainingPT <= 0 && !isFree && (
+              <p className="text-sm text-destructive">
+                잔여 PT가 없습니다. 무료 PT를 체크하거나 PT를 등록해주세요.
+              </p>
+            )}
+
             <Button
               onClick={handleAddSchedule}
-              disabled={submitting || !scheduledAt || member.remainingPT <= 0}
+              disabled={submitting || !scheduledAt || (member.remainingPT <= 0 && !isFree)}
               className="w-full"
             >
               {submitting ? (
