@@ -87,9 +87,13 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* 현재 경로와 가장 구체적으로 매칭되는 항목만 활성화 */}
               {filteredNavItems.map((item) => {
                 const Icon = iconMap[item.icon];
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const activeHref = filteredNavItems
+                  .filter(nav => pathname === nav.href || pathname.startsWith(`${nav.href}/`))
+                  .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+                const isActive = item.href === activeHref;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive}>
