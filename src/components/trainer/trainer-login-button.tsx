@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,7 +10,6 @@ interface TrainerLoginButtonProps {
 }
 
 export function TrainerLoginButton({ userId, trainerName }: TrainerLoginButtonProps) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -23,7 +21,7 @@ export function TrainerLoginButton({ userId, trainerName }: TrainerLoginButtonPr
       const response = await fetch("/api/super-admin/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, openInNewTab: true }),
       });
 
       if (!response.ok) {
@@ -32,9 +30,9 @@ export function TrainerLoginButton({ userId, trainerName }: TrainerLoginButtonPr
         return;
       }
 
-      toast.success(`${trainerName} 트레이너로 전환했습니다.`);
-      router.push("/dashboard");
-      router.refresh();
+      const data = await response.json();
+      toast.success(`${trainerName} 트레이너로 새 탭에서 열립니다.`);
+      window.open(`/api/super-admin/impersonate/start?token=${data.token}`, "_blank");
     } catch {
       toast.error("트레이너 계정으로 로그인하는데 실패했습니다.");
     } finally {

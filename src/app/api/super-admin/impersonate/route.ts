@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, shopId } = body;
+    const { userId, shopId, openInNewTab } = body;
 
     if (!userId && !shopId) {
       return NextResponse.json(
@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
       .setExpirationTime("1h")
       .sign(getSecret());
 
+    const roleLabel = targetUser.role === "ADMIN" ? "관리자" : targetUser.role === "TRAINER" ? "트레이너" : "회원";
+
     await logAccess({
       userId: authResult.userId,
       userName: "Super Admin",
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
       shopName: targetUser.shop?.name || null,
       actionType: "API_CALL",
       page: "/super-admin/shops",
-      action: `${targetUser.role === "ADMIN" ? "관리자" : "회원"} 계정으로 로그인 (대상: ${targetUser.name} / ${targetUser.email})`,
+      action: `${roleLabel} 계정으로 로그인 (대상: ${targetUser.name} / ${targetUser.email})`,
       targetId: targetUser.id,
       targetType: "user",
       metadata: {
@@ -114,7 +116,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set impersonation cookie
+    // For new tab mode: return token without setting cookie (cookie will be set via /start endpoint)
+    if (openInNewTab) {
+      return NextResponse.json({
+        success: true,
+        token,
+        user: {
+          name: targetUser.name,
+          email: targetUser.email,
+          role: targetUser.role,
+          shopName: targetUser.shop?.name,
+        },
+      });
+    }
+
+    // Default: Set impersonation cookie in current session
     const cookieStore = await cookies();
     cookieStore.set(IMPERSONATE_COOKIE, token, {
       httpOnly: true,
