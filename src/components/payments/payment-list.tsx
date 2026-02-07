@@ -36,7 +36,7 @@ interface Payment {
   memberProfile: {
     id: string;
     user: { name: string };
-  };
+  } | null;
 }
 
 interface PaymentListProps {
@@ -130,9 +130,13 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
           {payments.map((payment) => (
             <TableRow key={payment.id} className="group">
               <TableCell>
-                <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
-                  {payment.memberProfile.user.name}
-                </Link>
+                {payment.memberProfile ? (
+                  <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
+                    {payment.memberProfile.user.name}
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">삭제된 회원</span>
+                )}
               </TableCell>
               <TableCell>
                 <Badge
@@ -180,7 +184,7 @@ export function PaymentList({ payments: initialPayments }: PaymentListProps) {
             <AlertDialogDescription>
               {selectedPayment && (
                 <>
-                  <strong>{selectedPayment.memberProfile.user.name}</strong>님의{" "}
+                  <strong>{selectedPayment.memberProfile?.user.name ?? "삭제된 회원"}</strong>님의{" "}
                   <strong>PT {selectedPayment.ptCount}회</strong> 결제 내역(₩
                   {selectedPayment.amount.toLocaleString()})을 삭제합니다.
                   <br />

@@ -216,9 +216,9 @@ model Schedule {
 
 model Attendance {
   id               String         @id @default(cuid())
-  memberProfile    MemberProfile  @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
-  memberProfileId  String
-  schedule         Schedule?      @relation(fields: [scheduleId], references: [id])
+  memberProfile    MemberProfile? @relation(fields: [memberProfileId], references: [id], onDelete: SetNull)
+  memberProfileId  String?
+  schedule         Schedule?      @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
   scheduleId       String?        @unique
   checkInTime      DateTime       @default(now())
   remainingPTAfter Int?           // 기록 시점 차감 후 잔여 PT
@@ -245,9 +245,9 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id              String        @id @default(cuid())
-  memberProfile   MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
-  memberProfileId String
+  id              String         @id @default(cuid())
+  memberProfile   MemberProfile? @relation(fields: [memberProfileId], references: [id], onDelete: SetNull)
+  memberProfileId String?
   amount          Int           // 결제 금액 (원)
   ptCount         Int           // 결제한 PT 횟수
   status          PaymentStatus @default(COMPLETED)

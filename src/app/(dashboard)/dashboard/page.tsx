@@ -286,6 +286,7 @@ async function TodayAttendances({ shopFilter }: { shopFilter: { shopId?: string 
     take: 5,
     where: {
       checkInTime: { gte: today },
+      memberProfileId: { not: null },
       ...shopFilter,
     },
     orderBy: { checkInTime: "desc" },
@@ -310,7 +311,7 @@ async function TodayAttendances({ shopFilter }: { shopFilter: { shopId?: string 
       {attendances.map((attendance) => (
         <div key={attendance.id} className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-medium">{attendance.memberProfile.user.name}</p>
+            <p className="text-sm font-medium">{attendance.memberProfile?.user.name ?? "삭제된 회원"}</p>
             {attendance.notes && (
               <p className="text-xs text-muted-foreground">{attendance.notes}</p>
             )}
@@ -335,6 +336,7 @@ async function TrainerTodayAttendances({ trainerId }: { trainerId: string }) {
     take: 5,
     where: {
       checkInTime: { gte: today },
+      memberProfileId: { not: null },
       memberProfile: { is: { trainerId } },
     },
     orderBy: { checkInTime: "desc" },
@@ -360,13 +362,13 @@ async function TrainerTodayAttendances({ trainerId }: { trainerId: string }) {
       {attendances.map((attendance) => (
         <div key={attendance.id} className="flex items-center justify-between py-1">
           <div>
-            <p className="text-sm font-medium">{attendance.memberProfile.user.name}</p>
+            <p className="text-sm font-medium">{attendance.memberProfile?.user.name ?? "삭제된 회원"}</p>
             {attendance.notes && (
               <p className="text-xs text-muted-foreground">{attendance.notes}</p>
             )}
           </div>
           <div className="text-right">
-            <Badge variant="outline">잔여 {attendance.memberProfile.remainingPT}회</Badge>
+            <Badge variant="outline">잔여 {attendance.memberProfile?.remainingPT ?? 0}회</Badge>
             <p className="text-xs text-muted-foreground mt-1">
               {attendance.checkInTime.toLocaleTimeString("ko-KR", {
                 hour: "2-digit",

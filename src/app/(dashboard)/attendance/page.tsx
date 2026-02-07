@@ -61,7 +61,7 @@ interface Attendance {
     id: string;
     remainingPT: number;
     user: { name: string };
-  };
+  } | null;
   schedule?: {
     status: "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
     scheduledAt: string;
@@ -389,7 +389,7 @@ export default function AttendancePage() {
                       <TableRow
                         key={attendance.id}
                         className={`cursor-pointer ${isCancelled ? "opacity-60" : ""}`}
-                        onClick={() => router.push(`/members/${attendance.memberProfile.id}`)}
+                        onClick={() => attendance.memberProfile && router.push(`/members/${attendance.memberProfile.id}`)}
                       >
                         <TableCell>
                           <div>
@@ -408,7 +408,7 @@ export default function AttendancePage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{attendance.memberProfile.user.name}</div>
+                            <div className="font-medium">{attendance.memberProfile?.user.name ?? "삭제된 회원"}</div>
                             <div className="md:hidden text-xs text-muted-foreground">
                               {attendance.schedule?.trainer?.user.name}
                             </div>
@@ -457,7 +457,7 @@ export default function AttendancePage() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge variant="outline">
-                            {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
+                            {attendance.remainingPTAfter ?? attendance.memberProfile?.remainingPT ?? 0}회
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -501,7 +501,7 @@ export default function AttendancePage() {
           <div className="space-y-4 pt-4">
             {selectedAttendance && (
               <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium">{selectedAttendance.memberProfile.user.name}</p>
+                <p className="font-medium">{selectedAttendance.memberProfile?.user.name ?? "삭제된 회원"}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(selectedAttendance.checkInTime), "M월 d일 HH:mm", { locale: ko })}
                 </p>
@@ -565,7 +565,7 @@ export default function AttendancePage() {
                 {attendanceToDelete && (
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="font-medium text-foreground">
-                      {attendanceToDelete.memberProfile.user.name}
+                      {attendanceToDelete.memberProfile?.user.name ?? "삭제된 회원"}
                     </p>
                     <p className="text-sm">
                       {format(new Date(attendanceToDelete.checkInTime), "M월 d일 HH:mm", { locale: ko })}

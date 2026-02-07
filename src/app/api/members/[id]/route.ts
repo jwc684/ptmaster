@@ -328,13 +328,14 @@ export async function DELETE(
       );
     }
 
-    // Delete user (cascades to member profile)
+    // 회원 삭제 (통계 데이터인 Payment, Attendance는 보존 - SetNull로 연결 해제)
+    // Schedule은 cascade로 삭제, Attendance/Payment의 memberProfileId는 null로 변경
     await prisma.user.delete({
       where: { id: member.userId },
     });
 
     return NextResponse.json({
-      message: "회원이 삭제되었습니다.",
+      message: "회원이 삭제되었습니다. (결제/출석 기록은 보존됩니다)",
     });
   } catch (error) {
     console.error("Error deleting member:", error);

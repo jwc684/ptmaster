@@ -46,7 +46,7 @@ interface Payment {
     id: string;
     user: { name: string; phone: string | null };
     trainer: { user: { name: string } } | null;
-  };
+  } | null;
 }
 
 interface RegistrationListProps {
@@ -190,9 +190,13 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
           {payments.map((payment) => (
             <TableRow key={payment.id} className="group">
               <TableCell>
-                <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
-                  {payment.memberProfile.user.name}
-                </Link>
+                {payment.memberProfile ? (
+                  <Link href={`/members/${payment.memberProfile.id}`} className="font-medium hover:underline">
+                    {payment.memberProfile.user.name}
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground">삭제된 회원</span>
+                )}
               </TableCell>
               <TableCell>
                 <Badge variant="default" className="text-xs">
@@ -206,7 +210,7 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
               </TableCell>
               <TableCell>
                 <span className="text-muted-foreground">
-                  {payment.memberProfile.trainer?.user.name || "-"}
+                  {payment.memberProfile?.trainer?.user.name || "-"}
                 </span>
               </TableCell>
               <TableCell>
@@ -252,7 +256,7 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
           <div className="space-y-4 pt-4">
             {selectedPayment && (
               <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium">{selectedPayment.memberProfile.user.name}</p>
+                <p className="font-medium">{selectedPayment.memberProfile?.user.name ?? "삭제된 회원"}</p>
                 <p className="text-sm text-muted-foreground">
                   {new Date(selectedPayment.paidAt).toLocaleDateString("ko-KR")}
                 </p>
@@ -338,7 +342,7 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
             <AlertDialogDescription>
               {selectedPayment && (
                 <>
-                  <strong>{selectedPayment.memberProfile.user.name}</strong>님의{" "}
+                  <strong>{selectedPayment.memberProfile?.user.name ?? "삭제된 회원"}</strong>님의{" "}
                   <strong>PT {selectedPayment.ptCount}회</strong> 등록(₩
                   {selectedPayment.amount.toLocaleString()})을 삭제합니다.
                   <br />

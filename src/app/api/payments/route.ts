@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: `${payment.memberProfile.user.name}님 PT ${ptCount}회 결제 완료`,
+        message: `${payment.memberProfile?.user.name ?? "회원"}님 PT ${ptCount}회 결제 완료`,
         payment,
       },
       { status: 201 }

@@ -57,7 +57,7 @@ export async function GET(
 
     // 회원은 자신의 기록만 조회 가능
     if (session.user.role === "MEMBER") {
-      if (attendance.memberProfile.userId !== session.user.id) {
+      if (!attendance.memberProfile || attendance.memberProfile.userId !== session.user.id) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
       }
       // 회원에게는 internalNotes를 숨김
@@ -197,11 +197,13 @@ export async function DELETE(
         where: { id },
       });
 
-      // PT 횟수 복원
-      await tx.memberProfile.update({
-        where: { id: attendance.memberProfileId },
-        data: { remainingPT: { increment: 1 } },
-      });
+      // PT 횟수 복원 (회원이 삭제되지 않은 경우만)
+      if (attendance.memberProfileId) {
+        await tx.memberProfile.update({
+          where: { id: attendance.memberProfileId },
+          data: { remainingPT: { increment: 1 } },
+        });
+      }
 
       // 연결된 스케줄이 있으면 상태를 SCHEDULED로 변경
       if (attendance.scheduleId) {

@@ -95,20 +95,31 @@ export async function PATCH(
     if (ptCount !== undefined && ptCount !== payment.ptCount) {
       const ptDifference = ptCount - payment.ptCount;
 
-      await prisma.$transaction([
-        prisma.payment.update({
+      if (payment.memberProfileId) {
+        await prisma.$transaction([
+          prisma.payment.update({
+            where: { id },
+            data: {
+              ...(amount !== undefined && { amount }),
+              ptCount,
+              ...(description !== undefined && { description }),
+            },
+          }),
+          prisma.memberProfile.update({
+            where: { id: payment.memberProfileId },
+            data: { remainingPT: { increment: ptDifference } },
+          }),
+        ]);
+      } else {
+        await prisma.payment.update({
           where: { id },
           data: {
             ...(amount !== undefined && { amount }),
             ptCount,
             ...(description !== undefined && { description }),
           },
-        }),
-        prisma.memberProfile.update({
-          where: { id: payment.memberProfileId },
-          data: { remainingPT: { increment: ptDifference } },
-        }),
-      ]);
+        });
+      }
     } else {
       await prisma.payment.update({
         where: { id },
@@ -157,15 +168,21 @@ export async function DELETE(
     }
 
     // 결제 삭제 시 PT 횟수도 차감 (트랜잭션)
-    await prisma.$transaction([
-      prisma.payment.delete({
+    if (payment.memberProfileId) {
+      await prisma.$transaction([
+        prisma.payment.delete({
+          where: { id },
+        }),
+        prisma.memberProfile.update({
+          where: { id: payment.memberProfileId },
+          data: { remainingPT: { decrement: payment.ptCount } },
+        }),
+      ]);
+    } else {
+      await prisma.payment.delete({
         where: { id },
-      }),
-      prisma.memberProfile.update({
-        where: { id: payment.memberProfileId },
-        data: { remainingPT: { decrement: payment.ptCount } },
-      }),
-    ]);
+      });
+    }
 
     return NextResponse.json({
       message: "결제 내역이 삭제되었습니다.",

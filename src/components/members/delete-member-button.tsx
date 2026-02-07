@@ -64,7 +64,7 @@ export function DeleteMemberButton({ memberId, memberName }: DeleteMemberButtonP
           <AlertDialogDescription>
             <strong>{memberName}</strong> 회원을 삭제합니다.
             <br />
-            삭제된 회원의 모든 출석 기록, 결제 내역, 예약 정보가 함께 삭제됩니다.
+            회원 계정과 예약 정보가 삭제됩니다. 결제 내역과 출석 기록은 통계 데이터로 보존됩니다.
             <br />
             <span className="text-destructive font-medium">이 작업은 되돌릴 수 없습니다.</span>
           </AlertDialogDescription>
