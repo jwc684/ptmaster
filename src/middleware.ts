@@ -47,6 +47,15 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // If Super Admin is impersonating, bypass role-based route check
+  // (page-level auth properly resolves the impersonated session via cookie)
+  if (isLoggedIn && userRole === "SUPER_ADMIN") {
+    const impersonateCookie = req.cookies.get("impersonate-session");
+    if (impersonateCookie?.value) {
+      return NextResponse.next();
+    }
+  }
+
   // Check role-based access for protected routes
   if (isLoggedIn && userRole) {
     const allowedRoutes = ROLE_ACCESS[userRole];

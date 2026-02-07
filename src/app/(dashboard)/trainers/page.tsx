@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserCog, Phone, Users, ChevronRight } from "lucide-react";
+import { TrainerLoginButton } from "@/components/trainer/trainer-login-button";
 
 async function getTrainers(shopFilter: { shopId?: string }) {
   // Limit results for "all shops" view
@@ -15,6 +16,7 @@ async function getTrainers(shopFilter: { shopId?: string }) {
     where: shopFilter,
     select: {
       id: true,
+      userId: true,
       bio: true,
       user: {
         select: {
@@ -116,12 +118,18 @@ export default async function TrainersPage() {
                     )}
                   </div>
 
-                  {/* 담당 회원 & 화살표 */}
+                  {/* 담당 회원 & 액션 */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <Badge variant="outline" className="text-xs">
                       <Users className="h-3 w-3 mr-1" />
                       {trainer._count.members}
                     </Badge>
+                    {authResult.isSuperAdmin && (
+                      <TrainerLoginButton
+                        userId={trainer.userId}
+                        trainerName={trainer.user.name}
+                      />
+                    )}
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </Link>

@@ -6,18 +6,20 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, User, Phone, Mail, Users } from "lucide-react";
+import { Pencil, User, Phone, Mail, Users, LogIn } from "lucide-react";
 import { AssignMemberDialog } from "@/components/trainer/assign-member-dialog";
 import { DeleteTrainerButton } from "@/components/trainer/delete-trainer-button";
+import { ImpersonateButton } from "@/components/trainer/impersonate-trainer-button";
 
 async function getTrainer(id: string) {
   return prisma.trainerProfile.findUnique({
     where: { id },
     select: {
       id: true,
+      userId: true,
       bio: true,
       createdAt: true,
-      user: { select: { name: true, email: true, phone: true } },
+      user: { select: { id: true, name: true, email: true, phone: true } },
       members: {
         select: {
           id: true,
@@ -74,6 +76,13 @@ export default async function TrainerDetailPage({
           trainerName={trainer.user.name}
           hasMember={trainer.members.length > 0}
         />
+        {session.user.role === "SUPER_ADMIN" && (
+          <ImpersonateButton
+            userId={trainer.userId}
+            trainerName={trainer.user.name}
+            trainerEmail={trainer.user.email}
+          />
+        )}
       </div>
       {trainer.members.length > 0 && (
         <p className="text-xs text-muted-foreground">
