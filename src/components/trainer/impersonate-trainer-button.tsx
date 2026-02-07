@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -14,7 +13,6 @@ interface ImpersonateButtonProps {
 }
 
 export function ImpersonateButton({ userId, trainerName, trainerEmail }: ImpersonateButtonProps) {
-  const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -34,8 +32,7 @@ export function ImpersonateButton({ userId, trainerName, trainerEmail }: Imperso
       }
 
       toast.success(`${trainerName} 트레이너로 전환했습니다.`);
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch {
       toast.error("트레이너 계정으로 로그인하는데 실패했습니다.");
     } finally {

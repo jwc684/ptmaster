@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,7 +10,6 @@ interface MemberLoginButtonProps {
 }
 
 export function MemberLoginButton({ userId, userName }: MemberLoginButtonProps) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -33,8 +31,7 @@ export function MemberLoginButton({ userId, userName }: MemberLoginButtonProps) 
       }
 
       toast.success(`${userName} 회원으로 전환했습니다.`);
-      router.push("/my");
-      router.refresh();
+      window.location.href = "/my";
     } catch {
       toast.error("회원 계정으로 로그인하는데 실패했습니다.");
     } finally {

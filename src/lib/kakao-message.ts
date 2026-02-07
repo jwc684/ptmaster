@@ -103,6 +103,20 @@ async function sendKakaoMemo(accessToken: string, text: string, url?: string): P
 }
 
 /**
+ * Format date as "M월 D일 오전/오후 H시 MM분"
+ */
+function formatKoreanDateTime(d: Date): string {
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  const ampm = hours < 12 ? "오전" : "오후";
+  const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  const displayMin = String(minutes).padStart(2, "0");
+  return `${month}월 ${day}일 ${ampm} ${displayHour}시 ${displayMin}분`;
+}
+
+/**
  * Send a PT schedule notification to a member via KakaoTalk
  */
 export async function sendScheduleNotification({
@@ -159,15 +173,9 @@ export async function sendScheduleNotification({
       return false;
     }
 
-    // Format date
-    const date = new Date(scheduledAt);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hour = String(date.getHours()).padStart(2, "0");
-    const minute = String(date.getMinutes()).padStart(2, "0");
+    const dateStr = formatKoreanDateTime(new Date(scheduledAt));
 
-    message = `[${shopName}] PT 예약 확인 메세지\n트레이너명: ${trainerName}\n수업일자: ${year}년 ${month}월 ${day}일 ${hour}시 ${minute}분\n현재 남은 PT: ${remainingPT}회`;
+    message = `[${shopName}] PT 예약 확인 메세지\n트레이너명: ${trainerName}\n수업일자: ${dateStr}\n현재 남은 PT: ${remainingPT}회\n앱에서 확인: ptmaster.onrender.com`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -268,14 +276,9 @@ export async function sendAttendanceNotification({
       return false;
     }
 
-    const date = new Date(scheduledAt);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hour = String(date.getHours()).padStart(2, "0");
-    const minute = String(date.getMinutes()).padStart(2, "0");
+    const dateStr = formatKoreanDateTime(new Date(scheduledAt));
 
-    message = `[${shopName}] PT 출석 체크 완료\n트레이너명: ${trainerName}\n수업일자: ${year}년 ${month}월 ${day}일 ${hour}시 ${minute}분\n현재 남은 PT: ${remainingPT}회`;
+    message = `[${shopName}] PT 출석 체크 완료\n트레이너명: ${trainerName}\n수업일자: ${dateStr}\n현재 남은 PT: ${remainingPT}회\n앱에서 확인: ptmaster.onrender.com`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {

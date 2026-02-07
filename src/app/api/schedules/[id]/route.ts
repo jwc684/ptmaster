@@ -65,14 +65,21 @@ export async function PATCH(
 
     // 출석 완료 처리 (PT는 일정 생성 시 이미 차감됨)
     if (status === "COMPLETED" && schedule.status !== "COMPLETED") {
-      // 건당 PT 비용 계산 (회원의 모든 결제 기록 기반)
-      const payments = await prisma.payment.findMany({
-        where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
-        select: { amount: true, ptCount: true },
-      });
-      const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
-      const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
-      const unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
+      const isFree = schedule.notes?.includes("[무료]") ?? false;
+
+      // 건당 PT 비용 계산 (무료 PT는 0원)
+      let unitPrice: number | null = null;
+      if (!isFree) {
+        const payments = await prisma.payment.findMany({
+          where: { memberProfileId: schedule.memberProfileId, status: "COMPLETED" },
+          select: { amount: true, ptCount: true },
+        });
+        const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+        const totalPTCount = payments.reduce((sum, p) => sum + p.ptCount, 0);
+        unitPrice = totalPTCount > 0 ? Math.round(totalAmount / totalPTCount) : null;
+      } else {
+        unitPrice = 0;
+      }
 
       // 트랜잭션으로 출석 처리 (PT 차감 없음 - 이미 일정 생성 시 차감됨)
       const updatedSchedule = await prisma.$transaction(async (tx) => {
