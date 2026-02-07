@@ -25,7 +25,10 @@ import { trainerUpdateSchema } from "@/lib/validations/trainer";
 // 신규 등록 시 초대용 스키마 (비밀번호 불필요)
 const trainerInviteSchema = z.object({
   name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다."),
-  email: z.string().email("올바른 이메일 주소를 입력해주세요."),
+  email: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().email("올바른 이메일 주소를 입력해주세요.").optional()
+  ),
   phone: z.string().optional(),
   bio: z.string().optional(),
 });
@@ -42,8 +45,13 @@ interface TrainerFormProps {
   };
 }
 
-type TrainerInviteData = z.infer<typeof trainerInviteSchema>;
-type TrainerUpdateData = z.infer<typeof trainerUpdateSchema>;
+type TrainerFormData = {
+  name: string;
+  email?: string;
+  phone?: string;
+  bio?: string;
+  password?: string;
+};
 
 export function TrainerForm({ initialData }: TrainerFormProps) {
   const router = useRouter();
@@ -51,8 +59,9 @@ export function TrainerForm({ initialData }: TrainerFormProps) {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const isEditing = !!initialData;
 
-  const form = useForm<TrainerInviteData | TrainerUpdateData>({
-    resolver: zodResolver(isEditing ? trainerUpdateSchema : trainerInviteSchema),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<TrainerFormData>({
+    resolver: zodResolver(isEditing ? trainerUpdateSchema : trainerInviteSchema) as any,
     defaultValues: {
       name: initialData?.user.name || "",
       email: initialData?.user.email || "",
@@ -61,7 +70,7 @@ export function TrainerForm({ initialData }: TrainerFormProps) {
     },
   });
 
-  async function onSubmit(data: TrainerInviteData | TrainerUpdateData) {
+  async function onSubmit(data: TrainerFormData) {
     setIsLoading(true);
 
     try {
@@ -90,7 +99,7 @@ export function TrainerForm({ initialData }: TrainerFormProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             role: "TRAINER",
-            email: data.email,
+            ...(data.email && { email: data.email }),
             metadata: {
               name: data.name,
               phone: data.phone,
@@ -192,7 +201,7 @@ export function TrainerForm({ initialData }: TrainerFormProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>이메일 *</FormLabel>
+                  <FormLabel>{isEditing ? "이메일 *" : "이메일 (선택)"}</FormLabel>
                   <FormControl>
                     <Input type="email" placeholder="name@example.com" {...field} />
                   </FormControl>
