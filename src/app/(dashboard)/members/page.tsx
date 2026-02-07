@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Phone, ChevronRight, Users } from "lucide-react";
+import { User, Phone, ChevronRight, Users, Building2 } from "lucide-react";
 import { MemberLoginButton } from "@/components/members/member-login-button";
 
 async function getMembers(shopFilter: { shopId?: string }) {
@@ -30,6 +30,9 @@ async function getMembers(shopFilter: { shopId?: string }) {
         select: {
           user: { select: { name: true } },
         },
+      },
+      shop: {
+        select: { name: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -122,9 +125,17 @@ export default async function MembersPage() {
                         <span className="truncate">{member.user.phone}</span>
                       </p>
                     )}
-                    {member.trainer && (
+                    {(member.trainer || member.shop) && (
                       <p className="text-[12px] text-muted-foreground/70 mt-0.5 truncate">
-                        담당: {member.trainer.user.name}
+                        {member.shop && (
+                          <span className="inline-flex items-center gap-0.5 mr-2">
+                            <Building2 className="h-3 w-3 inline flex-shrink-0" />
+                            {member.shop.name}
+                          </span>
+                        )}
+                        {member.trainer && (
+                          <span>담당: {member.trainer.user.name}</span>
+                        )}
                       </p>
                     )}
                   </div>
