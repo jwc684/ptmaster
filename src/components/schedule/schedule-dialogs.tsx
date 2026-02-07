@@ -213,27 +213,25 @@ export function ScheduleDialogs({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>날짜</Label>
-                <Input
-                  type="date"
-                  value={editForm.date}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, date: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>시간</Label>
-                <Input
-                  type="time"
-                  value={editForm.time}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, time: e.target.value })
-                  }
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>날짜</Label>
+              <Input
+                type="date"
+                value={editForm.date}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, date: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>시간</Label>
+              <Input
+                type="time"
+                value={editForm.time}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, time: e.target.value })
+                }
+              />
             </div>
 
             <div className="space-y-2">
