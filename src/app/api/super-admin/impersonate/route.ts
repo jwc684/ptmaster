@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SignJWT } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop } from "@/lib/shop-utils";
 import { logAccess } from "@/lib/access-log";
+import { cookies } from "next/headers";
 
+const IMPERSONATE_COOKIE = "impersonate-session";
+
+function getSecret() {
+  return new TextEncoder().encode(process.env.AUTH_SECRET);
+}
+
+// POST: Start impersonation (set cookie)
 export async function POST(request: NextRequest) {
   try {
     const authResult = await getAuthWithShop();
@@ -29,7 +37,6 @@ export async function POST(request: NextRequest) {
     let targetUser;
 
     if (shopId) {
-      // Find the first admin of the shop
       targetUser = await prisma.user.findFirst({
         where: { shopId, role: "ADMIN" },
         select: {
@@ -62,10 +69,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!targetUser) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
       if (targetUser.role === "SUPER_ADMIN") {
@@ -76,17 +80,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
-
-    const impersonateToken = await new SignJWT({
-      targetUserId: targetUser.id,
+    // Create a signed JWT for the impersonation cookie (1 hour expiry)
+    const token = await new SignJWT({
+      id: targetUser.id,
+      email: targetUser.email,
+      name: targetUser.name,
+      role: targetUser.role,
+      shopId: targetUser.shopId,
+      shopName: targetUser.shop?.name || null,
       superAdminId: authResult.userId,
       purpose: "impersonate",
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("30s")
-      .sign(secret);
+      .setExpirationTime("1h")
+      .sign(getSecret());
 
     await logAccess({
       userId: authResult.userId,
@@ -106,11 +114,44 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ token: impersonateToken });
+    // Set impersonation cookie
+    const cookieStore = await cookies();
+    cookieStore.set(IMPERSONATE_COOKIE, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60, // 1 hour
+      path: "/",
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role,
+        shopName: targetUser.shop?.name,
+      },
+    });
   } catch (error) {
-    console.error("Error creating impersonation token:", error);
+    console.error("Error starting impersonation:", error);
     return NextResponse.json(
-      { error: "Failed to create impersonation token" },
+      { error: "Failed to start impersonation" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Stop impersonation (clear cookie)
+export async function DELETE() {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete(IMPERSONATE_COOKIE);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error stopping impersonation:", error);
+    return NextResponse.json(
+      { error: "Failed to stop impersonation" },
       { status: 500 }
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Building2,
@@ -74,6 +75,7 @@ interface Shop {
 }
 
 export default function ShopsPage() {
+  const router = useRouter();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteShopId, setDeleteShopId] = useState<string | null>(null);
@@ -124,24 +126,21 @@ export default function ShopsPage() {
 
   const handleImpersonateShopAdmin = async (shopId: string, shopName: string) => {
     try {
-      const tokenResponse = await fetch("/api/super-admin/impersonate", {
+      const response = await fetch("/api/super-admin/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopId }),
       });
 
-      if (!tokenResponse.ok) {
-        const data = await tokenResponse.json();
-        toast.error(data.error || "로그인 토큰 생성에 실패했습니다.");
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "관리자 로그인에 실패했습니다.");
         return;
       }
 
-      const { token } = await tokenResponse.json();
-      window.open(
-        `/login?impersonateToken=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent("/dashboard")}`,
-        "_blank"
-      );
-      toast.success(`${shopName} 관리자 계정으로 새 탭에서 로그인합니다.`);
+      toast.success(`${shopName} 관리자로 전환했습니다.`);
+      router.push("/dashboard");
+      router.refresh();
     } catch {
       toast.error("관리자 계정으로 로그인하는데 실패했습니다.");
     }

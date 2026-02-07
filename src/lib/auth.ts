@@ -22,6 +22,8 @@ declare module "next-auth" {
       phone?: string | null;
       shopId?: string | null;
       image?: string | null;
+      isImpersonating?: boolean;
+      impersonateShopName?: string | null;
     };
   }
 }
@@ -60,47 +62,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        impersonateToken: { label: "Impersonate Token", type: "text" },
       },
       async authorize(credentials) {
         try {
-          // Impersonation path: Super Admin이 관리자로 로그인
-          if (credentials?.impersonateToken) {
-            const { jwtVerify } = await import("jose");
-            const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
-
-            const { payload } = await jwtVerify(
-              credentials.impersonateToken as string,
-              secret
-            );
-
-            if (payload.purpose !== "impersonate" || !payload.targetUserId) {
-              throw new Error("Invalid impersonation token");
-            }
-
-            const targetUser = await prisma.user.findUnique({
-              where: { id: payload.targetUserId as string },
-            });
-
-            if (!targetUser || targetUser.role === "SUPER_ADMIN") {
-              throw new Error("Target user not found or cannot be impersonated");
-            }
-
-            console.log(
-              `[Auth] Impersonation login: Super Admin ${payload.superAdminId} -> ${targetUser.email}`
-            );
-
-            return {
-              id: targetUser.id,
-              email: targetUser.email,
-              name: targetUser.name,
-              role: targetUser.role,
-              phone: targetUser.phone,
-              shopId: targetUser.shopId,
-            };
-          }
-
-          // Normal login path
           console.log("[Auth] Login attempt for:", credentials?.email);
 
           if (!credentials?.email || !credentials?.password) {
@@ -164,6 +128,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.phone = token.phone as string | null | undefined;
         session.user.shopId = token.shopId as string | null | undefined;
       }
+
+      // Check for impersonation cookie (only if current user is SUPER_ADMIN)
+      if (token.role === "SUPER_ADMIN") {
+        try {
+          const { cookies } = await import("next/headers");
+          const cookieStore = await cookies();
+          const impersonateCookie = cookieStore.get("impersonate-session");
+
+          if (impersonateCookie?.value) {
+            const { jwtVerify } = await import("jose");
+            const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
+            const { payload } = await jwtVerify(impersonateCookie.value, secret);
+
+            if (payload.purpose === "impersonate" && payload.id) {
+              session.user.id = payload.id as string;
+              session.user.email = payload.email as string;
+              session.user.name = payload.name as string;
+              session.user.role = payload.role as UserRole;
+              session.user.shopId = payload.shopId as string | null;
+              session.user.isImpersonating = true;
+              session.user.impersonateShopName = payload.shopName as string | null;
+            }
+          }
+        } catch {
+          // Cookie invalid or expired - ignore and use normal session
+        }
+      }
+
       return session;
     },
   },

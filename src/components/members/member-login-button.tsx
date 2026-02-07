@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,6 +11,7 @@ interface MemberLoginButtonProps {
 }
 
 export function MemberLoginButton({ userId, userName }: MemberLoginButtonProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -18,25 +20,21 @@ export function MemberLoginButton({ userId, userName }: MemberLoginButtonProps) 
 
     setLoading(true);
     try {
-      const tokenResponse = await fetch("/api/super-admin/impersonate", {
+      const response = await fetch("/api/super-admin/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
 
-      if (!tokenResponse.ok) {
-        const data = await tokenResponse.json();
-        toast.error(data.error || "로그인 토큰 생성에 실패했습니다.");
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "회원 로그인에 실패했습니다.");
         return;
       }
 
-      const { token } = await tokenResponse.json();
-
-      window.open(
-        `/login?impersonateToken=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent("/my")}`,
-        "_blank"
-      );
-      toast.success(`${userName} 계정으로 새 탭에서 로그인합니다.`);
+      toast.success(`${userName} 회원으로 전환했습니다.`);
+      router.push("/my");
+      router.refresh();
     } catch {
       toast.error("회원 계정으로 로그인하는데 실패했습니다.");
     } finally {
