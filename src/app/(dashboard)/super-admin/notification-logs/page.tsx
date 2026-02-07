@@ -7,8 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import {
   Card,
@@ -17,6 +15,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -156,18 +162,11 @@ export default function NotificationLogsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="space-y-3">
+            <div className="p-6 space-y-3">
               {[...Array(10)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 py-3 border-b">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                  <Skeleton className="h-6 w-16" />
-                </div>
+                <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
           ) : logs.length === 0 ? (
@@ -176,61 +175,49 @@ export default function NotificationLogsPage() {
               <p>알림 기록이 없습니다.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-4 py-3 border-b last:border-0 hover:bg-muted/50 rounded-lg px-2 -mx-2"
-                >
-                  <div
-                    className={`p-2 rounded-full ${
-                      log.success
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {log.success ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{log.senderName}</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-medium">{log.receiverName}</span>
-                      <Badge
-                        variant="secondary"
-                        className={
-                          log.success
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }
-                      >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>시간</TableHead>
+                  <TableHead>발신</TableHead>
+                  <TableHead>수신</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead>메시지</TableHead>
+                  <TableHead className="hidden lg:table-cell">오류</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(log.createdAt)}
+                    </TableCell>
+                    <TableCell className="font-medium">{log.senderName}</TableCell>
+                    <TableCell className="font-medium">{log.receiverName}</TableCell>
+                    <TableCell>
+                      <Badge variant={log.success ? "default" : "destructive"} className="text-xs">
                         {log.success ? "성공" : "실패"}
                       </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line break-all">
-                      {log.message}
-                    </div>
-                    {log.error && (
-                      <div className="text-sm text-red-600 mt-1">
-                        오류: {log.error}
-                      </div>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {formatDateTime(log.createdAt)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </TableCell>
+                    <TableCell className="max-w-[300px]">
+                      <p className="text-sm text-muted-foreground truncate">{log.message}</p>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {log.error ? (
+                        <span className="text-xs text-red-600">{log.error}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t">
+            <div className="flex items-center justify-between px-4 py-4 border-t">
               <div className="text-sm text-muted-foreground">
                 {((currentPage - 1) * pagination.limit) + 1} -{" "}
                 {Math.min(currentPage * pagination.limit, pagination.total)} / {pagination.total}

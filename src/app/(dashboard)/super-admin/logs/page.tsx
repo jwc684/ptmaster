@@ -8,13 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Eye,
-  Plus,
-  Pencil,
-  Trash2,
-  LogIn,
-  LogOut,
-  Globe,
 } from "lucide-react";
 import {
   Card,
@@ -23,6 +16,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,26 +65,6 @@ interface FilterOptions {
   actionTypes: Array<{ value: string; label: string }>;
 }
 
-const ACTION_TYPE_ICONS: Record<string, React.ReactNode> = {
-  PAGE_VIEW: <Eye className="h-4 w-4" />,
-  CREATE: <Plus className="h-4 w-4" />,
-  UPDATE: <Pencil className="h-4 w-4" />,
-  DELETE: <Trash2 className="h-4 w-4" />,
-  LOGIN: <LogIn className="h-4 w-4" />,
-  LOGOUT: <LogOut className="h-4 w-4" />,
-  API_CALL: <Globe className="h-4 w-4" />,
-};
-
-const ACTION_TYPE_COLORS: Record<string, string> = {
-  PAGE_VIEW: "bg-blue-100 text-blue-700",
-  CREATE: "bg-green-100 text-green-700",
-  UPDATE: "bg-yellow-100 text-yellow-700",
-  DELETE: "bg-red-100 text-red-700",
-  LOGIN: "bg-purple-100 text-purple-700",
-  LOGOUT: "bg-gray-100 text-gray-700",
-  API_CALL: "bg-cyan-100 text-cyan-700",
-};
-
 const ACTION_TYPE_LABELS: Record<string, string> = {
   PAGE_VIEW: "조회",
   CREATE: "생성",
@@ -94,18 +75,21 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   API_CALL: "API",
 };
 
+const ACTION_TYPE_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  PAGE_VIEW: "outline",
+  CREATE: "default",
+  UPDATE: "secondary",
+  DELETE: "destructive",
+  LOGIN: "default",
+  LOGOUT: "secondary",
+  API_CALL: "outline",
+};
+
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
   ADMIN: "Admin",
   TRAINER: "트레이너",
   MEMBER: "회원",
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  SUPER_ADMIN: "bg-purple-100 text-purple-700",
-  ADMIN: "bg-blue-100 text-blue-700",
-  TRAINER: "bg-green-100 text-green-700",
-  MEMBER: "bg-gray-100 text-gray-700",
 };
 
 export default function AccessLogsPage() {
@@ -321,18 +305,11 @@ export default function AccessLogsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="space-y-3">
+            <div className="p-6 space-y-3">
               {[...Array(10)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 py-3 border-b">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                  <Skeleton className="h-6 w-16" />
-                </div>
+                <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
           ) : logs.length === 0 ? (
@@ -341,57 +318,56 @@ export default function AccessLogsPage() {
               <p>접근 기록이 없습니다.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start gap-4 py-3 border-b last:border-0 hover:bg-muted/50 rounded-lg px-2 -mx-2"
-                >
-                  <div
-                    className={`p-2 rounded-full ${ACTION_TYPE_COLORS[log.actionType] || "bg-gray-100"}`}
-                  >
-                    {ACTION_TYPE_ICONS[log.actionType] || <Activity className="h-4 w-4" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{log.userName}</span>
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs ${ROLE_COLORS[log.userRole] || ""}`}
-                      >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>시간</TableHead>
+                  <TableHead>사용자</TableHead>
+                  <TableHead>역할</TableHead>
+                  <TableHead>액션</TableHead>
+                  <TableHead>페이지</TableHead>
+                  <TableHead className="hidden lg:table-cell">PT샵</TableHead>
+                  <TableHead className="hidden lg:table-cell">IP</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(log.createdAt)}
+                    </TableCell>
+                    <TableCell className="font-medium">{log.userName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
                         {ROLE_LABELS[log.userRole] || log.userRole}
                       </Badge>
-                      {log.shopName && (
-                        <Badge variant="outline" className="text-xs">
-                          {log.shopName}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      <span className="font-medium">
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={ACTION_TYPE_VARIANTS[log.actionType] || "outline"} className="text-xs">
                         {ACTION_TYPE_LABELS[log.actionType] || log.actionType}
-                      </span>
-                      {" - "}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <code className="text-xs bg-muted px-1 rounded">{log.page}</code>
                       {log.action && (
-                        <span className="ml-2 text-foreground">{log.action}</span>
+                        <span className="text-xs text-muted-foreground ml-1">{log.action}</span>
                       )}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
-                      <span>{formatDateTime(log.createdAt)}</span>
-                      {log.ipAddress && (
-                        <span className="text-muted-foreground/70">IP: {log.ipAddress}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                      {log.shopName || "-"}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
+                      {log.ipAddress || "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t">
+            <div className="flex items-center justify-between px-4 py-4 border-t">
               <div className="text-sm text-muted-foreground">
                 {((currentPage - 1) * pagination.limit) + 1} -{" "}
                 {Math.min(currentPage * pagination.limit, pagination.total)} / {pagination.total}

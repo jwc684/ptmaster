@@ -31,6 +31,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useScheduleActions } from "@/hooks/use-schedule-actions";
 import { ScheduleItemRow } from "./schedule-item";
@@ -73,6 +81,7 @@ interface ScheduleViewProps {
   members: Member[];
   trainerId?: string;
   isAdmin: boolean;
+  tableView?: boolean;
 }
 
 function toScheduleItemData(s: Schedule): ScheduleItemData {
@@ -176,7 +185,21 @@ function DateGroupedList({
   );
 }
 
-export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps) {
+const STATUS_LABELS: Record<string, string> = {
+  SCHEDULED: "예정",
+  COMPLETED: "완료",
+  CANCELLED: "취소",
+  NO_SHOW: "노쇼",
+};
+
+const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  SCHEDULED: "default",
+  COMPLETED: "secondary",
+  CANCELLED: "destructive",
+  NO_SHOW: "outline",
+};
+
+export function ScheduleView({ members, trainerId, isAdmin, tableView }: ScheduleViewProps) {
   const router = useRouter();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -421,14 +444,92 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
         </SelectContent>
       </Select>
 
-      {/* 탭 UI */}
+      {/* 일정 목록 */}
       {loading ? (
         <Card>
           <CardContent className="py-8 flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </CardContent>
         </Card>
+      ) : tableView ? (
+        /* 테이블 뷰 (Super Admin) - 탭 없이 전체 리스트 */
+        <Card>
+          <CardContent className="p-0">
+            {schedules.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground">
+                <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                일정이 없습니다.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>날짜</TableHead>
+                    <TableHead className="hidden sm:table-cell">시간</TableHead>
+                    <TableHead>회원</TableHead>
+                    <TableHead className="hidden md:table-cell">트레이너</TableHead>
+                    <TableHead>상태</TableHead>
+                    <TableHead className="hidden lg:table-cell">잔여PT</TableHead>
+                    <TableHead className="hidden lg:table-cell">메모</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...schedules]
+                    .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())
+                    .map((schedule) => (
+                    <TableRow
+                      key={schedule.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/members/${schedule.memberProfile.id}`)}
+                    >
+                      <TableCell>
+                        <div>
+                          <span className="text-muted-foreground">
+                            {format(new Date(schedule.scheduledAt), "M/d (EEE)", { locale: ko })}
+                          </span>
+                          <span className="sm:hidden text-xs text-muted-foreground ml-1">
+                            {format(new Date(schedule.scheduledAt), "HH:mm")}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <span className="font-medium">
+                          {format(new Date(schedule.scheduledAt), "HH:mm")}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{schedule.memberProfile.user.name}</div>
+                        <div className="md:hidden text-xs text-muted-foreground">
+                          {schedule.trainer.user.name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {schedule.trainer.user.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_VARIANTS[schedule.status] || "outline"} className="text-xs">
+                          {STATUS_LABELS[schedule.status] || schedule.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="outline">
+                          {schedule.memberProfile.remainingPT}회
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <span className="text-xs text-muted-foreground truncate max-w-[200px] block">
+                          {schedule.notes || "-"}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       ) : (
+        /* 탭 뷰 (Admin/Trainer) */
         <Tabs defaultValue="upcoming">
           <TabsList className="w-full">
             <TabsTrigger value="upcoming" className="flex-1 gap-1.5">

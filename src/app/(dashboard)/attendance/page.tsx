@@ -363,12 +363,12 @@ export default function AttendancePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>날짜</TableHead>
-                  <TableHead>시간</TableHead>
+                  <TableHead className="hidden sm:table-cell">시간</TableHead>
                   <TableHead>회원</TableHead>
-                  <TableHead>트레이너</TableHead>
+                  <TableHead className="hidden md:table-cell">트레이너</TableHead>
                   <TableHead>상태</TableHead>
-                  <TableHead>단가</TableHead>
-                  <TableHead>잔여PT</TableHead>
+                  <TableHead className="hidden lg:table-cell">단가</TableHead>
+                  <TableHead className="hidden sm:table-cell">잔여PT</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -392,11 +392,16 @@ export default function AttendancePage() {
                         onClick={() => router.push(`/members/${attendance.memberProfile.id}`)}
                       >
                         <TableCell>
-                          <span className="text-muted-foreground">
-                            {format(new Date(attendance.checkInTime), "M/d (EEE)", { locale: ko })}
-                          </span>
+                          <div>
+                            <span className="text-muted-foreground">
+                              {format(new Date(attendance.checkInTime), "M/d (EEE)", { locale: ko })}
+                            </span>
+                            <span className="sm:hidden text-xs text-muted-foreground ml-1">
+                              {format(new Date(attendance.checkInTime), "HH:mm")}
+                            </span>
+                          </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <span className="font-medium">
                             {format(new Date(attendance.checkInTime), "HH:mm")}
                           </span>
@@ -404,25 +409,28 @@ export default function AttendancePage() {
                         <TableCell>
                           <div>
                             <div className="font-medium">{attendance.memberProfile.user.name}</div>
+                            <div className="md:hidden text-xs text-muted-foreground">
+                              {attendance.schedule?.trainer?.user.name}
+                            </div>
                             {attendance.notes && !attendance.notes.startsWith("[취소]") && (
                               <div className="flex items-center gap-1 mt-0.5">
-                                <MessageSquare className="h-3 w-3 text-muted-foreground/70" />
-                                <span className="text-xs text-muted-foreground/70 truncate max-w-[120px]">
+                                <MessageSquare className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+                                <span className="text-xs text-muted-foreground/70 truncate max-w-[120px] lg:max-w-[240px]">
                                   {attendance.notes}
                                 </span>
                               </div>
                             )}
                             {attendance.internalNotes && (
                               <div className="flex items-center gap-1 mt-0.5">
-                                <Lock className="h-3 w-3 text-orange-500" />
-                                <span className="text-xs text-orange-600 dark:text-orange-400 truncate max-w-[120px]">
+                                <Lock className="h-3 w-3 text-orange-500 shrink-0" />
+                                <span className="text-xs text-orange-600 dark:text-orange-400 truncate max-w-[120px] lg:max-w-[240px]">
                                   {attendance.internalNotes}
                                 </span>
                               </div>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <span className="text-muted-foreground">
                             {attendance.schedule?.trainer?.user.name || "-"}
                           </span>
@@ -440,14 +448,14 @@ export default function AttendancePage() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <span className="text-muted-foreground">
                             {attendance.unitPrice
                               ? `${attendance.unitPrice.toLocaleString()}원`
                               : "-"}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <Badge variant="outline">
                             {attendance.remainingPTAfter ?? attendance.memberProfile.remainingPT}회
                           </Badge>

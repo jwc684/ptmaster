@@ -61,15 +61,17 @@ export default async function SchedulePage() {
     redirect("/my");
   }
 
-  const isAdmin = session.user.role === "ADMIN";
+  const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+  const isSuperAdmin = session.user.role === "SUPER_ADMIN";
 
   if (isAdmin) {
-    // 관리자: 트레이너가 배정된 모든 회원
+    // 관리자/슈퍼관리자: 트레이너가 배정된 모든 회원
     const members = await getAllMembersWithTrainer();
     return (
       <ScheduleView
         members={members}
         isAdmin={true}
+        tableView={isSuperAdmin}
       />
     );
   } else {

@@ -7,9 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  CheckCircle2,
-  XCircle,
-  MinusCircle,
 } from "lucide-react";
 import {
   Card,
@@ -18,6 +15,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -48,10 +53,16 @@ interface Pagination {
   totalPages: number;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-  SUCCESS: { label: "성공", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
-  ERROR: { label: "오류", color: "bg-red-100 text-red-700", icon: XCircle },
-  NO_DATA: { label: "데이터 없음", color: "bg-gray-100 text-gray-700", icon: MinusCircle },
+const STATUS_VARIANTS: Record<string, "default" | "destructive" | "secondary"> = {
+  SUCCESS: "default",
+  ERROR: "destructive",
+  NO_DATA: "secondary",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  SUCCESS: "성공",
+  ERROR: "오류",
+  NO_DATA: "데이터 없음",
 };
 
 export default function CronLogsPage() {
@@ -144,7 +155,7 @@ export default function CronLogsPage() {
         </CardContent>
       </Card>
 
-      {/* Logs */}
+      {/* Logs Table */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -161,18 +172,11 @@ export default function CronLogsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="space-y-3">
+            <div className="p-6 space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 py-3 border-b">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                  <Skeleton className="h-6 w-16" />
-                </div>
+                <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
           ) : logs.length === 0 ? (
@@ -181,51 +185,61 @@ export default function CronLogsPage() {
               <p>호출 기록이 없습니다.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {logs.map((log) => {
-                const config = STATUS_CONFIG[log.status] || STATUS_CONFIG.ERROR;
-                const Icon = config.icon;
-                return (
-                  <div
-                    key={log.id}
-                    className="flex items-start gap-4 py-3 border-b last:border-0 hover:bg-muted/50 rounded-lg px-2 -mx-2"
-                  >
-                    <div className={`p-2 rounded-full ${config.color}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-sm">{log.endpoint}</span>
-                        <Badge variant="secondary" className={config.color}>
-                          {config.label}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span>전체: {log.total}건</span>
-                        <span>발송: {log.sent}건</span>
-                        {log.failed > 0 && (
-                          <span className="text-red-600">실패: {log.failed}건</span>
-                        )}
-                        <span>{log.duration}ms</span>
-                      </div>
-                      {log.error && (
-                        <div className="text-sm text-red-600 mt-1">
-                          오류: {log.error}
-                        </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>시간</TableHead>
+                  <TableHead>Endpoint</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead className="text-right">전체</TableHead>
+                  <TableHead className="text-right">발송</TableHead>
+                  <TableHead className="text-right">실패</TableHead>
+                  <TableHead className="text-right">소요시간</TableHead>
+                  <TableHead className="hidden lg:table-cell">오류</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(log.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-xs bg-muted px-1 rounded">{log.endpoint}</code>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANTS[log.status] || "secondary"} className="text-xs">
+                        {STATUS_LABELS[log.status] || log.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-sm">{log.total}</TableCell>
+                    <TableCell className="text-right text-sm">{log.sent}</TableCell>
+                    <TableCell className="text-right text-sm">
+                      {log.failed > 0 ? (
+                        <span className="text-red-600">{log.failed}</span>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
                       )}
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatDateTime(log.createdAt)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    </TableCell>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {log.duration}ms
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {log.error ? (
+                        <span className="text-xs text-red-600">{log.error}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t">
+            <div className="flex items-center justify-between px-4 py-4 border-t">
               <div className="text-sm text-muted-foreground">
                 {((currentPage - 1) * pagination.limit) + 1} -{" "}
                 {Math.min(currentPage * pagination.limit, pagination.total)} / {pagination.total}
