@@ -17,7 +17,6 @@ import {
 import {
   User,
   Phone,
-  ClipboardCheck,
   UserPlus,
   LinkIcon,
   Copy,
@@ -107,10 +106,10 @@ export function MyMembersClient({ members, trainerProfileId }: Props) {
           members.map((member) => {
             const lastAttendance = member.attendances[0];
             return (
-              <Card key={member.id} className="hover:bg-accent/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Link key={member.id} href={`/my-members/${member.id}`}>
+                <Card className="hover:bg-accent/50 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <User className="h-5 w-5 text-primary" />
                       </div>
@@ -134,15 +133,9 @@ export function MyMembersClient({ members, trainerProfileId }: Props) {
                         )}
                       </div>
                     </div>
-                    <Link href={`/attendance?memberId=${member.id}`}>
-                      <Button size="sm" variant="outline">
-                        <ClipboardCheck className="h-4 w-4 mr-1" />
-                        출석
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             );
           })
         )}
