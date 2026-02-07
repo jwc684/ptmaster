@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,16 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
 const ERROR_MESSAGES: Record<string, string> = {
   NoInvitation: "초대 링크를 통해 먼저 가입해주세요.",
@@ -33,58 +21,16 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const errorParam = searchParams.get("error");
-  const [error, setError] = useState<string | null>(
+  const [error] = useState<string | null>(
     errorParam ? ERROR_MESSAGES[errorParam] || null : null
   );
-  const [isLoading, setIsLoading] = useState(false);
   const [isKakaoLoading, setIsKakaoLoading] = useState(false);
-  const [showCredentials, setShowCredentials] = useState(false);
-
-  const form = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  async function onSubmit(data: LoginInput) {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        if (result.error === "Configuration") {
-          setError("서버 설정 오류입니다. 관리자에게 문의하세요. (서버 로그 확인 필요)");
-          console.error("Auth Configuration error - check server logs");
-        } else {
-          setError(result.error);
-        }
-        return;
-      }
-
-      router.push(callbackUrl);
-      router.refresh();
-    } catch {
-      setError("로그인 중 오류가 발생했습니다.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
 
   async function handleKakaoSignIn() {
     setIsKakaoLoading(true);
-    setError(null);
     await signIn("kakao", { callbackUrl });
   }
 
@@ -134,64 +80,6 @@ export function LoginForm() {
             </span>
           )}
         </Button>
-
-        {/* SUPER_ADMIN 이메일/비밀번호 로그인 (토글) */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <button
-              type="button"
-              className="bg-card px-2 text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setShowCredentials(!showCredentials)}
-            >
-              {showCredentials ? "닫기" : "관리자 로그인"}
-            </button>
-          </div>
-        </div>
-
-        {showCredentials && (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>이메일</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="name@example.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>비밀번호</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "로그인 중..." : "이메일로 로그인"}
-              </Button>
-            </form>
-          </Form>
-        )}
       </CardContent>
     </Card>
   );

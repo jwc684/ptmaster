@@ -32,7 +32,8 @@ export default auth((req) => {
 
   // Redirect non-logged-in users to login
   if (!isLoggedIn && !isPublicRoute) {
-    const loginUrl = new URL("/login", nextUrl);
+    const isSuperAdminRoute = pathname.startsWith("/super-admin");
+    const loginUrl = new URL(isSuperAdminRoute ? "/admin/login" : "/login", nextUrl);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
