@@ -18,6 +18,7 @@ import {
   Building2,
   Activity,
   MessageSquare,
+  Timer,
 } from "lucide-react";
 
 import {
@@ -50,6 +51,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Building2,
   Activity,
   MessageSquare,
+  Timer,
 };
 
 export function AppSidebar() {

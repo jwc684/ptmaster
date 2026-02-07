@@ -11,6 +11,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startTime = Date.now();
+
   try {
     // 내일 날짜 계산 (KST 기준)
     const now = new Date();
@@ -60,6 +62,18 @@ export async function GET(request: Request) {
     });
 
     if (schedules.length === 0) {
+      const duration = Date.now() - startTime;
+      await prisma.cronLog.create({
+        data: {
+          endpoint: "/api/cron/schedule-reminder",
+          status: "NO_DATA",
+          total: 0,
+          sent: 0,
+          failed: 0,
+          duration,
+        },
+      });
+
       return NextResponse.json({
         message: "No schedules for tomorrow",
         sent: 0,
@@ -95,7 +109,19 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(`[Cron] Schedule reminder: ${schedules.length} schedules, ${sent} sent, ${failed} failed`);
+    const duration = Date.now() - startTime;
+    console.log(`[Cron] Schedule reminder: ${schedules.length} schedules, ${sent} sent, ${failed} failed (${duration}ms)`);
+
+    await prisma.cronLog.create({
+      data: {
+        endpoint: "/api/cron/schedule-reminder",
+        status: "SUCCESS",
+        total: schedules.length,
+        sent,
+        failed,
+        duration,
+      },
+    });
 
     return NextResponse.json({
       message: `Processed ${schedules.length} schedules`,
@@ -104,7 +130,22 @@ export async function GET(request: Request) {
       failed,
     });
   } catch (error) {
+    const duration = Date.now() - startTime;
     console.error("[Cron] Schedule reminder error:", error);
+
+    try {
+      await prisma.cronLog.create({
+        data: {
+          endpoint: "/api/cron/schedule-reminder",
+          status: "ERROR",
+          error: error instanceof Error ? error.message : String(error),
+          duration,
+        },
+      });
+    } catch {
+      console.error("[Cron] Failed to log cron error");
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

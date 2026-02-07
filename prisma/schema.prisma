@@ -324,6 +324,21 @@ model NotificationLog {
   @@map("notification_logs")
 }
 
+model CronLog {
+  id        String   @id @default(cuid())
+  endpoint  String   // "/api/cron/schedule-reminder"
+  status    String   // "SUCCESS", "ERROR", "NO_DATA"
+  total     Int      @default(0)
+  sent      Int      @default(0)
+  failed    Int      @default(0)
+  error     String?
+  duration  Int      @default(0) // ms
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("cron_logs")
+}
+
 // ============================================
 // Invitation (초대 시스템)
 // ============================================
