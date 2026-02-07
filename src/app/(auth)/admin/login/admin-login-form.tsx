@@ -76,7 +76,7 @@ export function AdminLoginForm() {
       </CardHeader>
       <CardContent>
         {error && (
-          <div className="mb-4 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+          <div className="mb-4 p-3 text-sm text-destructive bg-destructive/10 rounded-none">
             {error}
           </div>
         )}

@@ -500,7 +500,7 @@ export default function AttendancePage() {
           </DialogHeader>
           <div className="space-y-4 pt-4">
             {selectedAttendance && (
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-3 bg-muted rounded-none">
                 <p className="font-medium">{selectedAttendance.memberProfile?.user.name ?? "삭제된 회원"}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(selectedAttendance.checkInTime), "M월 d일 HH:mm", { locale: ko })}
@@ -563,7 +563,7 @@ export default function AttendancePage() {
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 {attendanceToDelete && (
-                  <div className="p-3 bg-muted rounded-lg">
+                  <div className="p-3 bg-muted rounded-none">
                     <p className="font-medium text-foreground">
                       {attendanceToDelete.memberProfile?.user.name ?? "삭제된 회원"}
                     </p>

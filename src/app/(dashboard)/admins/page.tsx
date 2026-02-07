@@ -549,7 +549,7 @@ export default function AdminsPage() {
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 {adminToDelete && (
-                  <div className="p-3 bg-muted rounded-lg">
+                  <div className="p-3 bg-muted rounded-none">
                     <p className="font-medium text-foreground">{adminToDelete.name}</p>
                     <p className="text-sm">{adminToDelete.email}</p>
                   </div>

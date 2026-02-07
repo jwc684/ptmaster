@@ -45,7 +45,7 @@ export function LoginForm() {
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
-          <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+          <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-none">
             {error}
           </div>
         )}

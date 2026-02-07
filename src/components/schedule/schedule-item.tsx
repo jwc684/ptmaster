@@ -8,20 +8,12 @@ import {
   Clock,
   Loader2,
   RotateCcw,
-  Pencil,
   Trash2,
-  MoreHorizontal,
   MessageSquare,
   Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { SwipeableRow } from "@/components/ui/swipeable-row";
 import type { ScheduleItemData } from "./schedule-types";
 import { statusColors, statusLabels } from "./schedule-types";
@@ -37,7 +29,6 @@ interface ScheduleItemRowProps {
   onRevert: (scheduleId: string) => void;
   onEdit: (schedule: ScheduleItemData) => void;
   onDelete: (schedule: ScheduleItemData) => void;
-  onClick?: (schedule: ScheduleItemData) => void;
 }
 
 export function ScheduleItemRow({
@@ -51,7 +42,6 @@ export function ScheduleItemRow({
   onRevert,
   onEdit,
   onDelete,
-  onClick,
 }: ScheduleItemRowProps) {
   const isScheduled = schedule.status === "SCHEDULED";
   const isCompleted = schedule.status === "COMPLETED";
@@ -142,33 +132,18 @@ export function ScheduleItemRow({
       )}
 
       {isScheduled && (
-        <>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 w-7 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCancel(schedule);
-            }}
-            disabled={!!actionLoading}
-            title="취소"
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCheckIn(schedule);
-            }}
-            disabled={!!actionLoading}
-            title="출석"
-          >
-            <Check className="h-3.5 w-3.5" />
-          </Button>
-        </>
+        <Button
+          size="sm"
+          className="h-7 w-7 p-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCheckIn(schedule);
+          }}
+          disabled={!!actionLoading}
+          title="출석"
+        >
+          <Check className="h-3.5 w-3.5" />
+        </Button>
       )}
 
       {(isCompleted || isCancelled) && (
@@ -191,45 +166,24 @@ export function ScheduleItemRow({
         </Button>
       )}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onEdit(schedule)}>
-            <Pencil className="h-4 w-4 mr-2" />
-            수정
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => onDelete(schedule)}
-            className="text-destructive"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            삭제
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-
-  // Mobile: check-in + cancel visible on card; swipe reveals edit/delete
-  const mobileActions = isScheduled ? (
-    <div className="flex sm:hidden items-center gap-1 flex-shrink-0">
       <Button
         size="sm"
-        variant="outline"
+        variant="ghost"
         className="h-7 w-7 p-0"
         onClick={(e) => {
           e.stopPropagation();
-          onCancel(schedule);
+          onDelete(schedule);
         }}
-        disabled={!!actionLoading}
-        title="취소"
+        title="삭제"
       >
-        <X className="h-3.5 w-3.5" />
+        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
       </Button>
+    </div>
+  );
+
+  // Mobile: check-in only on card; swipe reveals delete
+  const mobileActions = isScheduled ? (
+    <div className="flex sm:hidden items-center flex-shrink-0">
       <Button
         size="sm"
         className="h-7 w-7 p-0"
@@ -268,15 +222,6 @@ export function ScheduleItemRow({
   const swipeActions = (
     <div className="flex h-full">
       <button
-        className="flex items-center justify-center w-[54px] bg-blue-500 text-white"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit(schedule);
-        }}
-      >
-        <Pencil className="h-5 w-5" />
-      </button>
-      <button
         className="flex items-center justify-center w-[54px] bg-red-500 text-white"
         onClick={(e) => {
           e.stopPropagation();
@@ -291,7 +236,7 @@ export function ScheduleItemRow({
   const rowContent = (
     <div
       className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
-      onClick={() => onClick?.(schedule)}
+      onClick={() => onEdit(schedule)}
     >
       {statusIcon}
       {info}
@@ -306,7 +251,7 @@ export function ScheduleItemRow({
       <div className="sm:hidden">
         <SwipeableRow
           actions={swipeActions}
-          actionWidth={108}
+          actionWidth={54}
         >
           {rowContent}
         </SwipeableRow>

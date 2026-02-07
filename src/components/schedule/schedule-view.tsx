@@ -169,11 +169,6 @@ function DateGroupedList({
                     onRevert={actions.handleRevert}
                     onEdit={actions.openEditDialog}
                     onDelete={actions.openDeleteDialog}
-                    onClick={(s) => router.push(
-                      isAdmin
-                        ? `/members/${s.memberProfileId}`
-                        : `/my-members/${s.memberProfileId}`
-                    )}
                   />
                 ))}
               </div>
@@ -396,7 +391,7 @@ export function ScheduleView({ members, trainerId, isAdmin, tableView }: Schedul
               </div>
 
               {selectedMember && selectedMember.remainingPT <= 0 && (
-                <div className="flex items-center gap-2 rounded-md border p-3 bg-muted/50">
+                <div className="flex items-center gap-2 rounded-none border p-3 bg-muted/50">
                   <Checkbox
                     id="isFreeSchedule"
                     checked={newSchedule.isFree}

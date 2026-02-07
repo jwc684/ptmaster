@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-full border-0 px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none transition-colors overflow-hidden",
+  "inline-flex items-center justify-center rounded-full border-0 px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none transition-colors overflow-hidden",
   {
     variants: {
       variant: {
@@ -14,17 +14,15 @@ const badgeVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground",
         destructive:
-          "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+          "bg-[#fff1f1] text-[#da1e28] dark:bg-[#750e13]/30 dark:text-[#ff8389]",
         outline:
           "border border-border bg-background text-foreground",
-        // Toss-style status badges
         success:
-          "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+          "bg-[#defbe6] text-[#198038] dark:bg-[#198038]/30 dark:text-[#6fdc8c]",
         warning:
-          "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+          "bg-[#fdf6dd] text-[#8e6a00] dark:bg-[#8e6a00]/30 dark:text-[#f1c21b]",
         info:
-          "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-        // Soft muted badge
+          "bg-[#edf5ff] text-[#0043ce] dark:bg-[#0043ce]/30 dark:text-[#78a9ff]",
         muted:
           "bg-muted text-muted-foreground",
       },

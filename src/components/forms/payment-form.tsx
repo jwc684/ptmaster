@@ -173,7 +173,7 @@ export function PaymentForm({ members }: PaymentFormProps) {
 
             {/* 회당 비용 표시 */}
             {costPerSession !== null && (
-              <div className="rounded-lg bg-muted p-4">
+              <div className="rounded-none bg-muted p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">회당 비용</span>
                   <span className="text-lg font-semibold">

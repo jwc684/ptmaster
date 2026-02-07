@@ -86,7 +86,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <Link href={dashboardLink} className="flex items-center gap-4 group" onClick={handleMenuClick}>
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/15">
+          <div className="flex h-11 w-11 items-center justify-center rounded-none bg-transparent transition-colors group-hover:bg-muted">
             <Dumbbell className="h-6 w-6 text-primary" />
           </div>
           <span className="text-xl font-bold truncate max-w-[140px] text-foreground" title={displayName}>
@@ -110,10 +110,10 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={isActive}>
                       <Link href={item.href} onClick={handleMenuClick} className="group/item">
                         {Icon && (
-                          <div className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${
+                          <div className={`flex h-11 w-11 items-center justify-center rounded-none transition-colors ${
                             isActive
-                              ? 'bg-primary/15'
-                              : 'bg-muted group-hover/item:bg-muted/80'
+                              ? 'bg-transparent'
+                              : 'bg-transparent group-hover/item:bg-muted'
                           }`}>
                             <Icon className={`h-5 w-5 transition-colors ${
                               isActive ? 'text-primary' : 'text-muted-foreground group-hover/item:text-foreground'

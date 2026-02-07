@@ -43,7 +43,7 @@ export function TrainerLoginButton({ userId, trainerName }: TrainerLoginButtonPr
     <button
       onClick={handleClick}
       disabled={loading}
-      className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+      className="p-1.5 rounded-none hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
       title={`${trainerName} 트레이너로 로그인`}
     >
       <LogIn className="h-4 w-4" />

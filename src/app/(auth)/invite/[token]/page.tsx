@@ -48,7 +48,7 @@ export default async function InvitePage({
           </p>
           <a
             href="/login"
-            className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-none hover:bg-primary/90"
           >
             로그인하기
           </a>

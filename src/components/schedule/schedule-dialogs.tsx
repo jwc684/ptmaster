@@ -85,7 +85,7 @@ export function ScheduleDialogs({
           </DialogHeader>
           <div className="space-y-4 pt-4">
             {selectedSchedule && (
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-3 bg-muted rounded-none">
                 <p className="font-medium">{selectedSchedule.memberName}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(selectedSchedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}
@@ -149,7 +149,7 @@ export function ScheduleDialogs({
           </DialogHeader>
           <div className="space-y-4 pt-4">
             {selectedSchedule && (
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-3 bg-muted rounded-none">
                 <p className="font-medium">{selectedSchedule.memberName}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(selectedSchedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}
@@ -160,7 +160,7 @@ export function ScheduleDialogs({
               </div>
             )}
 
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-800">
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-none dark:bg-yellow-900/20 dark:border-yellow-800">
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">PT 복구 여부를 선택해주세요</p>
               <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
                 일정 생성 시 차감된 PT를 복구하거나, 노쇼 등의 사유로 차감을 유지할 수 있습니다.
@@ -205,7 +205,7 @@ export function ScheduleDialogs({
           </DialogHeader>
           <div className="space-y-4 pt-4">
             {selectedSchedule && (
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-3 bg-muted rounded-none">
                 <p className="font-medium">{selectedSchedule.memberName}</p>
                 <p className="text-sm text-muted-foreground">
                   {statusLabels[selectedSchedule.status]}

@@ -262,7 +262,7 @@ export function RegistrationList({ payments: initialPayments }: RegistrationList
           </DialogHeader>
           <div className="space-y-4 pt-4">
             {selectedPayment && (
-              <div className="p-3 bg-muted rounded-lg">
+              <div className="p-3 bg-muted rounded-none">
                 <p className="font-medium">{selectedPayment.memberProfile?.user.name ?? "삭제된 회원"}</p>
                 <p className="text-sm text-muted-foreground">
                   {new Date(selectedPayment.paidAt).toLocaleDateString("ko-KR")}

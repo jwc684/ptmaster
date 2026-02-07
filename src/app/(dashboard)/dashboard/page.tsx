@@ -99,7 +99,7 @@ function CompactStat({
 
   return (
     <div className="flex items-center gap-3 min-w-0">
-      <div className={`p-2.5 rounded-xl shrink-0 ${colorClasses[color]}`}>
+      <div className={`p-2.5 rounded-none shrink-0 ${colorClasses[color]}`}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">

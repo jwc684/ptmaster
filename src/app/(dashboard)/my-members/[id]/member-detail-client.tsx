@@ -364,7 +364,7 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
             </div>
 
             {member.remainingPT <= 0 && (
-              <div className="flex items-center gap-2 rounded-md border p-3 bg-muted/50">
+              <div className="flex items-center gap-2 rounded-none border p-3 bg-muted/50">
                 <Checkbox
                   id="isFree"
                   checked={isFree}

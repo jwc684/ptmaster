@@ -148,7 +148,7 @@ export function RegistrationForm({ members, trainers }: RegistrationFormProps) {
             />
 
             {selectedMember && (
-              <div className="p-3 bg-muted rounded-md text-sm">
+              <div className="p-3 bg-muted rounded-none text-sm">
                 <p><strong>{selectedMember.user.name}</strong></p>
                 <p className="text-muted-foreground">
                   현재 잔여 PT: {selectedMember.remainingPT}회

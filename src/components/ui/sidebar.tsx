@@ -239,7 +239,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:border group-data-[variant=floating]:shadow-toss-lg shadow-[1px_0_0_0_var(--sidebar-border)]"
+          className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-none group-data-[variant=floating]:border group-data-[variant=floating]:shadow-carbon shadow-[1px_0_0_0_var(--sidebar-border)]"
         >
           {children}
         </div>
@@ -305,7 +305,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
       data-slot="sidebar-inset"
       className={cn(
         "bg-background relative flex min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto",
-        "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
+        "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
         className
       )}
       {...props}
@@ -469,7 +469,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-4 overflow-hidden rounded-xl px-3 py-3 text-left outline-hidden ring-sidebar-ring transition-all duration-200 ease-out hover:bg-sidebar-accent/50 focus-visible:ring-2 active:opacity-70 disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-primary/10 data-[active=true]:font-semibold data-[active=true]:text-primary data-[state=open]:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-4 overflow-hidden rounded-none px-3 py-3 text-left outline-hidden ring-sidebar-ring transition-all duration-200 ease-out hover:bg-sidebar-accent/50 focus-visible:ring-2 active:opacity-70 disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:border-l-4 data-[active=true]:border-l-primary data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-primary data-[state=open]:hover:bg-sidebar-accent group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -478,9 +478,9 @@ const sidebarMenuButtonVariants = cva(
           "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
       size: {
-        default: "min-h-[56px] text-[17px] font-medium",
-        sm: "min-h-[48px] text-[15px] font-medium",
-        lg: "min-h-[64px] text-lg font-medium group-data-[collapsible=icon]:p-0!",
+        default: "min-h-[48px] text-[15px] font-medium",
+        sm: "min-h-[40px] text-sm font-medium",
+        lg: "min-h-[56px] text-lg font-medium group-data-[collapsible=icon]:p-0!",
       },
     },
     defaultVariants: {
