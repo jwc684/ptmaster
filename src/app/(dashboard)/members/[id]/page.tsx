@@ -6,7 +6,15 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake, Building2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake, Building2, History } from "lucide-react";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { ImpersonateButton } from "@/components/members/impersonate-button";
 
@@ -54,10 +62,84 @@ async function getMember(id: string) {
           paidAt: true,
         },
         orderBy: { paidAt: "desc" },
-        take: 10,
+      },
+      schedules: {
+        select: {
+          id: true,
+          status: true,
+          notes: true,
+          scheduledAt: true,
+          createdAt: true,
+          updatedAt: true,
+          trainer: { select: { user: { select: { name: true } } } },
+          attendance: { select: { id: true } },
+        },
+        orderBy: { createdAt: "desc" },
       },
     },
   });
+}
+
+interface PTHistoryEntry {
+  date: Date;
+  change: number;
+  label: string;
+  detail: string;
+}
+
+function buildPTHistory(member: NonNullable<Awaited<ReturnType<typeof getMember>>>): PTHistoryEntry[] {
+  const entries: PTHistoryEntry[] = [];
+
+  // From Payments (COMPLETED → +ptCount)
+  for (const p of member.payments) {
+    if (p.status === "COMPLETED") {
+      entries.push({
+        date: p.paidAt,
+        change: p.ptCount,
+        label: "결제",
+        detail: `₩${p.amount.toLocaleString()} / ${p.ptCount}회`,
+      });
+    }
+  }
+
+  // From Schedules
+  for (const s of member.schedules) {
+    const isFree = s.notes?.includes("[무료]") ?? false;
+
+    if (isFree) {
+      // 무료 PT: PT 변동 없음, 참고용으로 표시
+      entries.push({
+        date: s.createdAt,
+        change: 0,
+        label: "무료 예약",
+        detail: `${s.trainer.user.name} / ${s.scheduledAt.toLocaleDateString("ko-KR")}`,
+      });
+      continue;
+    }
+
+    // 유료 예약: 생성 시 -1
+    entries.push({
+      date: s.createdAt,
+      change: -1,
+      label: "예약",
+      detail: `${s.trainer.user.name} / ${s.scheduledAt.toLocaleDateString("ko-KR")}`,
+    });
+
+    // 취소 복구: notes가 "[취소]"로 시작하되 "[취소-차감]"이 아닌 경우 → +1
+    if (s.status === "CANCELLED" && s.notes?.startsWith("[취소]") && !s.notes?.startsWith("[취소-차감]")) {
+      entries.push({
+        date: s.updatedAt,
+        change: 1,
+        label: "취소 복구",
+        detail: `${s.trainer.user.name} / ${s.scheduledAt.toLocaleDateString("ko-KR")}`,
+      });
+    }
+  }
+
+  // Sort by date descending
+  entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  return entries;
 }
 
 export default async function MemberDetailPage({
@@ -76,6 +158,8 @@ export default async function MemberDetailPage({
   if (!member) {
     notFound();
   }
+
+  const ptHistory = buildPTHistory(member);
 
   return (
     <div className="space-y-4">
@@ -180,74 +264,64 @@ export default async function MemberDetailPage({
         </CardContent>
       </Card>
 
-      {/* PT 출석 기록 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">PT 출석 기록</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {member.attendances.length > 0 ? (
-            <div className="space-y-3">
-              {member.attendances.map((attendance) => (
-                <div
-                  key={attendance.id}
-                  className="flex items-center justify-between py-2 border-b last:border-0"
-                >
-                  <div>
-                    <p className="font-medium">PT 출석</p>
-                    {attendance.notes && (
-                      <p className="text-sm text-muted-foreground">{attendance.notes}</p>
-                    )}
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {attendance.checkInTime.toLocaleDateString("ko-KR")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-4">출석 기록이 없습니다.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 결제 내역 */}
+      {/* PT 변동 내역 */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            결제 내역
+            <History className="h-5 w-5" />
+            PT 변동 내역
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {member.payments.length > 0 ? (
-            <div className="space-y-3">
-              {member.payments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between py-2 border-b last:border-0"
-                >
-                  <div>
-                    <p className="font-medium">
-                      ₩{payment.amount.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      PT {payment.ptCount}회
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={payment.status === "COMPLETED" ? "default" : "destructive"}>
-                      {payment.status === "COMPLETED" ? "완료" : "환불"}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {payment.paidAt.toLocaleDateString("ko-KR")}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <CardContent className="p-0">
+          {ptHistory.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>날짜</TableHead>
+                  <TableHead>구분</TableHead>
+                  <TableHead>변동</TableHead>
+                  <TableHead className="hidden sm:table-cell">상세</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ptHistory.map((entry, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className="text-sm">
+                      {entry.date.toLocaleDateString("ko-KR")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          entry.change > 0
+                            ? "default"
+                            : entry.change < 0
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
+                        {entry.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell
+                      className={`font-medium ${
+                        entry.change > 0
+                          ? "text-green-600"
+                          : entry.change < 0
+                            ? "text-red-500"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {entry.change > 0 ? `+${entry.change}` : entry.change === 0 ? "0" : entry.change}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                      {entry.detail}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
-            <p className="text-muted-foreground text-center py-4">결제 내역이 없습니다.</p>
+            <p className="text-muted-foreground text-center py-8">PT 변동 내역이 없습니다.</p>
           )}
         </CardContent>
       </Card>

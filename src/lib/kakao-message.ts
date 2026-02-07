@@ -430,6 +430,108 @@ export async function sendCancellationNotification({
 }
 
 /**
+ * Send a PT schedule time change notification to a member via KakaoTalk
+ */
+export async function sendScheduleChangeNotification({
+  memberUserId,
+  shopName,
+  trainerName,
+  previousScheduledAt,
+  newScheduledAt,
+  remainingPT,
+  shopId,
+}: {
+  memberUserId: string;
+  shopName: string;
+  trainerName: string;
+  previousScheduledAt: Date;
+  newScheduledAt: Date;
+  remainingPT: number;
+  shopId?: string;
+}): Promise<boolean> {
+  let message = "";
+  let success = false;
+  let errorMsg: string | undefined;
+
+  try {
+    const memberProfile = await prisma.memberProfile.findUnique({
+      where: { userId: memberUserId },
+      select: { kakaoNotification: true, user: { select: { name: true } } },
+    });
+
+    if (!memberProfile?.kakaoNotification) {
+      return false;
+    }
+
+    const accessToken = await getKakaoAccessToken(memberUserId);
+    if (!accessToken) {
+      errorMsg = "No valid access token";
+
+      await prisma.notificationLog.create({
+        data: {
+          type: "KAKAO",
+          senderName: trainerName,
+          receiverName: memberProfile.user.name,
+          receiverUserId: memberUserId,
+          message: "(메세지 생성 전 토큰 오류)",
+          success: false,
+          error: errorMsg,
+          shopId,
+        },
+      });
+
+      return false;
+    }
+
+    const prevDateStr = formatKoreanDateTime(new Date(previousScheduledAt), true);
+    const newDateStr = formatKoreanDateTime(new Date(newScheduledAt), true);
+
+    message = `[${shopName}] 🔄 PT 수업 시간이 변경되었습니다\n\n트레이너: ${trainerName} 코치\n\n기존 시간: ${prevDateStr}\n\n변경 시간: ${newDateStr}\n잔여 횟수: ${remainingPT}회\n\n변경된 시간을 꼭 확인해 주세요!\n앱에서 확인: ptmaster.onrender.com`;
+
+    success = await sendKakaoMemo(accessToken, message);
+    if (!success) {
+      errorMsg = "Failed to send KakaoTalk message";
+    }
+
+    await prisma.notificationLog.create({
+      data: {
+        type: "KAKAO",
+        senderName: trainerName,
+        receiverName: memberProfile.user.name,
+        receiverUserId: memberUserId,
+        message,
+        success,
+        error: errorMsg,
+        shopId,
+      },
+    });
+
+    return success;
+  } catch (error) {
+    console.error("[KakaoMessage] Schedule change notification error:", error);
+
+    try {
+      await prisma.notificationLog.create({
+        data: {
+          type: "KAKAO",
+          senderName: trainerName,
+          receiverName: "(unknown)",
+          receiverUserId: memberUserId,
+          message: message || "(메세지 생성 전 오류)",
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+          shopId,
+        },
+      });
+    } catch {
+      console.error("[KakaoMessage] Failed to log notification error");
+    }
+
+    return false;
+  }
+}
+
+/**
  * Send a PT schedule reminder notification to a member via KakaoTalk
  * (수업 하루 전 리마인더)
  */

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { sendAttendanceNotification, sendCancellationNotification } from "@/lib/kakao-message";
+import { sendAttendanceNotification, sendCancellationNotification, sendScheduleChangeNotification } from "@/lib/kakao-message";
 
 const updateScheduleSchema = z.object({
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
@@ -272,6 +272,9 @@ export async function PATCH(
     }
 
     // 일반 업데이트 (상태 변경, 일정 변경, 메모 변경)
+    const previousScheduledAt = schedule.scheduledAt;
+    const isTimeChanged = scheduledAt !== undefined && new Date(scheduledAt).getTime() !== previousScheduledAt.getTime();
+
     const updateData: Record<string, unknown> = {};
     if (status !== undefined) updateData.status = status;
     if (scheduledAt !== undefined) updateData.scheduledAt = new Date(scheduledAt);
@@ -292,6 +295,19 @@ export async function PATCH(
         },
       },
     });
+
+    // 시간 변경 시 카카오톡 알림 전송
+    if (isTimeChanged && schedule.shop && schedule.trainer) {
+      sendScheduleChangeNotification({
+        memberUserId: schedule.memberProfile.user.id,
+        shopName: schedule.shop.name,
+        trainerName: schedule.trainer.user.name,
+        previousScheduledAt,
+        newScheduledAt: new Date(scheduledAt!),
+        remainingPT: schedule.memberProfile.remainingPT,
+        shopId: schedule.shopId || undefined,
+      }).catch((err) => console.error("[Schedule] Kakao schedule change notification error:", err));
+    }
 
     return NextResponse.json({
       message: "일정이 수정되었습니다.",
