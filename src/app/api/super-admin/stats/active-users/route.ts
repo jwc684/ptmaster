@@ -33,13 +33,13 @@ export async function GET(request: NextRequest) {
       Array<{ date: string; role: string; count: bigint }>
     >`
       SELECT
-        DATE(created_at AT TIME ZONE 'Asia/Seoul') as date,
-        user_role as role,
-        COUNT(DISTINCT user_id) as count
+        DATE("createdAt" AT TIME ZONE 'Asia/Seoul') as date,
+        "userRole" as role,
+        COUNT(DISTINCT "userId") as count
       FROM access_logs
-      WHERE created_at >= ${dauStart}
-        AND user_role != 'SUPER_ADMIN'
-      GROUP BY DATE(created_at AT TIME ZONE 'Asia/Seoul'), user_role
+      WHERE "createdAt" >= ${dauStart}
+        AND "userRole" != 'SUPER_ADMIN'
+      GROUP BY DATE("createdAt" AT TIME ZONE 'Asia/Seoul'), "userRole"
       ORDER BY date ASC
     `;
 
@@ -48,30 +48,30 @@ export async function GET(request: NextRequest) {
       Array<{ month: string; role: string; count: bigint }>
     >`
       SELECT
-        TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM') as month,
-        user_role as role,
-        COUNT(DISTINCT user_id) as count
+        TO_CHAR("createdAt" AT TIME ZONE 'Asia/Seoul', 'YYYY-MM') as month,
+        "userRole" as role,
+        COUNT(DISTINCT "userId") as count
       FROM access_logs
-      WHERE created_at >= ${mauStart}
-        AND user_role != 'SUPER_ADMIN'
-      GROUP BY TO_CHAR(created_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM'), user_role
+      WHERE "createdAt" >= ${mauStart}
+        AND "userRole" != 'SUPER_ADMIN'
+      GROUP BY TO_CHAR("createdAt" AT TIME ZONE 'Asia/Seoul', 'YYYY-MM'), "userRole"
       ORDER BY month ASC
     `;
 
     // Today's active users and this month's active users (totals)
     const todayTotal = await prisma.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(DISTINCT user_id) as count
+      SELECT COUNT(DISTINCT "userId") as count
       FROM access_logs
-      WHERE created_at >= ${today}
-        AND user_role != 'SUPER_ADMIN'
+      WHERE "createdAt" >= ${today}
+        AND "userRole" != 'SUPER_ADMIN'
     `;
 
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthTotal = await prisma.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(DISTINCT user_id) as count
+      SELECT COUNT(DISTINCT "userId") as count
       FROM access_logs
-      WHERE created_at >= ${thisMonthStart}
-        AND user_role != 'SUPER_ADMIN'
+      WHERE "createdAt" >= ${thisMonthStart}
+        AND "userRole" != 'SUPER_ADMIN'
     `;
 
     // Process DAU data into a date-keyed structure
