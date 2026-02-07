@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, Phone, ChevronRight, Users } from "lucide-react";
+import { MemberLoginButton } from "@/components/members/member-login-button";
 
 async function getMembers(shopFilter: { shopId?: string }) {
   // Limit results for performance - for "all shops" view (no filter), limit to 100
@@ -15,6 +16,7 @@ async function getMembers(shopFilter: { shopId?: string }) {
     where: shopFilter,
     select: {
       id: true,
+      userId: true,
       remainingPT: true,
       joinDate: true,
       user: {
@@ -127,7 +129,7 @@ export default async function MembersPage() {
                     )}
                   </div>
 
-                  {/* 잔여 PT & 화살표 */}
+                  {/* 잔여 PT & 액션 */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <Badge
                       variant={member.remainingPT > 0 ? "default" : "secondary"}
@@ -135,6 +137,12 @@ export default async function MembersPage() {
                     >
                       PT {member.remainingPT}
                     </Badge>
+                    {authResult.isSuperAdmin && (
+                      <MemberLoginButton
+                        userId={member.userId}
+                        userName={member.user.name}
+                      />
+                    )}
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </Link>
