@@ -1,10 +1,13 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import KakaoProvider from "next-auth/providers/kakao";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@prisma/client";
 import { logLogin } from "@/lib/access-log";
+import { cookies } from "next/headers";
+// Import to enable @auth/core module augmentation
+import "@auth/core/jwt";
 
 declare module "next-auth" {
   interface User {
@@ -43,8 +46,6 @@ if (!process.env.AUTH_SECRET && process.env.NODE_ENV === "production") {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // Credentials 프로바이더 + JWT 사용 시 adapter 제거 (adapter는 OAuth용)
-  // adapter: PrismaAdapter(prisma) as any,
   trustHost: true,
   secret: process.env.AUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
@@ -57,6 +58,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/login",
   },
   providers: [
+    KakaoProvider({
+      clientId: process.env.KAKAO_CLIENT_ID!,
+      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
+    }),
     Credentials({
       name: "credentials",
       credentials: {
@@ -112,15 +117,185 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id!;
-        token.role = user.role;
-        token.phone = user.phone;
-        token.shopId = user.shopId;
+    async signIn({ user, account }) {
+      // Credentials provider: 기존 로직 유지
+      if (account?.provider === "credentials") {
+        return true;
       }
+
+      // Kakao OAuth
+      if (account?.provider === "kakao") {
+        const email = user.email;
+        if (!email) {
+          console.error("[Auth] Kakao login: no email provided");
+          return false;
+        }
+
+        // 1. 기존 Account가 있는지 확인 (이미 가입한 사용자)
+        const existingAccount = await prisma.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider: "kakao",
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          include: { user: true },
+        });
+
+        if (existingAccount) {
+          // 기존 사용자 → 로그인 허용
+          console.log("[Auth] Existing Kakao user:", existingAccount.user.email);
+          return true;
+        }
+
+        // 2. 신규 사용자 → 쿠키에서 invite-token 확인
+        try {
+          const cookieStore = await cookies();
+          const inviteToken = cookieStore.get("invite-token")?.value;
+
+          if (!inviteToken) {
+            console.log("[Auth] No invite token found for new Kakao user");
+            return "/login?error=NoInvitation";
+          }
+
+          // 3. 초대 유효성 확인
+          const invitation = await prisma.invitation.findUnique({
+            where: { token: inviteToken },
+            include: { shop: true },
+          });
+
+          if (!invitation) {
+            console.log("[Auth] Invalid invite token");
+            return "/login?error=InvalidInvitation";
+          }
+
+          if (invitation.usedAt) {
+            console.log("[Auth] Invite token already used");
+            return "/login?error=InvitationUsed";
+          }
+
+          if (invitation.expiresAt < new Date()) {
+            console.log("[Auth] Invite token expired");
+            return "/login?error=InvitationExpired";
+          }
+
+          // 4. 이메일로 기존 User 확인 (동일 이메일 사용자가 이미 있을 수 있음)
+          let dbUser = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          const metadata = invitation.metadata as Record<string, unknown> | null;
+
+          if (!dbUser) {
+            // 5. User 생성
+            dbUser = await prisma.user.create({
+              data: {
+                email,
+                name: user.name || metadata?.name as string || email.split("@")[0],
+                phone: metadata?.phone as string || null,
+                role: invitation.role,
+                shopId: invitation.shopId,
+              },
+            });
+
+            // 역할별 프로필 생성
+            if (invitation.role === "TRAINER") {
+              await prisma.trainerProfile.create({
+                data: {
+                  userId: dbUser.id,
+                  shopId: invitation.shopId,
+                  bio: metadata?.bio as string || null,
+                },
+              });
+            } else if (invitation.role === "MEMBER") {
+              const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+              let qrCode = "";
+              for (let i = 0; i < 12; i++) {
+                qrCode += chars.charAt(Math.floor(Math.random() * chars.length));
+              }
+
+              await prisma.memberProfile.create({
+                data: {
+                  userId: dbUser.id,
+                  shopId: invitation.shopId,
+                  qrCode,
+                  trainerId: metadata?.trainerId as string || null,
+                  remainingPT: (metadata?.remainingPT as number) || 0,
+                  notes: metadata?.notes as string || null,
+                  birthDate: metadata?.birthDate ? new Date(metadata.birthDate as string) : null,
+                  gender: (metadata?.gender as "MALE" | "FEMALE") || null,
+                },
+              });
+            }
+          }
+
+          // 6. Account 생성 (OAuth 연결)
+          await prisma.account.create({
+            data: {
+              userId: dbUser.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              refresh_token: account.refresh_token,
+              access_token: account.access_token,
+              expires_at: account.expires_at,
+              token_type: account.token_type,
+              scope: account.scope,
+              id_token: account.id_token,
+              session_state: account.session_state as string | null,
+            },
+          });
+
+          // 7. Invitation 사용 처리
+          await prisma.invitation.update({
+            where: { id: invitation.id },
+            data: {
+              usedAt: new Date(),
+              usedBy: dbUser.id,
+            },
+          });
+
+          // 8. invite-token 쿠키 삭제
+          cookieStore.delete("invite-token");
+
+          console.log("[Auth] New user created via invitation:", dbUser.email, dbUser.role);
+          return true;
+        } catch (error) {
+          console.error("[Auth] Error processing Kakao signup:", error);
+          return "/login?error=SignupError";
+        }
+      }
+
+      return true;
+    },
+
+    async jwt({ token, user, account }) {
+      if (user) {
+        // Credentials 로그인: user 객체에서 직접 설정
+        if (account?.provider === "credentials") {
+          token.id = user.id!;
+          token.role = user.role;
+          token.phone = user.phone;
+          token.shopId = user.shopId;
+        }
+      }
+
+      // OAuth 첫 로그인 시 또는 token에 role이 없을 때 DB에서 조회
+      if (account?.provider === "kakao" || (!token.role && token.email)) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email as string },
+        });
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+          token.phone = dbUser.phone;
+          token.shopId = dbUser.shopId;
+        }
+      }
+
       return token;
     },
+
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
@@ -132,7 +307,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Check for impersonation cookie (only if current user is SUPER_ADMIN)
       if (token.role === "SUPER_ADMIN") {
         try {
-          const { cookies } = await import("next/headers");
           const cookieStore = await cookies();
           const impersonateCookie = cookieStore.get("impersonate-session");
 
@@ -163,11 +337,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user }) {
       if (user.id) {
         try {
-          // Get shop name if user has shopId
+          // DB에서 유저 정보 조회 (OAuth 로그인 시 role이 없을 수 있음)
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { role: true, shopId: true, name: true },
+          });
+
+          if (!dbUser) return;
+
           let shopName: string | null = null;
-          if (user.shopId) {
+          if (dbUser.shopId) {
             const shop = await prisma.pTShop.findUnique({
-              where: { id: user.shopId },
+              where: { id: dbUser.shopId },
               select: { name: true },
             });
             shopName = shop?.name || null;
@@ -175,9 +356,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           await logLogin(
             user.id,
-            user.name || "Unknown",
-            user.role as UserRole,
-            user.shopId,
+            dbUser.name || user.name || "Unknown",
+            dbUser.role,
+            dbUser.shopId,
             shopName
           );
         } catch (error) {

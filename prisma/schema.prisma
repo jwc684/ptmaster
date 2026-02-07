@@ -32,6 +32,7 @@ model PTShop {
   attendances     Attendance[]
   payments        Payment[]
   accessLogs      AccessLog[]
+  invitations     Invitation[]
 
   @@map("pt_shops")
 }
@@ -50,7 +51,7 @@ enum UserRole {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  password      String
+  password      String?
   name          String
   phone         String?
   role          UserRole  @default(MEMBER)
@@ -300,4 +301,28 @@ model AccessLog {
   @@index([createdAt])
   @@index([actionType])
   @@map("access_logs")
+}
+
+// ============================================
+// Invitation (초대 시스템)
+// ============================================
+
+model Invitation {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  email     String?
+  role      UserRole
+  shopId    String
+  metadata  Json?
+  expiresAt DateTime
+  usedAt    DateTime?
+  usedBy    String?
+  createdBy String
+  createdAt DateTime  @default(now())
+
+  shop      PTShop    @relation(fields: [shopId], references: [id])
+
+  @@index([token])
+  @@index([shopId])
+  @@map("invitations")
 }

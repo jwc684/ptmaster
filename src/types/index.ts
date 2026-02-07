@@ -37,7 +37,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
 };
 
 // Public routes that don't require authentication
-export const PUBLIC_ROUTES = ["/login", "/"];
+export const PUBLIC_ROUTES = ["/login", "/", "/invite"];
 
 // API routes that are public
 export const PUBLIC_API_ROUTES = ["/api/auth", "/api/health", "/api/debug", "/api/setup"];

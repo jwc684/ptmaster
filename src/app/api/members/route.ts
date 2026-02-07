@@ -1,18 +1,9 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { memberSchema } from "@/lib/validations/member";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 import { logApiAction } from "@/lib/access-log";
-
-function generateQRCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+import { z } from "zod";
 
 export async function GET(request: Request) {
   try {
@@ -123,8 +114,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: shopError }, { status: 400 });
     }
 
+    const memberInviteSchema = z.object({
+      name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다."),
+      email: z.string().email("올바른 이메일 주소를 입력해주세요."),
+      phone: z.string().optional(),
+      birthDate: z.string().optional(),
+      gender: z.enum(["MALE", "FEMALE"]).optional(),
+      trainerId: z.string().optional(),
+      remainingPT: z.number().min(0).default(0),
+      notes: z.string().optional(),
+    });
+
     const body = await request.json();
-    const validatedData = memberSchema.safeParse(body);
+    const validatedData = memberInviteSchema.safeParse(body);
 
     if (!validatedData.success) {
       return NextResponse.json(
@@ -133,20 +135,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, phone, password, birthDate, gender, trainerId, remainingPT, notes } =
+    const { name, email, phone, birthDate, gender, trainerId, remainingPT, notes } =
       validatedData.data;
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "이미 등록된 이메일입니다." },
-        { status: 400 }
-      );
-    }
 
     // If trainerId is provided, verify trainer belongs to same shop
     if (trainerId) {
@@ -164,35 +154,28 @@ export async function POST(request: Request) {
       }
     }
 
-    // Hash password
-    const hashedPassword = password
-      ? await bcrypt.hash(password, 12)
-      : await bcrypt.hash("temp1234", 12);
+    // 초대 토큰 생성
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
-    const user = await prisma.user.create({
+    const invitation = await prisma.invitation.create({
       data: {
-        name,
+        token,
         email,
-        phone,
-        password: hashedPassword,
         role: "MEMBER",
         shopId: authResult.shopId!,
-        memberProfile: {
-          create: {
-            shopId: authResult.shopId!,
-            qrCode: generateQRCode(),
-            trainerId: trainerId || null,
-            remainingPT: remainingPT || 0,
-            notes,
-            birthDate: birthDate ? new Date(birthDate) : null,
-            gender: gender || null,
-          },
-        },
+        metadata: { name, phone, birthDate, gender, trainerId, remainingPT, notes },
+        expiresAt,
+        createdBy: authResult.userId,
       },
       include: {
-        memberProfile: true,
+        shop: { select: { name: true } },
       },
     });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const inviteUrl = `${appUrl}/invite/${token}`;
 
     // Log the action
     const currentUser = await prisma.user.findUnique({
@@ -212,17 +195,25 @@ export async function POST(request: Request) {
       authResult.userRole,
       "CREATE",
       "/api/members",
-      `회원 등록: ${name}`,
+      `회원 초대 생성: ${name}`,
       authResult.shopId,
       shop?.name,
-      user.memberProfile?.id,
-      "member"
+      invitation.id,
+      "invitation"
     );
 
     return NextResponse.json(
       {
-        message: "회원이 등록되었습니다.",
-        member: user,
+        message: "회원 초대가 생성되었습니다.",
+        invitation: {
+          id: invitation.id,
+          token: invitation.token,
+          role: invitation.role,
+          email: invitation.email,
+          shopName: invitation.shop.name,
+          expiresAt: invitation.expiresAt,
+        },
+        inviteUrl,
       },
       { status: 201 }
     );

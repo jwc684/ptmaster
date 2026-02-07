@@ -20,7 +20,9 @@ export default auth((req) => {
   }
 
   // Check if it's a public route
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+  const isPublicRoute = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
 
   // Redirect logged-in users away from public routes to their dashboard
   if (isLoggedIn && isPublicRoute) {

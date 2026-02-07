@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { UserPlus, Shield, Loader2, Mail, Phone, Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import { UserPlus, Shield, Loader2, Mail, Phone, Pencil, Trash2, MoreHorizontal, Link2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +68,12 @@ export default function AdminsPage() {
     phone: "",
   });
 
+  // 초대 링크 상태
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteData, setInviteData] = useState({ name: "", email: "" });
+  const [isInviting, setIsInviting] = useState(false);
+
   useEffect(() => {
     fetchAdmins();
     fetchCurrentUser();
@@ -101,8 +107,53 @@ export default function AdminsPage() {
   }
 
   function openCreateDialog() {
-    setEditingAdmin(null);
-    setFormData({ name: "", email: "", password: "", phone: "" });
+    setInviteUrl(null);
+    setInviteData({ name: "", email: "" });
+    setShowInviteDialog(true);
+  }
+
+  async function handleInvite() {
+    if (!inviteData.name.trim()) {
+      toast.error("이름을 입력해주세요.");
+      return;
+    }
+
+    setIsInviting(true);
+    try {
+      const response = await fetch("/api/invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "ADMIN",
+          email: inviteData.email || undefined,
+          metadata: { name: inviteData.name },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("초대 링크가 생성되었습니다.");
+        setInviteUrl(data.inviteUrl);
+      } else {
+        toast.error(data.error || "초대 생성에 실패했습니다.");
+      }
+    } catch {
+      toast.error("초대 생성에 실패했습니다.");
+    } finally {
+      setIsInviting(false);
+    }
+  }
+
+  function openEditDialog_original(admin: Admin) {
+    // Keep original edit dialog for existing admins
+    setEditingAdmin(admin);
+    setFormData({
+      name: admin.name,
+      email: admin.email,
+      password: "",
+      phone: admin.phone || "",
+    });
     setIsDialogOpen(true);
   }
 
@@ -116,6 +167,9 @@ export default function AdminsPage() {
     });
     setIsDialogOpen(true);
   }
+
+  // Keep backward compat for row click → edit
+  // (openCreateDialog now opens invite dialog instead)
 
   function openDeleteDialog(admin: Admin) {
     setAdminToDelete(admin);
@@ -237,8 +291,8 @@ export default function AdminsPage() {
         description="시스템 관리자를 관리합니다."
         customAction={
           <Button onClick={openCreateDialog}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            관리자 추가
+            <Link2 className="h-4 w-4 mr-2" />
+            관리자 초대
           </Button>
         }
       />
@@ -414,6 +468,87 @@ export default function AdminsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* 초대 링크 생성 다이얼로그 */}
+      <Dialog open={showInviteDialog} onOpenChange={(open) => {
+        setShowInviteDialog(open);
+        if (!open) {
+          setInviteUrl(null);
+          setInviteData({ name: "", email: "" });
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>관리자 초대</DialogTitle>
+            <DialogDescription>
+              초대 링크를 생성하여 새 관리자를 등록합니다.
+            </DialogDescription>
+          </DialogHeader>
+          {inviteUrl ? (
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                아래 링크를 관리자에게 전달해주세요:
+              </p>
+              <div className="flex gap-2">
+                <Input value={inviteUrl} readOnly className="text-xs" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(inviteUrl);
+                    toast.success("링크가 복사되었습니다.");
+                  }}
+                >
+                  복사
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                이 링크는 30일간 유효하며 1회만 사용 가능합니다.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invite-name">이름 *</Label>
+                  <Input
+                    id="invite-name"
+                    value={inviteData.name}
+                    onChange={(e) =>
+                      setInviteData({ ...inviteData, name: e.target.value })
+                    }
+                    placeholder="홍길동"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invite-email">이메일</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    value={inviteData.email}
+                    onChange={(e) =>
+                      setInviteData({ ...inviteData, email: e.target.value })
+                    }
+                    placeholder="admin@example.com"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowInviteDialog(false)}
+                >
+                  취소
+                </Button>
+                <Button onClick={handleInvite} disabled={isInviting}>
+                  {isInviting ? "생성 중..." : "초대 링크 생성"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* 삭제 확인 다이얼로그 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

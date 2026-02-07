@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
-import { trainerSchema } from "@/lib/validations/trainer";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
+import { z } from "zod";
 
 export async function GET() {
   try {
@@ -76,8 +76,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: shopError }, { status: 400 });
     }
 
+    const trainerInviteSchema = z.object({
+      name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다."),
+      email: z.string().email("올바른 이메일 주소를 입력해주세요."),
+      phone: z.string().optional(),
+      bio: z.string().optional(),
+    });
+
     const body = await request.json();
-    const validatedData = trainerSchema.safeParse(body);
+    const validatedData = trainerInviteSchema.safeParse(body);
 
     if (!validatedData.success) {
       return NextResponse.json(
@@ -86,49 +93,43 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, phone, password, bio } = validatedData.data;
+    const { name, email, phone, bio } = validatedData.data;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    // 초대 토큰 생성
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "이미 등록된 이메일입니다." },
-        { status: 400 }
-      );
-    }
-
-    // Hash password
-    const hashedPassword = password
-      ? await bcrypt.hash(password, 12)
-      : await bcrypt.hash("temp1234", 12);
-
-    const user = await prisma.user.create({
+    const invitation = await prisma.invitation.create({
       data: {
-        name,
+        token,
         email,
-        phone,
-        password: hashedPassword,
         role: "TRAINER",
         shopId: authResult.shopId!,
-        trainerProfile: {
-          create: {
-            shopId: authResult.shopId!,
-            bio,
-          },
-        },
+        metadata: { name, phone, bio },
+        expiresAt,
+        createdBy: authResult.userId,
       },
       include: {
-        trainerProfile: true,
+        shop: { select: { name: true } },
       },
     });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const inviteUrl = `${appUrl}/invite/${token}`;
 
     return NextResponse.json(
       {
-        message: "트레이너가 등록되었습니다.",
-        trainer: user.trainerProfile,
+        message: "트레이너 초대가 생성되었습니다.",
+        invitation: {
+          id: invitation.id,
+          token: invitation.token,
+          role: invitation.role,
+          email: invitation.email,
+          shopName: invitation.shop.name,
+          expiresAt: invitation.expiresAt,
+        },
+        inviteUrl,
       },
       { status: 201 }
     );

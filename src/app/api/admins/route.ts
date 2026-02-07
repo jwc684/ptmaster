@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 import { z } from "zod";
 
 const createAdminSchema = z.object({
   name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다."),
-  email: z.string().email("올바른 이메일 주소를 입력해주세요."),
-  password: z.string().min(8, "비밀번호는 최소 8자 이상이어야 합니다."),
-  phone: z.string().optional(),
+  email: z.string().email("올바른 이메일 주소를 입력해주세요.").optional(),
 });
 
 // GET: 관리자 목록 조회
@@ -84,44 +82,45 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, password, phone } = validatedData.data;
+    const { name, email } = validatedData.data;
 
-    // 이메일 중복 확인
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    // 초대 토큰 생성
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "이미 등록된 이메일입니다." },
-        { status: 400 }
-      );
-    }
-
-    // 비밀번호 해시
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // 관리자 생성 (shopId 포함)
-    const admin = await prisma.user.create({
+    const invitation = await prisma.invitation.create({
       data: {
-        name,
+        token,
         email,
-        phone,
-        password: hashedPassword,
         role: "ADMIN",
         shopId: authResult.shopId!,
+        metadata: { name },
+        expiresAt,
+        createdBy: authResult.userId,
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        createdAt: true,
-        shopId: true,
+      include: {
+        shop: { select: { name: true } },
       },
     });
 
-    return NextResponse.json(admin, { status: 201 });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const inviteUrl = `${appUrl}/invite/${token}`;
+
+    return NextResponse.json(
+      {
+        invitation: {
+          id: invitation.id,
+          token: invitation.token,
+          role: invitation.role,
+          email: invitation.email,
+          shopName: invitation.shop.name,
+          expiresAt: invitation.expiresAt,
+        },
+        inviteUrl,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating admin:", error);
     return NextResponse.json(

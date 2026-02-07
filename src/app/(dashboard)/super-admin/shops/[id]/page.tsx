@@ -102,15 +102,14 @@ export default function ShopDetailPage() {
     isActive: true,
   });
 
-  // Admin creation dialog
+  // Admin invitation dialog
   const [showAddAdmin, setShowAddAdmin] = useState(false);
   const [adminData, setAdminData] = useState({
     name: "",
     email: "",
-    password: "",
-    phone: "",
   });
   const [addingAdmin, setAddingAdmin] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   // Impersonation state
   const [impersonateAdmin, setImpersonateAdmin] = useState<{
@@ -183,30 +182,36 @@ export default function ShopDetailPage() {
   };
 
   const handleAddAdmin = async () => {
-    if (!adminData.name || !adminData.email || !adminData.password) {
-      toast.error("필수 정보를 입력해주세요.");
+    if (!adminData.name || !adminData.email) {
+      toast.error("이름과 이메일을 입력해주세요.");
       return;
     }
 
     setAddingAdmin(true);
     try {
-      const response = await fetch(`/api/super-admin/shops/${shopId}/admins`, {
+      const response = await fetch("/api/invitations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(adminData),
+        headers: {
+          "Content-Type": "application/json",
+          "x-shop-id": shopId,
+        },
+        body: JSON.stringify({
+          role: "ADMIN",
+          email: adminData.email,
+          metadata: { name: adminData.name },
+        }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        toast.success("관리자가 추가되었습니다.");
-        setShowAddAdmin(false);
-        setAdminData({ name: "", email: "", password: "", phone: "" });
-        fetchShop();
+        toast.success("초대 링크가 생성되었습니다.");
+        setInviteUrl(data.inviteUrl);
       } else {
-        const data = await response.json();
-        toast.error(data.error || "관리자 추가에 실패했습니다.");
+        toast.error(data.error || "초대 생성에 실패했습니다.");
       }
-    } catch (error) {
-      toast.error("관리자 추가에 실패했습니다.");
+    } catch {
+      toast.error("초대 생성에 실패했습니다.");
     } finally {
       setAddingAdmin(false);
     }
@@ -559,74 +564,83 @@ export default function ShopDetailPage() {
       </Card>
 
       {/* Add Admin Dialog */}
-      <Dialog open={showAddAdmin} onOpenChange={setShowAddAdmin}>
+      <Dialog open={showAddAdmin} onOpenChange={(open) => {
+        setShowAddAdmin(open);
+        if (!open) {
+          setInviteUrl(null);
+          setAdminData({ name: "", email: "" });
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>관리자 추가</DialogTitle>
+            <DialogTitle>관리자 초대</DialogTitle>
             <DialogDescription>
-              이 PT샵의 새 관리자를 등록합니다.
+              초대 링크를 생성하여 새 관리자를 등록합니다.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="admin-name">이름 *</Label>
-              <Input
-                id="admin-name"
-                value={adminData.name}
-                onChange={(e) =>
-                  setAdminData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="홍길동"
-              />
+          {inviteUrl ? (
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                아래 링크를 관리자에게 전달해주세요:
+              </p>
+              <div className="flex gap-2">
+                <Input value={inviteUrl} readOnly className="text-xs" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(inviteUrl);
+                    toast.success("링크가 복사되었습니다.");
+                  }}
+                >
+                  복사
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                이 링크는 30일간 유효하며 1회만 사용 가능합니다.
+              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="admin-email">이메일 *</Label>
-              <Input
-                id="admin-email"
-                type="email"
-                value={adminData.email}
-                onChange={(e) =>
-                  setAdminData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                placeholder="admin@example.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="admin-password">비밀번호 *</Label>
-              <Input
-                id="admin-password"
-                type="password"
-                value={adminData.password}
-                onChange={(e) =>
-                  setAdminData((prev) => ({ ...prev, password: e.target.value }))
-                }
-                placeholder="비밀번호"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="admin-phone">전화번호</Label>
-              <Input
-                id="admin-phone"
-                value={adminData.phone}
-                onChange={(e) =>
-                  setAdminData((prev) => ({ ...prev, phone: e.target.value }))
-                }
-                placeholder="010-1234-5678"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowAddAdmin(false)}
-              disabled={addingAdmin}
-            >
-              취소
-            </Button>
-            <Button onClick={handleAddAdmin} disabled={addingAdmin}>
-              {addingAdmin ? "추가 중..." : "추가"}
-            </Button>
-          </DialogFooter>
+          ) : (
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-name">이름 *</Label>
+                  <Input
+                    id="admin-name"
+                    value={adminData.name}
+                    onChange={(e) =>
+                      setAdminData((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="홍길동"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-email">이메일</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    value={adminData.email}
+                    onChange={(e) =>
+                      setAdminData((prev) => ({ ...prev, email: e.target.value }))
+                    }
+                    placeholder="admin@example.com"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddAdmin(false)}
+                  disabled={addingAdmin}
+                >
+                  취소
+                </Button>
+                <Button onClick={handleAddAdmin} disabled={addingAdmin}>
+                  {addingAdmin ? "생성 중..." : "초대 링크 생성"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop } from "@/lib/shop-utils";
-import bcrypt from "bcryptjs";
 
 // GET /api/super-admin/shops/[id]/admins - List shop admins
 export async function GET(
@@ -74,11 +74,11 @@ export async function POST(
 
     const { id } = await params;
     const body = await request.json();
-    const { email, password, name, phone } = body;
+    const { email, name } = body;
 
-    if (!email || !password || !name) {
+    if (!name) {
       return NextResponse.json(
-        { error: "Email, password, and name are required" },
+        { error: "Name is required" },
         { status: 400 }
       );
     }
@@ -92,39 +92,40 @@ export async function POST(
       return NextResponse.json({ error: "Shop not found" }, { status: 404 });
     }
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Create invitation
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Email already exists" },
-        { status: 409 }
-      );
-    }
-
-    // Create admin user
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const admin = await prisma.user.create({
+    const invitation = await prisma.invitation.create({
       data: {
-        email,
-        password: hashedPassword,
-        name,
-        phone,
+        token,
+        email: email || null,
         role: "ADMIN",
         shopId: id,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        phone: true,
-        createdAt: true,
+        metadata: { name },
+        expiresAt,
+        createdBy: authResult.userId,
       },
     });
 
-    return NextResponse.json(admin, { status: 201 });
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const inviteUrl = `${appUrl}/invite/${invitation.token}`;
+
+    return NextResponse.json(
+      {
+        invitation: {
+          id: invitation.id,
+          token: invitation.token,
+          role: "ADMIN",
+          email: invitation.email,
+          shopName: shop.name,
+          expiresAt: invitation.expiresAt,
+        },
+        inviteUrl,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating admin:", error);
     return NextResponse.json(

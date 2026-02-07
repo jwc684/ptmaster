@@ -1,0 +1,100 @@
+"use client";
+
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+interface InviteClientProps {
+  token: string;
+  shopName: string;
+  roleLabel: string;
+  email: string | null;
+}
+
+export function InviteClient({
+  token,
+  shopName,
+  roleLabel,
+  email,
+}: InviteClientProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleKakaoSignIn() {
+    setIsLoading(true);
+
+    // invite-token 쿠키 설정
+    document.cookie = `invite-token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+
+    // 카카오 로그인 시작
+    await signIn("kakao", {
+      callbackUrl: "/dashboard",
+    });
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center space-y-2">
+          <div className="text-4xl mb-2">🎉</div>
+          <CardTitle className="text-2xl">초대받으셨습니다!</CardTitle>
+          <CardDescription className="text-base">
+            <span className="font-semibold text-foreground">{shopName}</span>
+            에서{" "}
+            <span className="font-semibold text-foreground">{roleLabel}</span>
+            (으)로 초대했습니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {email && (
+            <p className="text-sm text-muted-foreground text-center">
+              초대 이메일: {email}
+            </p>
+          )}
+
+          <Button
+            onClick={handleKakaoSignIn}
+            disabled={isLoading}
+            className="w-full h-12 text-base font-medium"
+            style={{
+              backgroundColor: "#FEE500",
+              color: "#000000",
+            }}
+          >
+            {isLoading ? (
+              "처리 중..."
+            ) : (
+              <span className="flex items-center gap-2">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M10 2C5.029 2 1 5.129 1 8.996c0 2.489 1.658 4.677 4.158 5.92-.13.468-.838 3.013-.867 3.199 0 0-.017.144.076.199.093.055.202.025.202.025.267-.037 3.091-2.019 3.578-2.363.274.038.555.063.843.063 4.971 0 9-3.13 9-6.996S14.971 2 10 2Z"
+                    fill="#000000"
+                  />
+                </svg>
+                카카오로 가입하기
+              </span>
+            )}
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            카카오 계정으로 간편하게 가입할 수 있습니다.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
