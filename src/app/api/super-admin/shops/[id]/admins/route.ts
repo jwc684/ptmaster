@@ -109,7 +109,7 @@ export async function POST(
       },
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.AUTH_URL || "http://localhost:3000";
     const inviteUrl = `${appUrl}/invite/${invitation.token}`;
 
     return NextResponse.json(
