@@ -16,6 +16,7 @@ import {
   Save,
   X,
   LogIn,
+  Trash2,
 } from "lucide-react";
 import {
   Card,
@@ -119,6 +120,13 @@ export default function ShopDetailPage() {
   } | null>(null);
   const [impersonating, setImpersonating] = useState(false);
 
+  // Admin delete state
+  const [deleteAdmin, setDeleteAdmin] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [deletingAdmin, setDeletingAdmin] = useState(false);
+
   const fetchShop = async () => {
     try {
       const response = await fetch(`/api/super-admin/shops/${shopId}`);
@@ -214,6 +222,32 @@ export default function ShopDetailPage() {
       toast.error("초대 생성에 실패했습니다.");
     } finally {
       setAddingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdmin = async () => {
+    if (!deleteAdmin) return;
+
+    setDeletingAdmin(true);
+    try {
+      const response = await fetch(`/api/admins/${deleteAdmin.id}`, {
+        method: "DELETE",
+        headers: { "x-shop-id": shopId },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("관리자가 삭제되었습니다.");
+        setDeleteAdmin(null);
+        fetchShop();
+      } else {
+        toast.error(data.error || "관리자 삭제에 실패했습니다.");
+      }
+    } catch {
+      toast.error("관리자 삭제에 실패했습니다.");
+    } finally {
+      setDeletingAdmin(false);
     }
   };
 
@@ -540,20 +574,36 @@ export default function ShopDetailPage() {
                       {new Date(admin.createdAt).toLocaleDateString("ko-KR")}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setImpersonateAdmin({
-                            id: admin.id,
-                            name: admin.name,
-                            email: admin.email,
-                          })
-                        }
-                        title="관리자로 로그인"
-                      >
-                        <LogIn className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setImpersonateAdmin({
+                              id: admin.id,
+                              name: admin.name,
+                              email: admin.email,
+                            })
+                          }
+                          title="관리자로 로그인"
+                        >
+                          <LogIn className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() =>
+                            setDeleteAdmin({
+                              id: admin.id,
+                              name: admin.name,
+                            })
+                          }
+                          title="관리자 삭제"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -659,6 +709,24 @@ export default function ShopDetailPage() {
         confirmLabel="로그인"
         onConfirm={handleImpersonate}
         isLoading={impersonating}
+      />
+
+      {/* Delete Admin Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteAdmin}
+        onOpenChange={(open) => {
+          if (!open) setDeleteAdmin(null);
+        }}
+        title="관리자 삭제"
+        description={
+          deleteAdmin
+            ? `${deleteAdmin.name} 관리자를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
+            : ""
+        }
+        confirmLabel="삭제"
+        variant="destructive"
+        onConfirm={handleDeleteAdmin}
+        isLoading={deletingAdmin}
       />
     </div>
   );
