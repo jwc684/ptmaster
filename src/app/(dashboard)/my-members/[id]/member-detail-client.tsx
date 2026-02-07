@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +22,6 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Activity,
-  CalendarDays,
-  CheckCircle2,
   CreditCard,
   Plus,
   Loader2,
@@ -221,20 +220,27 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Upcoming Schedules */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            예약 리스트
+      {/* Schedules Tabs */}
+      <Tabs defaultValue="upcoming" className="gap-0">
+        <TabsList className="w-full">
+          <TabsTrigger value="upcoming">
+            예정된 스케줄
             {upcoming.length > 0 && (
-              <Badge variant="outline" className="ml-auto">
-                {upcoming.length}건
+              <Badge variant="outline" className="ml-1">
+                {upcoming.length}
               </Badge>
             )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+          </TabsTrigger>
+          <TabsTrigger value="past">
+            지난 스케줄
+            {completed.length > 0 && (
+              <Badge variant="outline" className="ml-1">
+                {completed.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="upcoming">
           {upcoming.length > 0 ? (
             <div className="divide-y divide-border/30">
               {upcoming.map((schedule) => (
@@ -254,27 +260,12 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4 px-4">
-              예정된 예약이 없습니다.
+            <p className="text-sm text-muted-foreground text-center py-8">
+              예정된 스케줄이 없습니다.
             </p>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Completed / Past Schedules */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            PT 완료 내역
-            {completed.length > 0 && (
-              <Badge variant="outline" className="ml-auto">
-                {completed.length}건
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+        </TabsContent>
+        <TabsContent value="past">
           {completed.length > 0 ? (
             <div className="divide-y divide-border/30">
               {completed.map((schedule) => (
@@ -294,12 +285,12 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4 px-4">
-              완료된 PT가 없습니다.
+            <p className="text-sm text-muted-foreground text-center py-8">
+              지난 스케줄이 없습니다.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Shared schedule action dialogs */}
       <ScheduleDialogs
