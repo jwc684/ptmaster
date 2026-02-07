@@ -94,52 +94,54 @@ export function MyMembersClient({ members, trainerProfileId }: Props) {
         </Button>
       </div>
 
-      {/* 기존 회원 목록 */}
-      <div className="space-y-3">
-        {members.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              담당 회원이 없습니다.
-            </CardContent>
-          </Card>
-        ) : (
-          members.map((member) => {
-            const lastAttendance = member.attendances[0];
-            return (
-              <Link key={member.id} href={`/my-members/${member.id}`}>
-                <Card className="hover:bg-accent/50 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{member.user.name}</p>
-                          <Badge variant={member.remainingPT > 0 ? "default" : "secondary"}>
-                            PT {member.remainingPT}회
-                          </Badge>
-                        </div>
-                        {member.user.phone && (
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            {member.user.phone}
-                          </div>
-                        )}
-                        {lastAttendance && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            마지막 PT: {new Date(lastAttendance.checkInTime).toLocaleDateString("ko-KR")}
-                          </p>
-                        )}
-                      </div>
+      {/* 회원 목록 */}
+      {members.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            담당 회원이 없습니다.
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/50">
+              {members.map((member) => {
+                const lastAttendance = member.attendances[0];
+                return (
+                  <Link
+                    key={member.id}
+                    href={`/my-members/${member.id}`}
+                    className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <User className="h-5 w-5 text-primary" />
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })
-        )}
-      </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{member.user.name}</p>
+                        <Badge variant={member.remainingPT > 0 ? "default" : "secondary"}>
+                          PT {member.remainingPT}회
+                        </Badge>
+                      </div>
+                      {member.user.phone && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Phone className="h-3 w-3" />
+                          {member.user.phone}
+                        </div>
+                      )}
+                      {lastAttendance && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          마지막 PT: {new Date(lastAttendance.checkInTime).toLocaleDateString("ko-KR")}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 회원 가입 링크 Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
