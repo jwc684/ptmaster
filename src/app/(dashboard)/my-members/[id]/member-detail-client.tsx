@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,10 +78,12 @@ const STATUS_CONFIG: Record<
 export function MemberDetailClient({ member, trainerProfileId }: Props) {
   const router = useRouter();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [scheduleDate, setScheduleDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [scheduleTime, setScheduleTime] = useState("10:00");
   const [notes, setNotes] = useState("");
   const [isFree, setIsFree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [checkingAttendance, setCheckingAttendance] = useState<string | null>(null);
 
   const now = new Date().toISOString();
   const upcoming = member.schedules.filter(
@@ -90,20 +93,43 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
     (s) => s.status !== "SCHEDULED" || s.scheduledAt < now
   );
 
+  async function handleAttendance(scheduleId: string) {
+    setCheckingAttendance(scheduleId);
+    try {
+      const res = await fetch(`/api/schedules/${scheduleId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "COMPLETED" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "출석 처리되었습니다.");
+        router.refresh();
+      } else {
+        toast.error(data.error || "출석 처리에 실패했습니다.");
+      }
+    } catch {
+      toast.error("출석 처리에 실패했습니다.");
+    } finally {
+      setCheckingAttendance(null);
+    }
+  }
+
   async function handleAddSchedule() {
-    if (!scheduledAt) {
-      toast.error("예약 일시를 선택해주세요.");
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("날짜와 시간을 선택해주세요.");
       return;
     }
 
     setSubmitting(true);
     try {
+      const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`);
       const res = await fetch("/api/schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           memberProfileId: member.id,
-          scheduledAt: new Date(scheduledAt).toISOString(),
+          scheduledAt: scheduledAt.toISOString(),
           notes: notes || undefined,
           isFree: isFree || undefined,
         }),
@@ -118,7 +144,8 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
 
       toast.success(data.message || "예약이 등록되었습니다.");
       setAddDialogOpen(false);
-      setScheduledAt("");
+      setScheduleDate(format(new Date(), "yyyy-MM-dd"));
+      setScheduleTime("10:00");
       setNotes("");
       setIsFree(false);
       router.refresh();
@@ -243,9 +270,19 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
                         </p>
                       </div>
                     </div>
-                    <Badge variant={config?.variant || "default"}>
-                      {config?.label || schedule.status}
-                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAttendance(schedule.id)}
+                      disabled={checkingAttendance !== null}
+                    >
+                      {checkingAttendance === schedule.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      ) : (
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                      )}
+                      출석
+                    </Button>
                   </div>
                 );
               })}
@@ -343,14 +380,23 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="scheduledAt">예약 일시</Label>
-              <Input
-                id="scheduledAt"
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>날짜</Label>
+                <Input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>시간</Label>
+                <Input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -384,7 +430,7 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
 
             <Button
               onClick={handleAddSchedule}
-              disabled={submitting || !scheduledAt || (member.remainingPT <= 0 && !isFree)}
+              disabled={submitting || !scheduleDate || !scheduleTime || (member.remainingPT <= 0 && !isFree)}
               className="w-full"
             >
               {submitting ? (

@@ -10,14 +10,14 @@ async function getTrainerProfile(userId: string) {
   });
 }
 
-async function getAvailableMembers(shopId: string, trainerProfileId: string) {
+async function getAvailableMembers(shopId: string) {
   return prisma.memberProfile.findMany({
     where: {
       shopId,
-      trainerId: { not: trainerProfileId },
     },
     select: {
       id: true,
+      trainerId: true,
       remainingPT: true,
       user: {
         select: { name: true, phone: true },
@@ -44,10 +44,7 @@ export default async function AddMemberPage() {
     redirect("/dashboard");
   }
 
-  const availableMembers = await getAvailableMembers(
-    trainerProfile.shopId!,
-    trainerProfile.id
-  );
+  const availableMembers = await getAvailableMembers(trainerProfile.shopId!);
 
   const serialized = availableMembers.map((m) => ({
     id: m.id,
@@ -55,6 +52,7 @@ export default async function AddMemberPage() {
     phone: m.user.phone,
     remainingPT: m.remainingPT,
     trainerName: m.trainer?.user?.name || null,
+    isMine: m.trainerId === trainerProfile.id,
   }));
 
   return (

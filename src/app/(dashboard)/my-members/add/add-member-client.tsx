@@ -14,6 +14,7 @@ import {
   UserPlus,
   Loader2,
   ArrowLeft,
+  CheckCircle,
 } from "lucide-react";
 
 interface AvailableMember {
@@ -22,6 +23,7 @@ interface AvailableMember {
   phone: string | null;
   remainingPT: number;
   trainerName: string | null;
+  isMine: boolean;
 }
 
 interface Props {
@@ -74,7 +76,7 @@ export function AddMemberClient({ members, trainerProfileId }: Props) {
         </Link>
         <h1 className="text-xl font-bold">내 회원 추가</h1>
         <p className="text-sm text-muted-foreground">
-          배정 가능한 회원 {members.length}명
+          전체 회원 {members.length}명
         </p>
       </div>
 
@@ -99,12 +101,12 @@ export function AddMemberClient({ members, trainerProfileId }: Props) {
           </Card>
         ) : (
           filtered.map((member) => (
-            <Card key={member.id} className="hover:bg-accent/50 transition-colors">
+            <Card key={member.id} className={`transition-colors ${member.isMine ? "opacity-60" : "hover:bg-accent/50"}`}>
               <CardContent className="p-4">
                 <button
-                  onClick={() => handleAssign(member.id)}
-                  disabled={assigning !== null}
-                  className="w-full flex items-center justify-between text-left disabled:opacity-50"
+                  onClick={() => !member.isMine && handleAssign(member.id)}
+                  disabled={assigning !== null || member.isMine}
+                  className="w-full flex items-center justify-between text-left disabled:opacity-70"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
@@ -116,6 +118,11 @@ export function AddMemberClient({ members, trainerProfileId }: Props) {
                         <Badge variant="outline" className="text-xs">
                           PT {member.remainingPT}회
                         </Badge>
+                        {member.isMine && (
+                          <Badge variant="secondary" className="text-xs">
+                            내 회원
+                          </Badge>
+                        )}
                       </div>
                       {member.phone && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -124,13 +131,17 @@ export function AddMemberClient({ members, trainerProfileId }: Props) {
                         </div>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {member.trainerName
-                          ? `현재 담당: ${member.trainerName}`
-                          : "미배정"}
+                        {member.isMine
+                          ? "이미 배정됨"
+                          : member.trainerName
+                            ? `현재 담당: ${member.trainerName}`
+                            : "미배정"}
                       </p>
                     </div>
                   </div>
-                  {assigning === member.id ? (
+                  {member.isMine ? (
+                    <CheckCircle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  ) : assigning === member.id ? (
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
                   ) : (
                     <UserPlus className="h-5 w-5 text-primary flex-shrink-0" />

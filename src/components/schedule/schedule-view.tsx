@@ -41,6 +41,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -147,7 +148,10 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
     date: format(new Date(), "yyyy-MM-dd"),
     time: "10:00",
     notes: "",
+    isFree: false,
   });
+
+  const selectedMember = members.find((m) => m.id === newSchedule.memberProfileId);
 
   useEffect(() => {
     fetchSchedules();
@@ -208,6 +212,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
           memberProfileId: newSchedule.memberProfileId,
           scheduledAt: scheduledAt.toISOString(),
           notes: newSchedule.notes,
+          isFree: newSchedule.isFree || undefined,
         }),
       });
 
@@ -219,6 +224,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
           date: format(new Date(), "yyyy-MM-dd"),
           time: "10:00",
           notes: "",
+          isFree: false,
         });
         fetchSchedules();
         router.refresh();
@@ -557,9 +563,30 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                   />
                 </div>
 
+                {selectedMember && selectedMember.remainingPT <= 0 && (
+                  <div className="flex items-center gap-2 rounded-md border p-3 bg-muted/50">
+                    <Checkbox
+                      id="isFreeSchedule"
+                      checked={newSchedule.isFree}
+                      onCheckedChange={(checked) =>
+                        setNewSchedule({ ...newSchedule, isFree: checked === true })
+                      }
+                    />
+                    <Label htmlFor="isFreeSchedule" className="text-sm cursor-pointer">
+                      무료 PT (잔여 PT 차감 없음)
+                    </Label>
+                  </div>
+                )}
+
+                {selectedMember && selectedMember.remainingPT <= 0 && !newSchedule.isFree && (
+                  <p className="text-sm text-destructive">
+                    잔여 PT가 없습니다. 무료 PT를 체크하거나 PT를 등록해주세요.
+                  </p>
+                )}
+
                 <Button
                   onClick={handleAddSchedule}
-                  disabled={actionLoading === "add"}
+                  disabled={actionLoading === "add" || (selectedMember !== undefined && selectedMember.remainingPT <= 0 && !newSchedule.isFree)}
                   className="w-full"
                 >
                   {actionLoading === "add" ? "등록 중..." : "예약 등록"}

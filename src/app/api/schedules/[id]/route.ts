@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { sendAttendanceNotification } from "@/lib/kakao-message";
+import { sendAttendanceNotification, sendCancellationNotification } from "@/lib/kakao-message";
 
 const updateScheduleSchema = z.object({
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
@@ -184,6 +184,18 @@ export async function PATCH(
           return updated;
         });
 
+        // 카카오톡 취소 알림 전송
+        if (schedule.shop && schedule.trainer) {
+          sendCancellationNotification({
+            memberUserId: schedule.memberProfile.user.id,
+            shopName: schedule.shop.name,
+            trainerName: schedule.trainer.user.name,
+            scheduledAt: schedule.scheduledAt,
+            remainingPT: schedule.memberProfile.remainingPT,
+            shopId: schedule.shopId || undefined,
+          }).catch((err) => console.error("[Schedule] Kakao cancellation notification error:", err));
+        }
+
         return NextResponse.json({
           message: "예약이 취소되었습니다. (PT 차감 유지)",
           schedule: updatedSchedule,
@@ -204,6 +216,18 @@ export async function PATCH(
 
           return updated;
         });
+
+        // 카카오톡 취소 알림 전송 (PT 1회 복구 후이므로 +1)
+        if (schedule.shop && schedule.trainer) {
+          sendCancellationNotification({
+            memberUserId: schedule.memberProfile.user.id,
+            shopName: schedule.shop.name,
+            trainerName: schedule.trainer.user.name,
+            scheduledAt: schedule.scheduledAt,
+            remainingPT: schedule.memberProfile.remainingPT + 1,
+            shopId: schedule.shopId || undefined,
+          }).catch((err) => console.error("[Schedule] Kakao cancellation notification error:", err));
+        }
 
         return NextResponse.json({
           message: "예약이 취소되었습니다. (PT 1회 복구)",
