@@ -257,7 +257,11 @@ export default function ShopsPage() {
                 </TableRow>
               ) : (
                 shops.map((shop) => (
-                  <TableRow key={shop.id}>
+                  <TableRow
+                    key={shop.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/super-admin/shops/${shop.id}`)}
+                  >
                     <TableCell>
                       <div>
                         <div className="font-medium">{shop.name}</div>
@@ -285,7 +289,7 @@ export default function ShopsPage() {
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>

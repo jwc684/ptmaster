@@ -633,7 +633,8 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                     {groupedSchedules[date].map((schedule) => (
                       <div
                         key={schedule.id}
-                        className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors"
+                        className="flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/members/${schedule.memberProfile.id}`)}
                       >
                         {/* 상태 아이콘 */}
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -706,7 +707,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                                 size="sm"
                                 variant="outline"
                                 className="h-7 w-7 p-0"
-                                onClick={() => openCancelDialog(schedule)}
+                                onClick={(e) => { e.stopPropagation(); openCancelDialog(schedule); }}
                                 disabled={!!actionLoading}
                                 title="취소"
                               >
@@ -715,7 +716,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                               <Button
                                 size="sm"
                                 className="h-7 w-7 p-0"
-                                onClick={() => openCheckInDialog(schedule)}
+                                onClick={(e) => { e.stopPropagation(); openCheckInDialog(schedule); }}
                                 disabled={!!actionLoading}
                                 title="출석"
                               >
@@ -729,7 +730,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                               size="sm"
                               variant="outline"
                               className="h-7 w-7 p-0"
-                              onClick={() => handleRevert(schedule.id)}
+                              onClick={(e) => { e.stopPropagation(); handleRevert(schedule.id); }}
                               disabled={actionLoading === schedule.id}
                               title="되돌리기"
                             >
@@ -742,7 +743,7 @@ export function ScheduleView({ members, trainerId, isAdmin }: ScheduleViewProps)
                           )}
 
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button
                                 size="sm"
                                 variant="ghost"

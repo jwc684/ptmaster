@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ko } from "date-fns/locale";
 import { toast } from "sonner";
@@ -63,6 +64,7 @@ interface Attendance {
 }
 
 export default function AttendancePage() {
+  const router = useRouter();
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -405,9 +407,10 @@ export default function AttendancePage() {
                       return (
                         <div
                           key={attendance.id}
-                          className={`flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors ${
+                          className={`flex items-center gap-3 px-4 py-4 hover:bg-accent/30 transition-colors cursor-pointer ${
                             isCancelled ? "opacity-60" : ""
                           }`}
+                          onClick={() => router.push(`/members/${attendance.memberProfile.id}`)}
                         >
                           {/* 상태 아이콘 */}
                           <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -474,7 +477,7 @@ export default function AttendancePage() {
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0"
-                              onClick={() => openEditDialog(attendance)}
+                              onClick={(e) => { e.stopPropagation(); openEditDialog(attendance); }}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -483,7 +486,7 @@ export default function AttendancePage() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                onClick={() => openDeleteDialog(attendance)}
+                                onClick={(e) => { e.stopPropagation(); openDeleteDialog(attendance); }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
