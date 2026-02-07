@@ -33,6 +33,8 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
   ],
   MEMBER: [
     "/my",
+    "/my/schedule",
+    "/my/settings",
   ],
 };
 
@@ -128,9 +130,21 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["SUPER_ADMIN", "ADMIN"],
   },
   {
-    title: "마이페이지",
+    title: "대시보드",
     href: "/my",
-    icon: "User",
+    icon: "LayoutDashboard",
+    roles: ["MEMBER"],
+  },
+  {
+    title: "예약",
+    href: "/my/schedule",
+    icon: "CalendarDays",
+    roles: ["MEMBER"],
+  },
+  {
+    title: "설정",
+    href: "/my/settings",
+    icon: "Settings",
     roles: ["MEMBER"],
   },
   // Super Admin - Access Logs (bottom)

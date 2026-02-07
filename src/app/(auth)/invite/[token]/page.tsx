@@ -72,6 +72,8 @@ export default async function InvitePage({
   }
 
   const roleLabel = ROLE_LABELS[invitation.role] || invitation.role;
+  const metadata = invitation.metadata as Record<string, unknown> | null;
+  const inviteName = (metadata?.name as string) || null;
 
   return (
     <InviteClient
@@ -79,6 +81,7 @@ export default async function InvitePage({
       shopName={invitation.shop.name}
       roleLabel={roleLabel}
       email={invitation.email}
+      name={inviteName}
     />
   );
 }

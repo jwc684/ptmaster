@@ -199,34 +199,6 @@ export default async function MyPage() {
         </CardContent>
       </Card>
 
-      {/* Member Info */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">내 정보</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">이름</span>
-            <span className="text-sm">{member.user.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">이메일</span>
-            <span className="text-sm">{member.user.email}</span>
-          </div>
-          {member.user.phone && (
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">전화번호</span>
-              <span className="text-sm">{member.user.phone}</span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">가입일</span>
-            <span className="text-sm">
-              {member.joinDate.toLocaleDateString("ko-KR")}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

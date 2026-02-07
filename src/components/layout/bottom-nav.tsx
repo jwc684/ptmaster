@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   User,
+  Settings,
 } from "lucide-react";
 
 import { NAV_ITEMS } from "@/types";
@@ -20,6 +21,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   CalendarDays,
   ClipboardCheck,
   User,
+  Settings,
 };
 
 // Roles that use bottom navigation on mobile instead of sidebar
@@ -42,7 +44,9 @@ export function BottomNav() {
         {navItems.map((item) => {
           const Icon = iconMap[item.icon];
           const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+            item.href === "/my"
+              ? pathname === "/my"
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link

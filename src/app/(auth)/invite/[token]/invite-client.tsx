@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -16,6 +18,7 @@ interface InviteClientProps {
   shopName: string;
   roleLabel: string;
   email: string | null;
+  name: string | null;
 }
 
 export function InviteClient({
@@ -23,14 +26,19 @@ export function InviteClient({
   shopName,
   roleLabel,
   email,
+  name: initialName,
 }: InviteClientProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState(initialName || "");
 
   async function handleKakaoSignIn() {
     setIsLoading(true);
 
     // invite-token 쿠키 설정
     document.cookie = `invite-token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+
+    // invite-name 쿠키 설정
+    document.cookie = `invite-name=${encodeURIComponent(name.trim())}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
 
     // 카카오 로그인 시작
     await signIn("kakao", {
@@ -58,9 +66,19 @@ export function InviteClient({
             </p>
           )}
 
+          <div className="space-y-2">
+            <Label htmlFor="name">이름</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="이름을 입력해주세요"
+            />
+          </div>
+
           <Button
             onClick={handleKakaoSignIn}
-            disabled={isLoading}
+            disabled={isLoading || !name.trim()}
             className="w-full h-12 text-base font-medium"
             style={{
               backgroundColor: "#FEE500",

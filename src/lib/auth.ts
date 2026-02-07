@@ -153,6 +153,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const cookieStore = await cookies();
           const inviteToken = cookieStore.get("invite-token")?.value;
+          const inviteName = cookieStore.get("invite-name")?.value;
 
           if (!inviteToken) {
             console.log("[Auth] No invite token found for new Kakao user");
@@ -190,7 +191,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (!dbUser) {
             // 5. User 생성
-            const userName = user.name || metadata?.name as string || userEmail.split("@")[0];
+            const decodedInviteName = inviteName ? decodeURIComponent(inviteName) : null;
+            const userName = decodedInviteName || user.name || metadata?.name as string || userEmail.split("@")[0];
             dbUser = await prisma.user.create({
               data: {
                 email: userEmail,
@@ -258,8 +260,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           });
 
-          // 8. invite-token 쿠키 삭제
+          // 8. invite-token, invite-name 쿠키 삭제
           cookieStore.delete("invite-token");
+          cookieStore.delete("invite-name");
 
           console.log("[Auth] New user created via invitation:", dbUser.email, dbUser.role);
           return true;
