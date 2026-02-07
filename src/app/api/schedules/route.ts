@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate"); // 기간 시작
     const endDate = searchParams.get("endDate"); // 기간 종료
     const status = searchParams.get("status"); // 상태 필터
+    const memberId = searchParams.get("memberId"); // 회원 필터
 
     let trainerId: string | undefined;
 
@@ -77,6 +78,7 @@ export async function GET(request: Request) {
       where: {
         ...shopFilter,
         ...(trainerId && { trainerId }),
+        ...(memberId && { memberProfileId: memberId }),
         ...dateFilter,
         ...statusFilter,
       },

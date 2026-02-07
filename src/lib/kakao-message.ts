@@ -103,9 +103,11 @@ async function sendKakaoMemo(accessToken: string, text: string, url?: string): P
 }
 
 /**
- * Format date as "M월 D일 오전/오후 H시 MM분"
+ * Format date as "M월 D일(요일) 오전/오후 H시 MM분"
  */
-function formatKoreanDateTime(d: Date): string {
+const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+
+function formatKoreanDateTime(d: Date, includeDay = false): string {
   const month = d.getMonth() + 1;
   const day = d.getDate();
   const hours = d.getHours();
@@ -113,7 +115,8 @@ function formatKoreanDateTime(d: Date): string {
   const ampm = hours < 12 ? "오전" : "오후";
   const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
   const displayMin = String(minutes).padStart(2, "0");
-  return `${month}월 ${day}일 ${ampm} ${displayHour}시 ${displayMin}분`;
+  const dayStr = includeDay ? `(${DAY_NAMES[d.getDay()]})` : "";
+  return `${month}월 ${day}일${dayStr} ${ampm} ${displayHour}시 ${displayMin}분`;
 }
 
 /**
@@ -173,9 +176,9 @@ export async function sendScheduleNotification({
       return false;
     }
 
-    const dateStr = formatKoreanDateTime(new Date(scheduledAt));
+    const dateStr = formatKoreanDateTime(new Date(scheduledAt), true);
 
-    message = `[${shopName}] PT 예약 확인 메세지\n트레이너명: ${trainerName}\n수업일자: ${dateStr}\n현재 남은 PT: ${remainingPT}회\n앱에서 확인: ptmaster.onrender.com`;
+    message = `[${shopName}] 🔔 PT 수업이 예약되었습니다!\n\n일시: ${dateStr}\n장소: ${shopName}\n남은 횟수: ${remainingPT}회\n\n※ 원활한 수업을 위해 5분 전 도착 부탁드립니다.\n※ 변경사항은 앱에서 확인해 주세요: ptmaster.onrender.com`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -276,9 +279,9 @@ export async function sendAttendanceNotification({
       return false;
     }
 
-    const dateStr = formatKoreanDateTime(new Date(scheduledAt));
+    const dateStr = formatKoreanDateTime(new Date(scheduledAt), true);
 
-    message = `[${shopName}] PT 출석 체크 완료\n트레이너명: ${trainerName}\n수업일자: ${dateStr}\n현재 남은 PT: ${remainingPT}회\n앱에서 확인: ptmaster.onrender.com`;
+    message = `[${shopName}] ✅ PT 출석 체크 완료\n\n트레이너: ${trainerName} 코치\n수업일시: ${dateStr}\n남은 횟수: ${remainingPT}회\n\n※ 변경사항은 앱에서 확인해 주세요: ptmaster.onrender.com`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -379,7 +382,7 @@ export async function sendCancellationNotification({
 
     const dateStr = formatKoreanDateTime(new Date(scheduledAt));
 
-    message = `[${shopName}] PT 취소\n트레이너명: ${trainerName}\n수업일자: ${dateStr}\n현재 남은 PT: ${remainingPT}회\n앱에서 확인: ptmaster.onrender.com`;
+    message = `[${shopName}] ❌ PT 수업 취소 안내\n\n트레이너: ${trainerName} 코치\n취소된 수업: ${dateStr}\n현재 남은 PT: ${remainingPT}회 (취소분이 복구되었습니다)\n\n다시 예약하기: ptmaster.onrender.com`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -477,9 +480,9 @@ export async function sendReminderNotification({
       return false;
     }
 
-    const dateStr = formatKoreanDateTime(new Date(scheduledAt));
+    const dateStr = formatKoreanDateTime(new Date(scheduledAt), true);
 
-    message = `[${shopName}] PT 수업 알림\n트레이너명: ${trainerName}\n수업일자: ${dateStr}\n현재 남은 PT: ${remainingPT}회\n앱에서 확인: ptmaster.onrender.com`;
+    message = `[${shopName}] 🔔 내일은 PT 수업이 있는 날입니다!\n\n일시: ${dateStr}\n장소: ${shopName}\n남은 횟수: ${remainingPT}회\n\n※ 원활한 수업을 위해 5분 전 도착 부탁드립니다.\n※ 변경사항은 앱에서 확인해 주세요: ptmaster.onrender.com`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {

@@ -26,10 +26,11 @@ import {
   CreditCard,
   Plus,
   Loader2,
-  Clock,
-  XCircle,
-  AlertCircle,
 } from "lucide-react";
+import { useScheduleActions } from "@/hooks/use-schedule-actions";
+import { ScheduleItemRow } from "@/components/schedule/schedule-item";
+import { ScheduleDialogs } from "@/components/schedule/schedule-dialogs";
+import type { ScheduleItemData } from "@/components/schedule/schedule-types";
 
 interface Schedule {
   id: string;
@@ -37,6 +38,8 @@ interface Schedule {
   status: string;
   notes: string | null;
   attendance: {
+    id?: string;
+    checkInTime?: string;
     notes: string | null;
     internalNotes: string | null;
   } | null;
@@ -65,15 +68,23 @@ interface Props {
   trainerProfileId: string;
 }
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }
-> = {
-  SCHEDULED: { label: "예정", variant: "default", icon: Clock },
-  COMPLETED: { label: "완료", variant: "secondary", icon: CheckCircle2 },
-  CANCELLED: { label: "취소", variant: "destructive", icon: XCircle },
-  NO_SHOW: { label: "노쇼", variant: "outline", icon: AlertCircle },
-};
+function toScheduleItemData(s: Schedule, memberName: string, memberProfileId: string, remainingPT: number): ScheduleItemData {
+  return {
+    id: s.id,
+    scheduledAt: s.scheduledAt,
+    status: s.status as ScheduleItemData["status"],
+    notes: s.notes,
+    memberName,
+    memberProfileId,
+    remainingPT,
+    attendance: s.attendance ? {
+      id: s.attendance.id || "",
+      checkInTime: s.attendance.checkInTime || "",
+      notes: s.attendance.notes,
+      internalNotes: s.attendance.internalNotes,
+    } : null,
+  };
+}
 
 export function MemberDetailClient({ member, trainerProfileId }: Props) {
   const router = useRouter();
@@ -83,7 +94,10 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
   const [notes, setNotes] = useState("");
   const [isFree, setIsFree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [checkingAttendance, setCheckingAttendance] = useState<string | null>(null);
+
+  const actions = useScheduleActions({
+    onSuccess: () => router.refresh(),
+  });
 
   const now = new Date().toISOString();
   const upcoming = member.schedules.filter(
@@ -92,28 +106,6 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
   const completed = member.schedules.filter(
     (s) => s.status !== "SCHEDULED" || s.scheduledAt < now
   );
-
-  async function handleAttendance(scheduleId: string) {
-    setCheckingAttendance(scheduleId);
-    try {
-      const res = await fetch(`/api/schedules/${scheduleId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "COMPLETED" }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message || "출석 처리되었습니다.");
-        router.refresh();
-      } else {
-        toast.error(data.error || "출석 처리에 실패했습니다.");
-      }
-    } catch {
-      toast.error("출석 처리에 실패했습니다.");
-    } finally {
-      setCheckingAttendance(null);
-    }
-  }
 
   async function handleAddSchedule() {
     if (!scheduleDate || !scheduleTime) {
@@ -242,53 +234,27 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {upcoming.length > 0 ? (
-            <div className="space-y-3">
-              {upcoming.map((schedule) => {
-                const config = STATUS_CONFIG[schedule.status];
-                const Icon = config?.icon || Clock;
-                return (
-                  <div
-                    key={schedule.id}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">
-                          {new Date(schedule.scheduledAt).toLocaleDateString(
-                            "ko-KR",
-                            { month: "long", day: "numeric", weekday: "short" }
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(schedule.scheduledAt).toLocaleTimeString(
-                            "ko-KR",
-                            { hour: "2-digit", minute: "2-digit" }
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAttendance(schedule.id)}
-                      disabled={checkingAttendance !== null}
-                    >
-                      {checkingAttendance === schedule.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                      ) : (
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                      )}
-                      출석
-                    </Button>
-                  </div>
-                );
-              })}
+            <div className="divide-y divide-border/30">
+              {upcoming.map((schedule) => (
+                <ScheduleItemRow
+                  key={schedule.id}
+                  schedule={toScheduleItemData(schedule, member.user.name, member.id, member.remainingPT)}
+                  showMemberName={false}
+                  showTrainerName={false}
+                  showRemainingPT={false}
+                  actionLoading={actions.actionLoading}
+                  onCheckIn={actions.openCheckInDialog}
+                  onCancel={actions.openCancelDialog}
+                  onRevert={actions.handleRevert}
+                  onEdit={actions.openEditDialog}
+                  onDelete={actions.openDeleteDialog}
+                />
+              ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4 px-4">
               예정된 예약이 없습니다.
             </p>
           )}
@@ -308,66 +274,54 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {completed.length > 0 ? (
-            <div className="space-y-3">
-              {completed.map((schedule) => {
-                const config = STATUS_CONFIG[schedule.status];
-                const Icon = config?.icon || CheckCircle2;
-                const sharedNotes = schedule.attendance?.notes;
-                const internalNotes = schedule.attendance?.internalNotes;
-                return (
-                  <div
-                    key={schedule.id}
-                    className="py-2 border-b last:border-0"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">
-                            {new Date(schedule.scheduledAt).toLocaleDateString(
-                              "ko-KR",
-                              { month: "long", day: "numeric", weekday: "short" }
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(schedule.scheduledAt).toLocaleTimeString(
-                              "ko-KR",
-                              { hour: "2-digit", minute: "2-digit" }
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant={config?.variant || "secondary"}>
-                        {config?.label || schedule.status}
-                      </Badge>
-                    </div>
-                    {(sharedNotes || internalNotes) && (
-                      <div className="ml-7 mt-1 space-y-0.5">
-                        {sharedNotes && (
-                          <p className="text-xs text-muted-foreground">
-                            📝 {sharedNotes}
-                          </p>
-                        )}
-                        {internalNotes && (
-                          <p className="text-xs text-orange-600">
-                            🔒 {internalNotes}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="divide-y divide-border/30">
+              {completed.map((schedule) => (
+                <ScheduleItemRow
+                  key={schedule.id}
+                  schedule={toScheduleItemData(schedule, member.user.name, member.id, member.remainingPT)}
+                  showMemberName={false}
+                  showTrainerName={false}
+                  showRemainingPT={false}
+                  actionLoading={actions.actionLoading}
+                  onCheckIn={actions.openCheckInDialog}
+                  onCancel={actions.openCancelDialog}
+                  onRevert={actions.handleRevert}
+                  onEdit={actions.openEditDialog}
+                  onDelete={actions.openDeleteDialog}
+                />
+              ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4 px-4">
               완료된 PT가 없습니다.
             </p>
           )}
         </CardContent>
       </Card>
+
+      {/* Shared schedule action dialogs */}
+      <ScheduleDialogs
+        checkInDialogOpen={actions.checkInDialogOpen}
+        setCheckInDialogOpen={actions.setCheckInDialogOpen}
+        checkInNotes={actions.checkInNotes}
+        setCheckInNotes={actions.setCheckInNotes}
+        onCheckIn={actions.handleCheckIn}
+        cancelDialogOpen={actions.cancelDialogOpen}
+        setCancelDialogOpen={actions.setCancelDialogOpen}
+        onCancel={actions.handleCancel}
+        editDialogOpen={actions.editDialogOpen}
+        setEditDialogOpen={actions.setEditDialogOpen}
+        editForm={actions.editForm}
+        setEditForm={actions.setEditForm}
+        onEdit={actions.handleEditSchedule}
+        deleteDialogOpen={actions.deleteDialogOpen}
+        setDeleteDialogOpen={actions.setDeleteDialogOpen}
+        onDelete={actions.handleDeleteSchedule}
+        selectedSchedule={actions.selectedSchedule}
+        actionLoading={actions.actionLoading}
+      />
 
       {/* Add Schedule Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
