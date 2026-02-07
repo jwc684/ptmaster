@@ -22,12 +22,6 @@ export function ImpersonateBanner() {
         return;
       }
       toast.success("Super Admin으로 돌아갔습니다.");
-      // If opened via new tab (window.opener exists), close the tab
-      if (window.opener) {
-        window.close();
-        return;
-      }
-      // Fallback: redirect to super admin page
       window.location.href = "/super-admin";
     } catch {
       toast.error("세션 복구에 실패했습니다.");

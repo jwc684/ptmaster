@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -13,6 +14,7 @@ interface ImpersonateButtonProps {
 }
 
 export function ImpersonateButton({ userId, trainerName, trainerEmail }: ImpersonateButtonProps) {
+  const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +24,7 @@ export function ImpersonateButton({ userId, trainerName, trainerEmail }: Imperso
       const response = await fetch("/api/super-admin/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, openInNewTab: true }),
+        body: JSON.stringify({ userId }),
       });
 
       if (!response.ok) {
@@ -31,9 +33,9 @@ export function ImpersonateButton({ userId, trainerName, trainerEmail }: Imperso
         return;
       }
 
-      const data = await response.json();
-      toast.success(`${trainerName} 트레이너로 새 탭에서 열립니다.`);
-      window.open(`/api/super-admin/impersonate/start?token=${data.token}`, "_blank");
+      toast.success(`${trainerName} 트레이너로 전환했습니다.`);
+      router.push("/dashboard");
+      router.refresh();
     } catch {
       toast.error("트레이너 계정으로 로그인하는데 실패했습니다.");
     } finally {
@@ -52,7 +54,7 @@ export function ImpersonateButton({ userId, trainerName, trainerEmail }: Imperso
         open={showConfirm}
         onOpenChange={setShowConfirm}
         title="트레이너 계정으로 로그인"
-        description={`${trainerName} (${trainerEmail}) 트레이너로 새 탭에서 전환하시겠습니까?`}
+        description={`${trainerName} (${trainerEmail}) 트레이너로 전환하시겠습니까?`}
         confirmLabel="로그인"
         onConfirm={handleImpersonate}
         isLoading={loading}

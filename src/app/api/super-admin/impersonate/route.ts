@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop } from "@/lib/shop-utils";
 import { logAccess } from "@/lib/access-log";
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, shopId, openInNewTab } = body;
+    const { userId, shopId } = body;
 
     if (!userId && !shopId) {
       return NextResponse.json(
@@ -116,21 +116,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // For new tab mode: return token without setting cookie (cookie will be set via /start endpoint)
-    if (openInNewTab) {
-      return NextResponse.json({
-        success: true,
-        token,
-        user: {
-          name: targetUser.name,
-          email: targetUser.email,
-          role: targetUser.role,
-          shopName: targetUser.shop?.name,
-        },
-      });
-    }
-
-    // Default: Set impersonation cookie in current session
+    // Set impersonation cookie in current session
     const cookieStore = await cookies();
     cookieStore.set(IMPERSONATE_COOKIE, token, {
       httpOnly: true,
