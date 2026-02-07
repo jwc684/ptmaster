@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface NotificationSettingsProps {
@@ -43,19 +42,19 @@ export function NotificationSettings({
   }
 
   return (
-    <div className="flex items-start justify-between gap-4">
-      <Label htmlFor="kakao-notification" className="flex flex-col gap-1 text-left">
-        <span className="text-sm font-medium">카카오 알림톡</span>
-        <span className="text-xs text-muted-foreground font-normal">
-          수업 알림, 공지사항 등을 카카오톡으로 받습니다.
-        </span>
-      </Label>
-      <Switch
-        id="kakao-notification"
-        checked={enabled}
-        onCheckedChange={handleToggle}
-        disabled={loading}
-      />
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">카카오 알림톡</span>
+        <Switch
+          id="kakao-notification"
+          checked={enabled}
+          onCheckedChange={handleToggle}
+          disabled={loading}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        PT 예약, 출석, 취소 알림을 카카오톡으로 받습니다.
+      </p>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, User } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import { NotificationSettings } from "@/components/members/notification-settings";
 import { LogoutButton } from "@/app/(dashboard)/settings/logout-button";
 import { EditName } from "./edit-name";
@@ -74,7 +74,7 @@ export default async function MySettingsPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Settings className="h-4 w-4" />
+            <Bell className="h-4 w-4" />
             알림 설정
           </CardTitle>
         </CardHeader>
