@@ -16,7 +16,11 @@ export function ImpersonateBanner() {
   const handleStop = async () => {
     setStopping(true);
     try {
-      await fetch("/api/super-admin/impersonate", { method: "DELETE" });
+      const res = await fetch("/api/super-admin/impersonate", { method: "DELETE" });
+      if (!res.ok) {
+        toast.error("세션 복구에 실패했습니다.");
+        return;
+      }
       toast.success("Super Admin으로 돌아갔습니다.");
       window.location.href = "/super-admin";
     } catch {
@@ -26,7 +30,12 @@ export function ImpersonateBanner() {
     }
   };
 
-  const roleLabel = session.user.role === "ADMIN" ? "관리자" : session.user.role === "MEMBER" ? "회원" : session.user.role;
+  const roleLabels: Record<string, string> = {
+    ADMIN: "관리자",
+    TRAINER: "트레이너",
+    MEMBER: "회원",
+  };
+  const roleLabel = roleLabels[session.user.role] || session.user.role;
 
   return (
     <div className="sticky top-0 z-[60] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-white">

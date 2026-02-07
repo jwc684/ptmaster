@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
 import { ImpersonateBanner } from "@/components/layout/impersonate-banner";
+import { BottomNav } from "@/components/layout/bottom-nav";
 
 export default function DashboardLayout({
   children,
@@ -15,10 +16,11 @@ export default function DashboardLayout({
         <ImpersonateBanner />
         <Header />
         <div className="flex-1 overflow-x-hidden overflow-y-auto w-full max-w-full">
-          <div className="w-full max-w-full px-4 py-4 md:px-6 md:py-6 overflow-hidden">
+          <div className="w-full max-w-full px-4 py-4 md:px-6 md:py-6 overflow-hidden pb-20 md:pb-6">
             {children}
           </div>
         </div>
+        <BottomNav />
       </SidebarInset>
     </SidebarProvider>
   );

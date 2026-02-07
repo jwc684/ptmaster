@@ -40,7 +40,11 @@ export default auth((req) => {
 
   // Super Admin route protection
   if (pathname.startsWith("/super-admin") || pathname.startsWith("/api/super-admin")) {
-    if (!isLoggedIn || userRole !== "SUPER_ADMIN") {
+    // Allow DELETE to impersonate endpoint when impersonating (cookie still present, real role is SUPER_ADMIN)
+    const impersonateCookie = req.cookies.get("impersonate-session");
+    const isStopImpersonate = pathname === "/api/super-admin/impersonate" && req.method === "DELETE" && impersonateCookie?.value;
+
+    if (!isLoggedIn || (userRole !== "SUPER_ADMIN" && !isStopImpersonate)) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }

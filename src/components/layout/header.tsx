@@ -36,6 +36,7 @@ export function Header() {
   }, []);
 
   const user = session?.user;
+  const isTrainer = user?.role === "TRAINER";
   const initials = user?.name
     ?.split(" ")
     .map((n) => n[0])
@@ -44,16 +45,18 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background px-3 sm:px-4 w-full">
-      {/* Left: Menu button (mobile only) */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden h-9 w-9 flex-shrink-0"
-        onClick={toggleSidebar}
-      >
-        <Menu className="h-5 w-5" />
-        <span className="sr-only">Toggle menu</span>
-      </Button>
+      {/* Left: Menu button (mobile only, hidden for trainers who use bottom nav) */}
+      {!isTrainer && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden h-9 w-9 flex-shrink-0"
+          onClick={toggleSidebar}
+        >
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle menu</span>
+        </Button>
+      )}
 
       {/* Center: Shop Selector (Super Admin only) */}
       <div className="flex-1 flex justify-center md:justify-start md:ml-0 min-w-0 px-2">
