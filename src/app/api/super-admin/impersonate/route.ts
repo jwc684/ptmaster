@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (targetUser.role !== "ADMIN") {
+    if (targetUser.role === "SUPER_ADMIN") {
       return NextResponse.json(
-        { error: "Can only impersonate ADMIN users" },
+        { error: "Cannot impersonate SUPER_ADMIN users" },
         { status: 400 }
       );
     }
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       shopName: targetUser.shop?.name || null,
       actionType: "API_CALL",
       page: "/super-admin/shops",
-      action: `관리자 계정으로 로그인 (대상: ${targetUser.name} / ${targetUser.email})`,
+      action: `${targetUser.role === "ADMIN" ? "관리자" : "회원"} 계정으로 로그인 (대상: ${targetUser.name} / ${targetUser.email})`,
       targetId: targetUser.id,
       targetType: "user",
       metadata: {

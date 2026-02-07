@@ -82,8 +82,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               where: { id: payload.targetUserId as string },
             });
 
-            if (!targetUser || targetUser.role !== "ADMIN") {
-              throw new Error("Target user not found or not an admin");
+            if (!targetUser || targetUser.role === "SUPER_ADMIN") {
+              throw new Error("Target user not found or cannot be impersonated");
             }
 
             console.log(

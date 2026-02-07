@@ -8,12 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake } from "lucide-react";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
+import { ImpersonateButton } from "@/components/members/impersonate-button";
 
 async function getMember(id: string) {
   return prisma.memberProfile.findUnique({
     where: { id },
     select: {
       id: true,
+      userId: true,
       remainingPT: true,
       notes: true,
       birthDate: true,
@@ -80,6 +82,13 @@ export default async function MemberDetailPage({
           description="회원 정보"
         />
         <div className="flex gap-2">
+          {session.user.role === "SUPER_ADMIN" && (
+            <ImpersonateButton
+              userId={member.userId}
+              userName={member.user.name}
+              userEmail={member.user.email}
+            />
+          )}
           <Button asChild size="sm">
             <Link href={`/members/${id}/edit`}>
               <Pencil className="mr-2 h-4 w-4" />
