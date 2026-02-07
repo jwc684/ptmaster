@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { sendAttendanceNotification } from "@/lib/kakao-message";
 
 const updateScheduleSchema = z.object({
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
@@ -40,7 +41,12 @@ export async function PATCH(
 
     const schedule = await prisma.schedule.findUnique({
       where: { id },
-      include: { memberProfile: true, attendance: true },
+      include: {
+        memberProfile: { include: { user: { select: { id: true } } } },
+        attendance: true,
+        trainer: { select: { user: { select: { name: true } } } },
+        shop: { select: { name: true } },
+      },
     });
 
     if (!schedule) {
@@ -89,6 +95,18 @@ export async function PATCH(
 
         return updated;
       });
+
+      // 카카오톡 출석 알림 전송 (비동기, 실패해도 출석은 성공)
+      if (schedule.shop && schedule.trainer) {
+        sendAttendanceNotification({
+          memberUserId: schedule.memberProfile.user.id,
+          shopName: schedule.shop.name,
+          trainerName: schedule.trainer.user.name,
+          scheduledAt: schedule.scheduledAt,
+          remainingPT: schedule.memberProfile.remainingPT,
+          shopId: schedule.shopId || undefined,
+        }).catch((err) => console.error("[Schedule] Kakao attendance notification error:", err));
+      }
 
       return NextResponse.json({
         message: "출석이 완료되었습니다.",
