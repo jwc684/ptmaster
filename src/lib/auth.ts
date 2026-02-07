@@ -117,7 +117,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       // Credentials provider: 기존 로직 유지
       if (account?.provider === "credentials") {
         return true;
@@ -125,11 +125,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // Kakao OAuth
       if (account?.provider === "kakao") {
-        const email = user.email;
-        if (!email) {
-          console.error("[Auth] Kakao login: no email provided");
-          return false;
-        }
+        const kakaoProfile = profile as Record<string, unknown> | undefined;
+        const kakaoAccount = kakaoProfile?.kakao_account as Record<string, unknown> | undefined;
+        const email = user.email || kakaoAccount?.email as string | undefined;
+
+        console.log("[Auth] Kakao signIn - email:", email, "providerAccountId:", account.providerAccountId);
+        console.log("[Auth] Kakao profile keys:", kakaoProfile ? Object.keys(kakaoProfile) : "none");
 
         // 1. 기존 Account가 있는지 확인 (이미 가입한 사용자)
         const existingAccount = await prisma.account.findUnique({
@@ -179,19 +180,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return "/login?error=InvitationExpired";
           }
 
-          // 4. 이메일로 기존 User 확인 (동일 이메일 사용자가 이미 있을 수 있음)
-          let dbUser = await prisma.user.findUnique({
-            where: { email },
-          });
-
           const metadata = invitation.metadata as Record<string, unknown> | null;
+
+          // 4. 이메일로 기존 User 확인, 없으면 providerAccountId 기반 폴백 이메일 사용
+          const userEmail = email || metadata?.email as string || `kakao_${account.providerAccountId}@kakao.local`;
+          let dbUser = await prisma.user.findUnique({
+            where: { email: userEmail },
+          });
 
           if (!dbUser) {
             // 5. User 생성
+            const userName = user.name || metadata?.name as string || userEmail.split("@")[0];
             dbUser = await prisma.user.create({
               data: {
-                email,
-                name: user.name || metadata?.name as string || email.split("@")[0],
+                email: userEmail,
+                name: userName,
                 phone: metadata?.phone as string || null,
                 role: invitation.role,
                 shopId: invitation.shopId,
@@ -280,8 +283,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
-      // OAuth 첫 로그인 시 또는 token에 role이 없을 때 DB에서 조회
-      if (account?.provider === "kakao" || (!token.role && token.email)) {
+      // OAuth 첫 로그인 시: Account → User로 조회 (이메일 없을 수 있음)
+      if (account?.provider === "kakao") {
+        const dbAccount = await prisma.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider: "kakao",
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          include: { user: true },
+        });
+        if (dbAccount?.user) {
+          token.id = dbAccount.user.id;
+          token.role = dbAccount.user.role;
+          token.phone = dbAccount.user.phone;
+          token.shopId = dbAccount.user.shopId;
+          token.email = dbAccount.user.email;
+        }
+      } else if (!token.role && token.email) {
+        // Fallback: token에 role이 없을 때 이메일로 DB 조회
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email as string },
         });
