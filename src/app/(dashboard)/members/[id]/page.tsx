@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake } from "lucide-react";
+import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake, Building2 } from "lucide-react";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { ImpersonateButton } from "@/components/members/impersonate-button";
 
@@ -32,6 +32,9 @@ async function getMember(id: string) {
         select: {
           user: { select: { name: true } },
         },
+      },
+      shop: {
+        select: { name: true },
       },
       attendances: {
         select: {
@@ -140,6 +143,14 @@ export default async function MemberDetailPage({
               <span className="text-sm">가입일</span>
             </div>
             <span>{member.joinDate.toLocaleDateString("ko-KR")}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Building2 className="h-4 w-4" />
+              <span className="text-sm">소속 매장</span>
+            </div>
+            <span>{member.shop?.name || "-"}</span>
           </div>
         </CardContent>
       </Card>
