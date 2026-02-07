@@ -104,31 +104,50 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    // 회원 본인이 kakaoNotification만 수정하는 경우
+    // 회원 본인이 수정 가능한 필드: kakaoNotification, name
     if (session.user.role === "MEMBER") {
-      const isNotificationOnly =
-        Object.keys(body).length === 1 && "kakaoNotification" in body;
-      if (!isNotificationOnly || typeof body.kakaoNotification !== "boolean") {
+      const allowedKeys = new Set(["kakaoNotification", "name"]);
+      const bodyKeys = Object.keys(body);
+      const hasOnlyAllowed = bodyKeys.length > 0 && bodyKeys.every((k) => allowedKeys.has(k));
+
+      if (!hasOnlyAllowed) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+      }
+
+      if ("kakaoNotification" in body && typeof body.kakaoNotification !== "boolean") {
+        return NextResponse.json({ error: "잘못된 알림 설정 값입니다." }, { status: 400 });
+      }
+
+      if ("name" in body && (typeof body.name !== "string" || body.name.trim().length === 0)) {
+        return NextResponse.json({ error: "이름을 입력해주세요." }, { status: 400 });
       }
 
       const memberProfile = await prisma.memberProfile.findUnique({
         where: { userId: session.user.id },
-        select: { id: true },
+        select: { id: true, userId: true },
       });
       if (!memberProfile || memberProfile.id !== id) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
       }
 
-      const updated = await prisma.memberProfile.update({
-        where: { id },
-        data: { kakaoNotification: body.kakaoNotification },
-        select: { id: true, kakaoNotification: true },
-      });
+      // Update name on User model if provided
+      if (body.name) {
+        await prisma.user.update({
+          where: { id: memberProfile.userId },
+          data: { name: body.name.trim() },
+        });
+      }
+
+      // Update kakaoNotification on MemberProfile if provided
+      if ("kakaoNotification" in body) {
+        await prisma.memberProfile.update({
+          where: { id },
+          data: { kakaoNotification: body.kakaoNotification },
+        });
+      }
 
       return NextResponse.json({
-        message: "알림 설정이 변경되었습니다.",
-        member: updated,
+        message: body.name ? "이름이 변경되었습니다." : "알림 설정이 변경되었습니다.",
       });
     }
 

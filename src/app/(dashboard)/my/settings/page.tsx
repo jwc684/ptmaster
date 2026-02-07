@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, User } from "lucide-react";
 import { NotificationSettings } from "@/components/members/notification-settings";
 import { LogoutButton } from "@/app/(dashboard)/settings/logout-button";
+import { EditName } from "./edit-name";
 
 async function getMemberSettings(userId: string) {
   const member = await prisma.memberProfile.findUnique({
@@ -49,10 +50,7 @@ export default async function MySettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">이름</span>
-            <span className="text-sm">{member.user.name}</span>
-          </div>
+          <EditName memberId={member.id} currentName={member.user.name} />
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">이메일</span>
             <span className="text-sm">{member.user.email}</span>
