@@ -232,6 +232,19 @@
   }
 }
 
+/* Fix iOS date/time input alignment */
+@layer base {
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    text-align: left;
+    display: flex;
+    align-items: center;
+  }
+}
+
 /* Scrollbar */
 @layer base {
   ::-webkit-scrollbar {
