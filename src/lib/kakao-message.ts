@@ -122,6 +122,21 @@ function formatKoreanDateTime(d: Date, includeDay = false): string {
 }
 
 /**
+ * Check if trainer has a specific notification type enabled
+ */
+async function isTrainerNotifyEnabled(
+  trainerId: string | undefined,
+  field: "notifySchedule" | "notifyAttendance" | "notifyCancellation" | "notifyScheduleChange" | "notifyReminder"
+): Promise<boolean> {
+  if (!trainerId) return true; // backward compat: no trainerId = send
+  const trainer = await prisma.trainerProfile.findUnique({
+    where: { id: trainerId },
+    select: { [field]: true },
+  });
+  return (trainer as Record<string, boolean> | null)?.[field] ?? true;
+}
+
+/**
  * Send a PT schedule notification to a member via KakaoTalk
  */
 export async function sendScheduleNotification({
@@ -131,6 +146,7 @@ export async function sendScheduleNotification({
   scheduledAt,
   remainingPT,
   shopId,
+  trainerId,
 }: {
   memberUserId: string;
   shopName: string;
@@ -138,12 +154,19 @@ export async function sendScheduleNotification({
   scheduledAt: Date;
   remainingPT: number;
   shopId?: string;
+  trainerId?: string;
 }): Promise<boolean> {
   let message = "";
   let success = false;
   let errorMsg: string | undefined;
 
   try {
+    // Check trainer notification setting
+    if (!(await isTrainerNotifyEnabled(trainerId, "notifySchedule"))) {
+      console.log("[KakaoMessage] Trainer has schedule notifications disabled");
+      return false;
+    }
+
     // Check if member has kakao notification enabled
     const memberProfile = await prisma.memberProfile.findUnique({
       where: { userId: memberUserId },
@@ -237,6 +260,7 @@ export async function sendAttendanceNotification({
   scheduledAt,
   remainingPT,
   shopId,
+  trainerId,
 }: {
   memberUserId: string;
   shopName: string;
@@ -244,12 +268,18 @@ export async function sendAttendanceNotification({
   scheduledAt: Date;
   remainingPT: number;
   shopId?: string;
+  trainerId?: string;
 }): Promise<boolean> {
   let message = "";
   let success = false;
   let errorMsg: string | undefined;
 
   try {
+    if (!(await isTrainerNotifyEnabled(trainerId, "notifyAttendance"))) {
+      console.log("[KakaoMessage] Trainer has attendance notifications disabled");
+      return false;
+    }
+
     const memberProfile = await prisma.memberProfile.findUnique({
       where: { userId: memberUserId },
       select: { kakaoNotification: true, user: { select: { name: true } } },
@@ -338,6 +368,7 @@ export async function sendCancellationNotification({
   scheduledAt,
   remainingPT,
   shopId,
+  trainerId,
 }: {
   memberUserId: string;
   shopName: string;
@@ -345,12 +376,18 @@ export async function sendCancellationNotification({
   scheduledAt: Date;
   remainingPT: number;
   shopId?: string;
+  trainerId?: string;
 }): Promise<boolean> {
   let message = "";
   let success = false;
   let errorMsg: string | undefined;
 
   try {
+    if (!(await isTrainerNotifyEnabled(trainerId, "notifyCancellation"))) {
+      console.log("[KakaoMessage] Trainer has cancellation notifications disabled");
+      return false;
+    }
+
     const memberProfile = await prisma.memberProfile.findUnique({
       where: { userId: memberUserId },
       select: { kakaoNotification: true, user: { select: { name: true } } },
@@ -440,6 +477,7 @@ export async function sendScheduleChangeNotification({
   newScheduledAt,
   remainingPT,
   shopId,
+  trainerId,
 }: {
   memberUserId: string;
   shopName: string;
@@ -448,12 +486,18 @@ export async function sendScheduleChangeNotification({
   newScheduledAt: Date;
   remainingPT: number;
   shopId?: string;
+  trainerId?: string;
 }): Promise<boolean> {
   let message = "";
   let success = false;
   let errorMsg: string | undefined;
 
   try {
+    if (!(await isTrainerNotifyEnabled(trainerId, "notifyScheduleChange"))) {
+      console.log("[KakaoMessage] Trainer has schedule change notifications disabled");
+      return false;
+    }
+
     const memberProfile = await prisma.memberProfile.findUnique({
       where: { userId: memberUserId },
       select: { kakaoNotification: true, user: { select: { name: true } } },
@@ -542,6 +586,7 @@ export async function sendReminderNotification({
   scheduledAt,
   remainingPT,
   shopId,
+  trainerId,
 }: {
   memberUserId: string;
   shopName: string;
@@ -549,12 +594,18 @@ export async function sendReminderNotification({
   scheduledAt: Date;
   remainingPT: number;
   shopId?: string;
+  trainerId?: string;
 }): Promise<boolean> {
   let message = "";
   let success = false;
   let errorMsg: string | undefined;
 
   try {
+    if (!(await isTrainerNotifyEnabled(trainerId, "notifyReminder"))) {
+      console.log("[KakaoMessage] Trainer has reminder notifications disabled");
+      return false;
+    }
+
     const memberProfile = await prisma.memberProfile.findUnique({
       where: { userId: memberUserId },
       select: { kakaoNotification: true, user: { select: { name: true } } },

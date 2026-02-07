@@ -199,7 +199,7 @@ export function ScheduleDialogs({
 
       {/* 수정 다이얼로그 */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>일정 수정</DialogTitle>
           </DialogHeader>

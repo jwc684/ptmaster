@@ -167,6 +167,13 @@ model TrainerProfile {
   shop        PTShop?  @relation(fields: [shopId], references: [id])
   shopId      String?
 
+  // 카카오 알림 메세지 설정
+  notifySchedule       Boolean @default(true)  // 예약 생성 알림
+  notifyAttendance     Boolean @default(true)  // 출석 알림
+  notifyCancellation   Boolean @default(true)  // 취소 알림
+  notifyScheduleChange Boolean @default(true)  // 일정 변경 알림
+  notifyReminder       Boolean @default(true)  // 전일 리마인더
+
   // Relations
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   members       MemberProfile[] // 담당 회원들

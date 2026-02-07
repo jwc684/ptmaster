@@ -44,7 +44,7 @@ export async function PATCH(
       include: {
         memberProfile: { include: { user: { select: { id: true } } } },
         attendance: true,
-        trainer: { select: { user: { select: { name: true } } } },
+        trainer: { select: { id: true, user: { select: { name: true } } } },
         shop: { select: { name: true } },
       },
     });
@@ -112,6 +112,7 @@ export async function PATCH(
           scheduledAt: schedule.scheduledAt,
           remainingPT: schedule.memberProfile.remainingPT,
           shopId: schedule.shopId || undefined,
+          trainerId: schedule.trainer.id,
         }).catch((err) => console.error("[Schedule] Kakao attendance notification error:", err));
       }
 
@@ -193,6 +194,7 @@ export async function PATCH(
             scheduledAt: schedule.scheduledAt,
             remainingPT: schedule.memberProfile.remainingPT,
             shopId: schedule.shopId || undefined,
+            trainerId: schedule.trainer.id,
           }).catch((err) => console.error("[Schedule] Kakao cancellation notification error:", err));
         }
 
@@ -226,6 +228,7 @@ export async function PATCH(
             scheduledAt: schedule.scheduledAt,
             remainingPT: schedule.memberProfile.remainingPT + 1,
             shopId: schedule.shopId || undefined,
+            trainerId: schedule.trainer.id,
           }).catch((err) => console.error("[Schedule] Kakao cancellation notification error:", err));
         }
 
@@ -306,6 +309,7 @@ export async function PATCH(
         newScheduledAt: new Date(scheduledAt!),
         remainingPT: schedule.memberProfile.remainingPT,
         shopId: schedule.shopId || undefined,
+        trainerId: schedule.trainer.id,
       }).catch((err) => console.error("[Schedule] Kakao schedule change notification error:", err));
     }
 

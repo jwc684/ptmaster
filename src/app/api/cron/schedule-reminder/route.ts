@@ -52,6 +52,7 @@ export async function GET(request: Request) {
         },
         trainer: {
           select: {
+            id: true,
             user: { select: { name: true } },
           },
         },
@@ -96,6 +97,7 @@ export async function GET(request: Request) {
           scheduledAt: schedule.scheduledAt,
           remainingPT: schedule.memberProfile.remainingPT,
           shopId: schedule.shopId || undefined,
+          trainerId: schedule.trainer.id,
         });
 
         if (success) {
