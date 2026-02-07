@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, User } from "lucide-react";
 import { NotificationSettings } from "@/components/members/notification-settings";
+import { LogoutButton } from "@/app/(dashboard)/settings/logout-button";
 
 async function getMemberSettings(userId: string) {
   const member = await prisma.memberProfile.findUnique({
@@ -86,6 +87,9 @@ export default async function MySettingsPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Logout */}
+      <LogoutButton />
     </div>
   );
 }

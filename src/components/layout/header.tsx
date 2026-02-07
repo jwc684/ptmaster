@@ -44,7 +44,7 @@ export function Header() {
     .toUpperCase() || "U";
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 items-center border-b bg-background px-3 sm:px-4 w-full">
+    <header className={`sticky top-0 z-50 flex h-14 items-center border-b bg-background px-3 sm:px-4 w-full ${useBottomNav ? "hidden md:flex" : ""}`}>
       {/* Left: Menu button (mobile only, hidden for roles using bottom nav) */}
       {!useBottomNav && (
         <Button

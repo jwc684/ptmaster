@@ -30,6 +30,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
     "/my-members",
     "/schedule",
     "/attendance",
+    "/settings",
   ],
   MEMBER: [
     "/my",
@@ -109,13 +110,31 @@ export const NAV_ITEMS: NavItem[] = [
     title: "일정 관리",
     href: "/schedule",
     icon: "CalendarDays",
-    roles: ["SUPER_ADMIN", "ADMIN", "TRAINER"],
+    roles: ["SUPER_ADMIN", "ADMIN"],
+  },
+  {
+    title: "일정",
+    href: "/schedule",
+    icon: "CalendarDays",
+    roles: ["TRAINER"],
   },
   {
     title: "PT 출석",
     href: "/attendance",
     icon: "ClipboardCheck",
-    roles: ["SUPER_ADMIN", "ADMIN", "TRAINER"],
+    roles: ["SUPER_ADMIN", "ADMIN"],
+  },
+  {
+    title: "출석",
+    href: "/attendance",
+    icon: "ClipboardCheck",
+    roles: ["TRAINER"],
+  },
+  {
+    title: "설정",
+    href: "/settings",
+    icon: "Settings",
+    roles: ["TRAINER"],
   },
   {
     title: "결제 관리",
