@@ -29,6 +29,9 @@ async function getMemberDetail(memberProfileId: string, trainerId: string) {
         take: 10,
       },
       schedules: {
+        where: {
+          trainerId,
+        },
         select: {
           id: true,
           scheduledAt: true,
