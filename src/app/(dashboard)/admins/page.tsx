@@ -124,6 +124,25 @@ export default function AdminsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Manual validation (HTML5 validation doesn't work well inside Dialog portals)
+    if (!formData.name.trim()) {
+      toast.error("이름을 입력해주세요.");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error("이메일을 입력해주세요.");
+      return;
+    }
+    if (!editingAdmin && !formData.password) {
+      toast.error("비밀번호를 입력해주세요.");
+      return;
+    }
+    if (formData.password && formData.password.length < 8) {
+      toast.error("비밀번호는 최소 8자 이상이어야 합니다.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -248,7 +267,6 @@ export default function AdminsPage() {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       placeholder="홍길동"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -261,7 +279,6 @@ export default function AdminsPage() {
                         setFormData({ ...formData, email: e.target.value })
                       }
                       placeholder="admin@example.com"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -276,8 +293,6 @@ export default function AdminsPage() {
                         setFormData({ ...formData, password: e.target.value })
                       }
                       placeholder={editingAdmin ? "변경하지 않으려면 비워두세요" : "최소 8자 이상"}
-                      required={!editingAdmin}
-                      minLength={formData.password ? 8 : undefined}
                     />
                   </div>
                   <div className="space-y-2">

@@ -7,7 +7,10 @@ import { z } from "zod";
 const updateAdminSchema = z.object({
   name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다.").optional(),
   email: z.string().email("올바른 이메일 주소를 입력해주세요.").optional(),
-  password: z.string().min(8, "비밀번호는 최소 8자 이상이어야 합니다.").optional(),
+  password: z.preprocess(
+    (val) => (val === "" || val === undefined ? undefined : val),
+    z.string().min(8, "비밀번호는 최소 8자 이상이어야 합니다.").optional()
+  ),
   phone: z.string().optional().nullable(),
 });
 
