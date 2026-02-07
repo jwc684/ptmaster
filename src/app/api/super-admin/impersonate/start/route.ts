@@ -8,12 +8,19 @@ function getSecret() {
   return new TextEncoder().encode(process.env.AUTH_SECRET);
 }
 
+function buildRedirectUrl(request: NextRequest, pathname: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = "";
+  return url;
+}
+
 // GET: Activate impersonation in a new tab — sets cookie and redirects to dashboard
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
 
   if (!token) {
-    return NextResponse.redirect(new URL("/super-admin", request.url));
+    return NextResponse.redirect(buildRedirectUrl(request, "/super-admin"));
   }
 
   try {
@@ -21,7 +28,7 @@ export async function GET(request: NextRequest) {
     const { payload } = await jwtVerify(token, getSecret());
 
     if (payload.purpose !== "impersonate" || !payload.id) {
-      return NextResponse.redirect(new URL("/super-admin", request.url));
+      return NextResponse.redirect(buildRedirectUrl(request, "/super-admin"));
     }
 
     // Set impersonation cookie
@@ -38,9 +45,9 @@ export async function GET(request: NextRequest) {
     const role = payload.role as string;
     const redirectPath = role === "MEMBER" ? "/my" : "/dashboard";
 
-    return NextResponse.redirect(new URL(redirectPath, request.url));
+    return NextResponse.redirect(buildRedirectUrl(request, redirectPath));
   } catch {
     // Token invalid or expired
-    return NextResponse.redirect(new URL("/super-admin", request.url));
+    return NextResponse.redirect(buildRedirectUrl(request, "/super-admin"));
   }
 }

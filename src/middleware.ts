@@ -54,9 +54,9 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // If Super Admin is impersonating, bypass role-based route check
-  // (page-level auth properly resolves the impersonated session via cookie)
-  if (isLoggedIn && userRole === "SUPER_ADMIN") {
+  // If impersonation cookie exists, the real user is SUPER_ADMIN — bypass role-based route check.
+  // The session callback overrides userRole to the impersonated role, so we check the cookie directly.
+  if (isLoggedIn) {
     const impersonateCookie = req.cookies.get("impersonate-session");
     if (impersonateCookie?.value) {
       return NextResponse.next();

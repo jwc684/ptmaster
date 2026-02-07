@@ -101,13 +101,41 @@ export async function PATCH(
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
+    const { id } = await params;
+    const body = await request.json();
+
+    // 회원 본인이 kakaoNotification만 수정하는 경우
+    if (session.user.role === "MEMBER") {
+      const isNotificationOnly =
+        Object.keys(body).length === 1 && "kakaoNotification" in body;
+      if (!isNotificationOnly || typeof body.kakaoNotification !== "boolean") {
+        return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+      }
+
+      const memberProfile = await prisma.memberProfile.findUnique({
+        where: { userId: session.user.id },
+        select: { id: true },
+      });
+      if (!memberProfile || memberProfile.id !== id) {
+        return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+      }
+
+      const updated = await prisma.memberProfile.update({
+        where: { id },
+        data: { kakaoNotification: body.kakaoNotification },
+        select: { id: true, kakaoNotification: true },
+      });
+
+      return NextResponse.json({
+        message: "알림 설정이 변경되었습니다.",
+        member: updated,
+      });
+    }
+
     const allowedRoles = ["ADMIN", "SUPER_ADMIN", "TRAINER"];
     if (!allowedRoles.includes(session.user.role)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
-
-    const { id } = await params;
-    const body = await request.json();
 
     // 트레이너 할당만 하는 경우 (trainerId 필드만 있는 경우)
     const isTrainerAssignOnly = Object.keys(body).length === 1 && "trainerId" in body;

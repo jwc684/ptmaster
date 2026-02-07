@@ -127,6 +127,7 @@ model MemberProfile {
   notes            String?         @db.Text     // 메모
   birthDate        DateTime?                    // 생년월일
   gender           Gender?                      // 성별
+  kakaoNotification Boolean        @default(true) // 카카오 알림톡 수신 여부
   joinDate         DateTime        @default(now())
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
