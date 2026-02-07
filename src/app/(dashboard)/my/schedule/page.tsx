@@ -6,7 +6,7 @@ import { MyScheduleClient } from "./my-schedule-client";
 async function getScheduleData(userId: string) {
   const member = await prisma.memberProfile.findUnique({
     where: { userId },
-    select: { id: true },
+    select: { id: true, remainingPT: true },
   });
 
   if (!member) return null;
@@ -26,13 +26,14 @@ async function getScheduleData(userId: string) {
       attendance: {
         select: {
           notes: true,
+          remainingPTAfter: true,
         },
       },
     },
     orderBy: { scheduledAt: "desc" },
   });
 
-  return schedules;
+  return { schedules, remainingPT: member.remainingPT };
 }
 
 export default async function MySchedulePage() {
@@ -42,16 +43,16 @@ export default async function MySchedulePage() {
     redirect("/login");
   }
 
-  const schedules = await getScheduleData(session.user.id);
+  const data = await getScheduleData(session.user.id);
 
-  if (schedules === null) {
+  if (data === null) {
     redirect("/dashboard");
   }
 
-  const serialized = schedules.map((s) => ({
+  const serialized = data.schedules.map((s) => ({
     ...s,
     scheduledAt: s.scheduledAt.toISOString(),
   }));
 
-  return <MyScheduleClient schedules={serialized} />;
+  return <MyScheduleClient schedules={serialized} remainingPT={data.remainingPT} />;
 }

@@ -15,11 +15,13 @@ interface Schedule {
   };
   attendance: {
     notes: string | null;
+    remainingPTAfter: number | null;
   } | null;
 }
 
 interface Props {
   schedules: Schedule[];
+  remainingPT: number;
 }
 
 const STATUS_CONFIG: Record<
@@ -32,7 +34,26 @@ const STATUS_CONFIG: Record<
   NO_SHOW: { label: "노쇼", variant: "outline", icon: AlertCircle },
 };
 
-export function MyScheduleClient({ schedules }: Props) {
+function getPTInfo(schedule: Schedule): { label: string; className: string } | null {
+  const isFree = schedule.notes?.includes("[무료]");
+  if (isFree) return { label: "무료", className: "text-muted-foreground" };
+
+  if (schedule.status === "COMPLETED") {
+    return { label: "-1회 차감", className: "text-red-500" };
+  }
+  if (schedule.status === "CANCELLED") {
+    if (schedule.notes?.startsWith("[취소-차감]")) {
+      return { label: "-1회 차감", className: "text-red-500" };
+    }
+    return { label: "미차감 (복구)", className: "text-green-600" };
+  }
+  if (schedule.status === "SCHEDULED") {
+    return { label: "-1회 차감", className: "text-red-500" };
+  }
+  return null;
+}
+
+export function MyScheduleClient({ schedules, remainingPT }: Props) {
   const now = new Date().toISOString();
   const upcoming = schedules.filter(
     (s) => s.status === "SCHEDULED" && s.scheduledAt >= now
@@ -43,9 +64,14 @@ export function MyScheduleClient({ schedules }: Props) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold">예약 관리</h1>
-        <p className="text-sm text-muted-foreground">PT 스케줄을 확인하세요</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">예약 관리</h1>
+          <p className="text-sm text-muted-foreground">PT 스케줄을 확인하세요</p>
+        </div>
+        <Badge variant={remainingPT > 0 ? "default" : "secondary"} className="text-base px-3 py-1">
+          잔여 {remainingPT}회
+        </Badge>
       </div>
 
       <Tabs defaultValue="upcoming">
@@ -133,6 +159,7 @@ export function MyScheduleClient({ schedules }: Props) {
                     const config = STATUS_CONFIG[schedule.status];
                     const Icon = config?.icon || CheckCircle2;
                     const sharedNotes = schedule.attendance?.notes;
+                    const ptInfo = getPTInfo(schedule);
                     return (
                       <div
                         key={schedule.id}
@@ -158,9 +185,19 @@ export function MyScheduleClient({ schedules }: Props) {
                               </p>
                             </div>
                           </div>
-                          <Badge variant={config?.variant || "secondary"}>
-                            {config?.label || schedule.status}
-                          </Badge>
+                          <div className="text-right">
+                            <Badge variant={config?.variant || "secondary"}>
+                              {config?.label || schedule.status}
+                            </Badge>
+                            {ptInfo && (
+                              <p className={`text-xs mt-0.5 ${ptInfo.className}`}>
+                                {ptInfo.label}
+                                {schedule.attendance && schedule.attendance.remainingPTAfter != null && (
+                                  <span className="text-muted-foreground"> · 잔여 {schedule.attendance.remainingPTAfter}회</span>
+                                )}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         {sharedNotes && (
                           <p className="ml-7 mt-1 text-xs text-muted-foreground">
