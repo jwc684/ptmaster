@@ -35,6 +35,10 @@ interface Schedule {
   scheduledAt: string;
   status: string;
   notes: string | null;
+  attendance: {
+    notes: string | null;
+    internalNotes: string | null;
+  } | null;
 }
 
 interface Payment {
@@ -273,32 +277,49 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
               {completed.map((schedule) => {
                 const config = STATUS_CONFIG[schedule.status];
                 const Icon = config?.icon || CheckCircle2;
+                const sharedNotes = schedule.attendance?.notes;
+                const internalNotes = schedule.attendance?.internalNotes;
                 return (
                   <div
                     key={schedule.id}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
+                    className="py-2 border-b last:border-0"
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">
-                          {new Date(schedule.scheduledAt).toLocaleDateString(
-                            "ko-KR",
-                            { month: "long", day: "numeric", weekday: "short" }
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(schedule.scheduledAt).toLocaleTimeString(
-                            "ko-KR",
-                            { hour: "2-digit", minute: "2-digit" }
-                          )}
-                          {schedule.notes && ` · ${schedule.notes}`}
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            {new Date(schedule.scheduledAt).toLocaleDateString(
+                              "ko-KR",
+                              { month: "long", day: "numeric", weekday: "short" }
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(schedule.scheduledAt).toLocaleTimeString(
+                              "ko-KR",
+                              { hour: "2-digit", minute: "2-digit" }
+                            )}
+                          </p>
+                        </div>
                       </div>
+                      <Badge variant={config?.variant || "secondary"}>
+                        {config?.label || schedule.status}
+                      </Badge>
                     </div>
-                    <Badge variant={config?.variant || "secondary"}>
-                      {config?.label || schedule.status}
-                    </Badge>
+                    {(sharedNotes || internalNotes) && (
+                      <div className="ml-7 mt-1 space-y-0.5">
+                        {sharedNotes && (
+                          <p className="text-xs text-muted-foreground">
+                            📝 {sharedNotes}
+                          </p>
+                        )}
+                        {internalNotes && (
+                          <p className="text-xs text-orange-600">
+                            🔒 {internalNotes}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

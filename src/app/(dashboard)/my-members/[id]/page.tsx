@@ -34,6 +34,12 @@ async function getMemberDetail(memberProfileId: string, trainerId: string) {
           scheduledAt: true,
           status: true,
           notes: true,
+          attendance: {
+            select: {
+              notes: true,
+              internalNotes: true,
+            },
+          },
         },
         orderBy: { scheduledAt: "desc" },
       },
