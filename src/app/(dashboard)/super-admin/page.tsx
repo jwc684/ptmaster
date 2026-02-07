@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { ActiveUsersChart } from "@/components/super-admin/active-users-chart";
 import {
   Card,
   CardContent,
@@ -200,6 +201,9 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* DAU / MAU Chart */}
+      <ActiveUsersChart />
 
       {/* Top Shops */}
       <Card>
