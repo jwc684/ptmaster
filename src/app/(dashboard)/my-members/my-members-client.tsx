@@ -51,22 +51,23 @@ export function MyMembersClient({ members, trainerProfileId, inviteUrl }: Props)
 
       <div className="flex gap-2">
         <Link href="/my-members/add">
-          <Button variant="outline" size="sm">
+          <Button size="sm">
             <UserPlus className="h-4 w-4 mr-1" />
             내 회원 추가
           </Button>
         </Link>
         <Button
           variant="outline"
-          size="sm"
+          size="icon"
+          className="h-8 w-8"
           onClick={handleCopyInviteLink}
+          title="회원 가입 링크 복사"
         >
           {copied ? (
-            <Check className="h-4 w-4 mr-1 text-green-500" />
+            <Check className="h-4 w-4 text-green-500" />
           ) : (
-            <LinkIcon className="h-4 w-4 mr-1" />
+            <LinkIcon className="h-4 w-4" />
           )}
-          {copied ? "복사됨" : "회원 가입 링크"}
         </Button>
       </div>
 
