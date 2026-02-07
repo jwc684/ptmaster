@@ -214,9 +214,22 @@ export function ScheduleItemRow({
     </div>
   );
 
-  // Mobile: only check-in button visible; swipe reveals cancel/edit/delete
-  const mobileCheckIn = isScheduled ? (
-    <div className="flex sm:hidden items-center flex-shrink-0">
+  // Mobile: check-in + cancel visible on card; swipe reveals edit/delete
+  const mobileActions = isScheduled ? (
+    <div className="flex sm:hidden items-center gap-1 flex-shrink-0">
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 w-7 p-0"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCancel(schedule);
+        }}
+        disabled={!!actionLoading}
+        title="취소"
+      >
+        <X className="h-3.5 w-3.5" />
+      </Button>
       <Button
         size="sm"
         className="h-7 w-7 p-0"
@@ -254,17 +267,6 @@ export function ScheduleItemRow({
 
   const swipeActions = (
     <div className="flex h-full">
-      {isScheduled && (
-        <button
-          className="flex items-center justify-center w-[54px] bg-yellow-500 text-white"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCancel(schedule);
-          }}
-        >
-          <X className="h-5 w-5" />
-        </button>
-      )}
       <button
         className="flex items-center justify-center w-[54px] bg-blue-500 text-white"
         onClick={(e) => {
@@ -293,7 +295,7 @@ export function ScheduleItemRow({
     >
       {statusIcon}
       {info}
-      {mobileCheckIn}
+      {mobileActions}
       {desktopActions}
     </div>
   );
@@ -304,7 +306,7 @@ export function ScheduleItemRow({
       <div className="sm:hidden">
         <SwipeableRow
           actions={swipeActions}
-          actionWidth={isScheduled ? 162 : 108}
+          actionWidth={108}
         >
           {rowContent}
         </SwipeableRow>
