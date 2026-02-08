@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PtMasterLogo } from "@/components/ui/pt-master-logo";
 
 const ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "접근이 거부되었습니다. 초대 링크를 통해 가입해주세요.",
@@ -38,6 +39,9 @@ export function LoginForm() {
   return (
     <Card>
       <CardHeader className="space-y-1">
+        <div className="flex justify-center mb-2">
+          <PtMasterLogo size="md" />
+        </div>
         <CardTitle className="text-2xl text-center">로그인</CardTitle>
         <CardDescription className="text-center">
           카카오 계정으로 로그인하세요

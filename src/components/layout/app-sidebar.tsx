@@ -10,7 +10,6 @@ import {
   ClipboardCheck,
   CreditCard,
   User,
-  Dumbbell,
   PlusCircle,
   CalendarDays,
   Shield,
@@ -37,6 +36,7 @@ import {
 import { NAV_ITEMS } from "@/types";
 import type { UserRole } from "@/types";
 import { useShopContext } from "@/hooks/use-shop-context";
+import { PtMasterLogo } from "@/components/ui/pt-master-logo";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -85,13 +85,8 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
-        <Link href={dashboardLink} className="flex items-center gap-4 group" onClick={handleMenuClick}>
-          <div className="flex h-11 w-11 items-center justify-center rounded-none bg-transparent transition-colors group-hover:bg-muted">
-            <Dumbbell className="h-6 w-6 text-primary" />
-          </div>
-          <span className="text-xl font-bold truncate max-w-[140px] text-foreground" title={displayName}>
-            {displayName}
-          </span>
+        <Link href={dashboardLink} className="flex items-center gap-2 group" onClick={handleMenuClick}>
+          <PtMasterLogo size="sm" variant="full" className="text-foreground" />
         </Link>
       </SidebarHeader>
       <SidebarContent className="pt-1">

@@ -16,7 +16,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FitCenter - 피트니스 센터 관리 시스템",
+  title: "PT Master - PT 센터 관리 시스템",
   description: "피트니스 센터에서 회원과 트레이너를 관리하는 종합 웹 애플리케이션",
 };
 

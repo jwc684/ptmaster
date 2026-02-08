@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PtMasterLogo } from "@/components/ui/pt-master-logo";
 import {
   Form,
   FormControl,
@@ -70,6 +71,9 @@ export function AdminLoginForm() {
   return (
     <Card>
       <CardHeader className="space-y-1">
+        <div className="flex justify-center mb-2">
+          <PtMasterLogo size="md" />
+        </div>
         <CardTitle className="text-2xl text-center">
           Super Admin 로그인
         </CardTitle>

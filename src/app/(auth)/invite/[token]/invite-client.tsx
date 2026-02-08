@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PtMasterLogo } from "@/components/ui/pt-master-logo";
 
 interface InviteClientProps {
   token: string;
@@ -51,7 +52,9 @@ export function InviteClient({
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <div className="text-4xl mb-2">🎉</div>
+          <div className="flex justify-center mb-2">
+            <PtMasterLogo size="md" />
+          </div>
           <CardTitle className="text-2xl">초대받으셨습니다!</CardTitle>
           <CardDescription className="text-base">
             <span className="font-semibold text-foreground">{shopName}</span>
