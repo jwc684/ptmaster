@@ -17,6 +17,7 @@ import {
 import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake, Building2, History } from "lucide-react";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { ImpersonateButton } from "@/components/members/impersonate-button";
+import { MemberScheduleTabs } from "@/components/members/member-schedule-tabs";
 
 async function getMember(id: string) {
   return prisma.memberProfile.findUnique({
@@ -72,9 +73,16 @@ async function getMember(id: string) {
           createdAt: true,
           updatedAt: true,
           trainer: { select: { user: { select: { name: true } } } },
-          attendance: { select: { id: true } },
+          attendance: {
+            select: {
+              id: true,
+              checkInTime: true,
+              notes: true,
+              internalNotes: true,
+            },
+          },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { scheduledAt: "desc" },
       },
     },
   });
@@ -263,6 +271,26 @@ export default async function MemberDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {/* 스케줄 내역 */}
+      <MemberScheduleTabs
+        schedules={member.schedules.map((s) => ({
+          id: s.id,
+          scheduledAt: s.scheduledAt.toISOString(),
+          status: s.status,
+          notes: s.notes,
+          trainerName: s.trainer.user.name,
+          attendance: s.attendance ? {
+            id: s.attendance.id,
+            checkInTime: s.attendance.checkInTime?.toISOString() || "",
+            notes: s.attendance.notes ?? null,
+            internalNotes: s.attendance.internalNotes ?? null,
+          } : null,
+        }))}
+        memberName={member.user.name}
+        memberProfileId={member.id}
+        remainingPT={member.remainingPT}
+      />
 
       {/* PT 변동 내역 */}
       <Card>

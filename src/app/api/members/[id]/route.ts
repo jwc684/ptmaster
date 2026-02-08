@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { memberUpdateSchema, assignTrainerSchema } from "@/lib/validations/member";
 
 export async function GET(
@@ -9,15 +9,28 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
     const { id } = await params;
 
-    const member = await prisma.memberProfile.findUnique({
-      where: { id },
+    // Members can only view their own profile
+    if (authResult.userRole === "MEMBER") {
+      const userProfile = await prisma.memberProfile.findUnique({
+        where: { userId: authResult.userId },
+      });
+      if (userProfile?.id !== id) {
+        return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+      }
+    }
+
+    // Build shop filter for tenant isolation
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const member = await prisma.memberProfile.findFirst({
+      where: { id, ...shopFilter },
       select: {
         id: true,
         qrCode: true,
@@ -71,16 +84,6 @@ export async function GET(
       );
     }
 
-    // Members can only view their own profile
-    if (session.user.role === "MEMBER") {
-      const userProfile = await prisma.memberProfile.findUnique({
-        where: { userId: session.user.id },
-      });
-      if (userProfile?.id !== id) {
-        return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
-      }
-    }
-
     return NextResponse.json(member);
   } catch (error) {
     console.error("Error fetching member:", error);
@@ -96,8 +99,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
@@ -105,7 +108,7 @@ export async function PATCH(
     const body = await request.json();
 
     // 회원 본인이 수정 가능한 필드: kakaoNotification, name
-    if (session.user.role === "MEMBER") {
+    if (authResult.userRole === "MEMBER") {
       const allowedKeys = new Set(["kakaoNotification", "name"]);
       const bodyKeys = Object.keys(body);
       const hasOnlyAllowed = bodyKeys.length > 0 && bodyKeys.every((k) => allowedKeys.has(k));
@@ -123,7 +126,7 @@ export async function PATCH(
       }
 
       const memberProfile = await prisma.memberProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
         select: { id: true, userId: true },
       });
       if (!memberProfile || memberProfile.id !== id) {
@@ -152,9 +155,12 @@ export async function PATCH(
     }
 
     const allowedRoles = ["ADMIN", "SUPER_ADMIN", "TRAINER"];
-    if (!allowedRoles.includes(session.user.role)) {
+    if (!allowedRoles.includes(authResult.userRole)) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
+
+    // Build shop filter for tenant isolation
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
     // 트레이너 할당만 하는 경우 (trainerId 필드만 있는 경우)
     const isTrainerAssignOnly = Object.keys(body).length === 1 && "trainerId" in body;
@@ -169,9 +175,9 @@ export async function PATCH(
       }
 
       // TRAINER: 자기 trainerProfileId만 지정 가능 + 같은 shopId 회원만
-      if (session.user.role === "TRAINER") {
+      if (authResult.userRole === "TRAINER") {
         const trainerProfile = await prisma.trainerProfile.findUnique({
-          where: { userId: session.user.id },
+          where: { userId: authResult.userId },
           select: { id: true, shopId: true },
         });
 
@@ -193,6 +199,15 @@ export async function PATCH(
         }
       }
 
+      // Verify member belongs to the same shop (for ADMIN)
+      const targetMember = await prisma.memberProfile.findFirst({
+        where: { id, ...shopFilter },
+        select: { id: true },
+      });
+      if (!targetMember) {
+        return NextResponse.json({ error: "회원을 찾을 수 없습니다." }, { status: 404 });
+      }
+
       const updatedProfile = await prisma.memberProfile.update({
         where: { id },
         data: { trainerId: assignData.data.trainerId },
@@ -210,7 +225,7 @@ export async function PATCH(
     }
 
     // 전체 회원 수정은 ADMIN/SUPER_ADMIN만 허용
-    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -223,8 +238,8 @@ export async function PATCH(
       );
     }
 
-    const member = await prisma.memberProfile.findUnique({
-      where: { id },
+    const member = await prisma.memberProfile.findFirst({
+      where: { id, ...shopFilter },
       include: { user: true },
     });
 
@@ -309,15 +324,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { id } = await params;
 
-    const member = await prisma.memberProfile.findUnique({
-      where: { id },
+    // Build shop filter for tenant isolation
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const member = await prisma.memberProfile.findFirst({
+      where: { id, ...shopFilter },
       include: { user: true },
     });
 

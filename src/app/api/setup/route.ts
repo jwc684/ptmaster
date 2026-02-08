@@ -9,9 +9,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { setupKey, email, password, name, action } = body;
 
-    // 환경변수로 설정된 키와 비교 (없으면 기본값 사용)
-    const validKey = process.env.SETUP_KEY || "ptmaster-setup-2024";
-    if (setupKey !== validKey) {
+    // 환경변수로 설정된 키와 비교 (SETUP_KEY 미설정 시 접근 차단)
+    const validKey = process.env.SETUP_KEY;
+    if (!validKey || setupKey !== validKey) {
       return NextResponse.json(
         { error: "Invalid setup key" },
         { status: 403 }
