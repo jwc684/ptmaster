@@ -149,8 +149,9 @@ export async function PATCH(
 
     // 취소 처리 (SCHEDULED -> CANCELLED) - PT는 일정 생성 시 이미 차감됨
     if (status === "CANCELLED" && schedule.status === "SCHEDULED") {
-      // PT 유지 여부에 따라 처리 (deductPT=true면 차감 유지, false면 복구)
-      const keepDeduction = deductPT === true; // 기본값은 복구 (미차감)
+      const isFreeSchedule = schedule.notes?.includes("[무료]") ?? false;
+      // PT 유지 여부에 따라 처리 (deductPT=true면 차감 유지, false면 복구, 무료는 항상 복구 안함)
+      const keepDeduction = deductPT === true || isFreeSchedule;
 
       if (keepDeduction) {
         // PT 차감 유지 (복구하지 않음)
@@ -241,6 +242,7 @@ export async function PATCH(
 
     // 취소 되돌리기 (CANCELLED -> SCHEDULED)
     if (status === "SCHEDULED" && schedule.status === "CANCELLED") {
+      const isFreeRevert = schedule.notes?.includes("[무료]") ?? false;
       // attendance 기록 유무로 차감/미차감 여부 판단
       const wasKeptDeducted = !!schedule.attendance; // attendance 있음 = 차감 유지 취소
 
@@ -255,8 +257,8 @@ export async function PATCH(
           await tx.attendance.delete({
             where: { id: schedule.attendance!.id },
           });
-        } else {
-          // 미차감 취소였음 - PT가 복구됐었으므로 다시 차감
+        } else if (!isFreeRevert) {
+          // 미차감 취소였음 (무료가 아닌 경우만) - PT가 복구됐었으므로 다시 차감
           await tx.memberProfile.update({
             where: { id: schedule.memberProfileId },
             data: { remainingPT: { decrement: 1 } },
@@ -363,10 +365,12 @@ export async function DELETE(
 
     // PT 복구 여부 결정
     // - SCHEDULED: PT 복구 (일정 생성 시 차감되었으므로)
+    // - SCHEDULED + 무료: PT 복구 안함 (차감된 적 없음)
     // - COMPLETED: PT 복구 안함 (PT가 사용됨)
     // - CANCELLED with attendance: PT 복구 안함 (차감 유지 취소였음)
     // - CANCELLED without attendance: PT 복구 안함 (이미 취소 시 복구됨)
-    const shouldRestorePT = schedule.status === "SCHEDULED";
+    const isFreeSchedule = schedule.notes?.includes("[무료]") ?? false;
+    const shouldRestorePT = schedule.status === "SCHEDULED" && !isFreeSchedule;
 
     await prisma.$transaction(async (tx) => {
       // 관련 출석 기록 먼저 삭제

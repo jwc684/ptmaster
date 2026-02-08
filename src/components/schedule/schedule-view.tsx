@@ -390,20 +390,18 @@ export function ScheduleView({ members, trainerId, isAdmin, tableView }: Schedul
                 />
               </div>
 
-              {selectedMember && selectedMember.remainingPT <= 0 && (
-                <div className="flex items-center gap-2 rounded-none border p-3 bg-muted/50">
-                  <Checkbox
-                    id="isFreeSchedule"
-                    checked={newSchedule.isFree}
-                    onCheckedChange={(checked) =>
-                      setNewSchedule({ ...newSchedule, isFree: checked === true })
-                    }
-                  />
-                  <Label htmlFor="isFreeSchedule" className="text-sm cursor-pointer">
-                    무료 PT (잔여 PT 차감 없음)
-                  </Label>
-                </div>
-              )}
+              <div className="flex items-center gap-2 rounded-none border p-3 bg-muted/50">
+                <Checkbox
+                  id="isFreeSchedule"
+                  checked={newSchedule.isFree}
+                  onCheckedChange={(checked) =>
+                    setNewSchedule({ ...newSchedule, isFree: checked === true })
+                  }
+                />
+                <Label htmlFor="isFreeSchedule" className="text-sm cursor-pointer">
+                  무료 PT (잔여 PT 차감 없음)
+                </Label>
+              </div>
 
               {selectedMember && selectedMember.remainingPT <= 0 && !newSchedule.isFree && (
                 <p className="text-sm text-destructive">

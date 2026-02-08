@@ -354,18 +354,16 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
               />
             </div>
 
-            {member.remainingPT <= 0 && (
-              <div className="flex items-center gap-2 rounded-none border p-3 bg-muted/50">
-                <Checkbox
-                  id="isFree"
-                  checked={isFree}
-                  onCheckedChange={(checked) => setIsFree(checked === true)}
-                />
-                <Label htmlFor="isFree" className="text-sm cursor-pointer">
-                  무료 PT (잔여 PT 차감 없음)
-                </Label>
-              </div>
-            )}
+            <div className="flex items-center gap-2 rounded-none border p-3 bg-muted/50">
+              <Checkbox
+                id="isFree"
+                checked={isFree}
+                onCheckedChange={(checked) => setIsFree(checked === true)}
+              />
+              <Label htmlFor="isFree" className="text-sm cursor-pointer">
+                무료 PT (잔여 PT 차감 없음)
+              </Label>
+            </div>
 
             {member.remainingPT <= 0 && !isFree && (
               <p className="text-sm text-destructive">
