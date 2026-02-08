@@ -147,17 +147,21 @@ export async function POST(request: NextRequest) {
 // DELETE: Stop impersonation (clear cookie)
 export async function DELETE() {
   try {
-    const authResult = await getAuthWithShop();
-
-    if (!authResult.isAuthenticated) {
-      return NextResponse.json({ error: authResult.error }, { status: 401 });
-    }
-
-    if (!authResult.isSuperAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const cookieStore = await cookies();
+    const impersonateCookie = cookieStore.get(IMPERSONATE_COOKIE);
+
+    if (!impersonateCookie?.value) {
+      return NextResponse.json({ error: "No active impersonation" }, { status: 400 });
+    }
+
+    // Verify the impersonate JWT to confirm it was issued for a real SUPER_ADMIN
+    const { jwtVerify } = await import("jose");
+    const { payload } = await jwtVerify(impersonateCookie.value, getSecret());
+
+    if (payload.purpose !== "impersonate" || !payload.superAdminId) {
+      return NextResponse.json({ error: "Invalid impersonation session" }, { status: 403 });
+    }
+
     cookieStore.delete(IMPERSONATE_COOKIE);
     return NextResponse.json({ success: true });
   } catch (error) {
