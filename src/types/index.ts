@@ -43,7 +43,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
 export const PUBLIC_ROUTES = ["/login", "/", "/invite", "/admin/login"];
 
 // API routes that are public
-export const PUBLIC_API_ROUTES = ["/api/auth", "/api/health"];
+export const PUBLIC_API_ROUTES = ["/api/auth", "/api/health", "/api/invite"];
 
 // Dashboard paths by role
 export const DASHBOARD_PATH: Record<UserRole, string> = {

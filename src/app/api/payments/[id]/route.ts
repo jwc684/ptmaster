@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
 
 const updatePaymentSchema = z.object({
@@ -14,15 +14,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { id } = await params;
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
-    const payment = await prisma.payment.findUnique({
-      where: { id },
+    const payment = await prisma.payment.findFirst({
+      where: { id, ...shopFilter },
       select: {
         id: true,
         amount: true,
@@ -61,8 +65,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -77,8 +84,10 @@ export async function PATCH(
       );
     }
 
-    const payment = await prisma.payment.findUnique({
-      where: { id },
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const payment = await prisma.payment.findFirst({
+      where: { id, ...shopFilter },
       include: { memberProfile: true },
     });
 
@@ -148,15 +157,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { id } = await params;
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
-    const payment = await prisma.payment.findUnique({
-      where: { id },
+    const payment = await prisma.payment.findFirst({
+      where: { id, ...shopFilter },
       include: { memberProfile: true },
     });
 

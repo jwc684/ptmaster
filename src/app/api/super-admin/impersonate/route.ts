@@ -147,6 +147,16 @@ export async function POST(request: NextRequest) {
 // DELETE: Stop impersonation (clear cookie)
 export async function DELETE() {
   try {
+    const authResult = await getAuthWithShop();
+
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
+
+    if (!authResult.isSuperAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const cookieStore = await cookies();
     cookieStore.delete(IMPERSONATE_COOKIE);
     return NextResponse.json({ success: true });

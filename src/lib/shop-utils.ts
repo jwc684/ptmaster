@@ -93,8 +93,8 @@ export function buildShopFilter(
     return { shopId };
   }
 
-  // Fallback - should not happen for properly set up users
-  return {};
+  // Non-super-admin without shopId - return impossible filter to prevent data leaks
+  return { shopId: "INVALID_NO_SHOP_CONTEXT" };
 }
 
 /**

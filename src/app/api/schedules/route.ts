@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     const memberId = searchParams.get("memberId"); // 회원 필터
 
     let trainerId: string | undefined;
+    let memberProfileId: string | undefined;
 
     // 트레이너인 경우 자신의 일정만 조회
     if (authResult.userRole === "TRAINER") {
@@ -37,6 +38,17 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "트레이너 프로필이 없습니다." }, { status: 404 });
       }
       trainerId = trainerProfile.id;
+    }
+
+    // 회원인 경우 자신의 일정만 조회
+    if (authResult.userRole === "MEMBER") {
+      const memberProfile = await prisma.memberProfile.findUnique({
+        where: { userId: authResult.userId },
+      });
+      if (!memberProfile) {
+        return NextResponse.json({ error: "회원 프로필이 없습니다." }, { status: 404 });
+      }
+      memberProfileId = memberProfile.id;
     }
 
     // 날짜 필터 설정
@@ -82,7 +94,8 @@ export async function GET(request: Request) {
       where: {
         ...shopFilter,
         ...(trainerId && { trainerId }),
-        ...(memberId && { memberProfileId: memberId }),
+        ...(memberProfileId && { memberProfileId }),
+        ...(!memberProfileId && memberId && { memberProfileId: memberId }),
         ...dateFilter,
         ...statusFilter,
       },

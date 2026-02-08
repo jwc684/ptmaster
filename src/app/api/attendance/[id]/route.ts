@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
 
 const updateAttendanceSchema = z.object({
@@ -14,21 +14,24 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
     const { id } = await params;
 
-    const attendance = await prisma.attendance.findUnique({
-      where: { id },
+    // Shop isolation via schedule relationship
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const attendance = await prisma.attendance.findFirst({
+      where: { id, schedule: { ...shopFilter } },
       select: {
         id: true,
         checkInTime: true,
         remainingPTAfter: true,
         notes: true,
-        internalNotes: session.user.role !== "MEMBER" ? true : false,
+        internalNotes: authResult.userRole !== "MEMBER" ? true : false,
         memberProfile: {
           select: {
             id: true,
@@ -56,8 +59,8 @@ export async function GET(
     }
 
     // 회원은 자신의 기록만 조회 가능
-    if (session.user.role === "MEMBER") {
-      if (!attendance.memberProfile || attendance.memberProfile.userId !== session.user.id) {
+    if (authResult.userRole === "MEMBER") {
+      if (!attendance.memberProfile || attendance.memberProfile.userId !== authResult.userId) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
       }
       // 회원에게는 internalNotes를 숨김
@@ -83,13 +86,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    // 트레이너와 관리자만 수정 가능
-    if (session.user.role === "MEMBER") {
+    if (authResult.userRole === "MEMBER") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -104,8 +106,10 @@ export async function PATCH(
       );
     }
 
-    const attendance = await prisma.attendance.findUnique({
-      where: { id },
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const attendance = await prisma.attendance.findFirst({
+      where: { id, schedule: { ...shopFilter } },
       include: {
         schedule: true,
       },
@@ -116,9 +120,9 @@ export async function PATCH(
     }
 
     // 트레이너인 경우 자신의 출석 기록만 수정 가능
-    if (session.user.role === "TRAINER") {
+    if (authResult.userRole === "TRAINER") {
       const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
       });
       if (attendance.schedule?.trainerId !== trainerProfile?.id) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
@@ -166,20 +170,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    // 관리자만 삭제 가능
-    if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "관리자만 삭제할 수 있습니다." }, { status: 403 });
     }
 
     const { id } = await params;
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
-    const attendance = await prisma.attendance.findUnique({
-      where: { id },
+    const attendance = await prisma.attendance.findFirst({
+      where: { id, schedule: { ...shopFilter } },
       include: {
         memberProfile: true,
         schedule: true,

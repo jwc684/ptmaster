@@ -34,11 +34,12 @@ export function InviteClient({
   async function handleKakaoSignIn() {
     setIsLoading(true);
 
-    // invite-token 쿠키 설정
-    document.cookie = `invite-token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-
-    // invite-name 쿠키 설정
-    document.cookie = `invite-name=${encodeURIComponent(name.trim())}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+    // invite cookies를 서버사이드에서 httpOnly로 설정
+    await fetch("/api/invite/set-cookie", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, name: name.trim() }),
+    });
 
     // 카카오 로그인 시작
     await signIn("kakao", {

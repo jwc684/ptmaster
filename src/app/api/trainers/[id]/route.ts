@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { trainerUpdateSchema } from "@/lib/validations/trainer";
 
 export async function GET(
@@ -9,15 +9,27 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
     const { id } = await params;
 
-    const trainer = await prisma.trainerProfile.findUnique({
-      where: { id },
+    // Trainers can only view their own profile
+    if (authResult.userRole === "TRAINER") {
+      const userProfile = await prisma.trainerProfile.findUnique({
+        where: { userId: authResult.userId },
+      });
+      if (userProfile?.id !== id) {
+        return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+      }
+    }
+
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const trainer = await prisma.trainerProfile.findFirst({
+      where: { id, ...shopFilter },
       select: {
         id: true,
         bio: true,
@@ -47,16 +59,6 @@ export async function GET(
       );
     }
 
-    // Trainers can only view their own profile
-    if (session.user.role === "TRAINER") {
-      const userProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
-      });
-      if (userProfile?.id !== id) {
-        return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
-      }
-    }
-
     return NextResponse.json(trainer);
   } catch (error) {
     console.error("Error fetching trainer:", error);
@@ -72,8 +74,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -88,8 +93,10 @@ export async function PATCH(
       );
     }
 
-    const trainer = await prisma.trainerProfile.findUnique({
-      where: { id },
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const trainer = await prisma.trainerProfile.findFirst({
+      where: { id, ...shopFilter },
       include: { user: true },
     });
 
@@ -162,15 +169,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
+    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { id } = await params;
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
-    const trainer = await prisma.trainerProfile.findUnique({
-      where: { id },
+    const trainer = await prisma.trainerProfile.findFirst({
+      where: { id, ...shopFilter },
       include: { user: true, members: true },
     });
 

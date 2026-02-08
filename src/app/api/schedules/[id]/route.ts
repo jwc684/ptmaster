@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
 import { sendAttendanceNotification, sendCancellationNotification, sendScheduleChangeNotification } from "@/lib/kakao-message";
 
@@ -17,12 +17,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    if (session.user.role === "MEMBER") {
+    if (authResult.userRole === "MEMBER") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -39,8 +39,10 @@ export async function PATCH(
 
     const { status, scheduledAt, notes, internalNotes, deductPT } = validatedData.data;
 
-    const schedule = await prisma.schedule.findUnique({
-      where: { id },
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
+
+    const schedule = await prisma.schedule.findFirst({
+      where: { id, ...shopFilter },
       include: {
         memberProfile: { include: { user: { select: { id: true } } } },
         attendance: true,
@@ -54,9 +56,9 @@ export async function PATCH(
     }
 
     // 트레이너인 경우 자신의 일정만 수정 가능
-    if (session.user.role === "TRAINER") {
+    if (authResult.userRole === "TRAINER") {
       const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
       });
       if (schedule.trainerId !== trainerProfile?.id) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
@@ -333,19 +335,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    const authResult = await getAuthWithShop();
+    if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    if (session.user.role === "MEMBER") {
+    if (authResult.userRole === "MEMBER") {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
     const { id } = await params;
+    const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);
 
-    const schedule = await prisma.schedule.findUnique({
-      where: { id },
+    const schedule = await prisma.schedule.findFirst({
+      where: { id, ...shopFilter },
       include: { attendance: true },
     });
 
@@ -354,9 +357,9 @@ export async function DELETE(
     }
 
     // 트레이너인 경우 자신의 일정만 삭제 가능
-    if (session.user.role === "TRAINER") {
+    if (authResult.userRole === "TRAINER") {
       const trainerProfile = await prisma.trainerProfile.findUnique({
-        where: { userId: session.user.id },
+        where: { userId: authResult.userId },
       });
       if (schedule.trainerId !== trainerProfile?.id) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
