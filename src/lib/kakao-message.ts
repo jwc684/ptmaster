@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://ptmaster.onrender.com";
 const KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 const KAKAO_MEMO_URL = "https://kapi.kakao.com/v2/api/talk/memo/default/send";
 
@@ -203,7 +204,7 @@ export async function sendScheduleNotification({
 
     const dateStr = formatKoreanDateTime(new Date(scheduledAt), true);
 
-    message = `[${shopName}] 🔔 PT 수업이 예약되었습니다!\n\n일시: ${dateStr}\n장소: ${shopName}\n남은 횟수: ${remainingPT}회\n\n※ 원활한 수업을 위해 5분 전 도착 부탁드립니다.\n※ 변경사항은 앱에서 확인해 주세요: ptmaster.onrender.com`;
+    message = `[${shopName}] 🔔 PT 수업이 예약되었습니다!\n\n일시: ${dateStr}\n장소: ${shopName}\n남은 횟수: ${remainingPT}회\n\n※ 원활한 수업을 위해 5분 전 도착 부탁드립니다.\n※ 변경사항은 앱에서 확인해 주세요: ${APP_URL}`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -313,7 +314,7 @@ export async function sendAttendanceNotification({
 
     const dateStr = formatKoreanDateTime(new Date(scheduledAt), true);
 
-    message = `[${shopName}] ✅ PT 출석 체크 완료\n\n트레이너: ${trainerName} 코치\n수업일시: ${dateStr}\n남은 횟수: ${remainingPT}회\n\n※ 변경사항은 앱에서 확인해 주세요: ptmaster.onrender.com`;
+    message = `[${shopName}] ✅ PT 출석 체크 완료\n\n트레이너: ${trainerName} 코치\n수업일시: ${dateStr}\n남은 횟수: ${remainingPT}회\n\n※ 변경사항은 앱에서 확인해 주세요: ${APP_URL}`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -421,7 +422,7 @@ export async function sendCancellationNotification({
 
     const dateStr = formatKoreanDateTime(new Date(scheduledAt));
 
-    message = `[${shopName}] ❌ PT 수업 취소 안내\n\n트레이너: ${trainerName} 코치\n취소된 수업: ${dateStr}\n현재 남은 PT: ${remainingPT}회 (취소분이 복구되었습니다)\n\n다시 예약하기: ptmaster.onrender.com`;
+    message = `[${shopName}] ❌ PT 수업 취소 안내\n\n트레이너: ${trainerName} 코치\n취소된 수업: ${dateStr}\n현재 남은 PT: ${remainingPT}회 (취소분이 복구되었습니다)\n\n다시 예약하기: ${APP_URL}`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -530,7 +531,7 @@ export async function sendScheduleChangeNotification({
     const prevDateStr = formatKoreanDateTime(new Date(previousScheduledAt), true);
     const newDateStr = formatKoreanDateTime(new Date(newScheduledAt), true);
 
-    message = `[${shopName}] 🔄 PT 수업 시간이 변경되었습니다\n\n트레이너: ${trainerName} 코치\n\n기존 시간: ${prevDateStr}\n\n변경 시간: ${newDateStr}\n잔여 횟수: ${remainingPT}회\n\n변경된 시간을 꼭 확인해 주세요!\n앱에서 확인: ptmaster.onrender.com`;
+    message = `[${shopName}] 🔄 PT 수업 시간이 변경되었습니다\n\n트레이너: ${trainerName} 코치\n\n기존 시간: ${prevDateStr}\n\n변경 시간: ${newDateStr}\n잔여 횟수: ${remainingPT}회\n\n변경된 시간을 꼭 확인해 주세요!\n앱에서 확인: ${APP_URL}`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {
@@ -637,7 +638,7 @@ export async function sendReminderNotification({
 
     const dateStr = formatKoreanDateTime(new Date(scheduledAt), true);
 
-    message = `[${shopName}] 🔔 내일은 PT 수업이 있는 날입니다!\n\n일시: ${dateStr}\n장소: ${shopName}\n남은 횟수: ${remainingPT}회\n\n※ 원활한 수업을 위해 5분 전 도착 부탁드립니다.\n※ 변경사항은 앱에서 확인해 주세요: ptmaster.onrender.com`;
+    message = `[${shopName}] 🔔 내일은 PT 수업이 있는 날입니다!\n\n일시: ${dateStr}\n장소: ${shopName}\n남은 횟수: ${remainingPT}회\n\n※ 원활한 수업을 위해 5분 전 도착 부탁드립니다.\n※ 변경사항은 앱에서 확인해 주세요: ${APP_URL}`;
 
     success = await sendKakaoMemo(accessToken, message);
     if (!success) {

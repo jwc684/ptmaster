@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -222,11 +222,7 @@ export function ScheduleView({ members, trainerId, isAdmin, tableView }: Schedul
     },
   });
 
-  useEffect(() => {
-    fetchSchedules();
-  }, [memberFilter]);
-
-  async function fetchSchedules() {
+  const fetchSchedules = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -245,7 +241,11 @@ export function ScheduleView({ members, trainerId, isAdmin, tableView }: Schedul
     } finally {
       setLoading(false);
     }
-  }
+  }, [memberFilter]);
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [fetchSchedules]);
 
   async function handleAddSchedule() {
     if (!newSchedule.memberProfileId) {

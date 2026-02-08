@@ -91,7 +91,7 @@ export function ScheduleDialogs({
                   {format(new Date(selectedSchedule.scheduledAt), "M월 d일 HH:mm", { locale: ko })}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  잔여 PT: {selectedSchedule.remainingPT}회 → {selectedSchedule.remainingPT - 1}회
+                  잔여 PT: {selectedSchedule.remainingPT}회
                 </p>
               </div>
             )}

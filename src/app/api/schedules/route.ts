@@ -68,8 +68,12 @@ export async function GET(request: Request) {
       }
     }
 
-    // 상태 필터
-    const statusFilter = status ? { status: status as "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" } : {};
+    // 상태 필터 (런타임 검증)
+    const VALID_STATUSES = ["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"] as const;
+    type ScheduleStatus = typeof VALID_STATUSES[number];
+    const statusFilter = status && VALID_STATUSES.includes(status as ScheduleStatus)
+      ? { status: status as ScheduleStatus }
+      : {};
 
     // Build shop filter
     const shopFilter = buildShopFilter(authResult.shopId, authResult.isSuperAdmin);

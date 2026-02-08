@@ -79,8 +79,9 @@ export function useScheduleActions({ onSuccess }: UseScheduleActionsOptions) {
         const error = await res.json();
         toast.error(error.error || "출석 처리에 실패했습니다.");
       }
-    } catch {
-      toast.error("오류가 발생했습니다.");
+    } catch (error) {
+      console.error("[useScheduleActions] Check-in error:", error);
+      toast.error("출석 처리 중 오류가 발생했습니다.");
     } finally {
       setActionLoading(null);
     }
@@ -107,8 +108,9 @@ export function useScheduleActions({ onSuccess }: UseScheduleActionsOptions) {
         const error = await res.json();
         toast.error(error.error || "취소 처리에 실패했습니다.");
       }
-    } catch {
-      toast.error("오류가 발생했습니다.");
+    } catch (error) {
+      console.error("[useScheduleActions] Cancel error:", error);
+      toast.error("취소 처리 중 오류가 발생했습니다.");
     } finally {
       setActionLoading(null);
     }
@@ -131,8 +133,9 @@ export function useScheduleActions({ onSuccess }: UseScheduleActionsOptions) {
         const error = await res.json();
         toast.error(error.error || "되돌리기에 실패했습니다.");
       }
-    } catch {
-      toast.error("오류가 발생했습니다.");
+    } catch (error) {
+      console.error("[useScheduleActions] Revert error:", error);
+      toast.error("되돌리기 중 오류가 발생했습니다.");
     } finally {
       setActionLoading(null);
     }
@@ -162,8 +165,9 @@ export function useScheduleActions({ onSuccess }: UseScheduleActionsOptions) {
         const error = await res.json();
         toast.error(error.error || "일정 수정에 실패했습니다.");
       }
-    } catch {
-      toast.error("오류가 발생했습니다.");
+    } catch (error) {
+      console.error("[useScheduleActions] Edit error:", error);
+      toast.error("일정 수정 중 오류가 발생했습니다.");
     } finally {
       setActionLoading(null);
     }
@@ -187,8 +191,9 @@ export function useScheduleActions({ onSuccess }: UseScheduleActionsOptions) {
         const error = await res.json();
         toast.error(error.error || "일정 삭제에 실패했습니다.");
       }
-    } catch {
-      toast.error("오류가 발생했습니다.");
+    } catch (error) {
+      console.error("[useScheduleActions] Delete error:", error);
+      toast.error("일정 삭제 중 오류가 발생했습니다.");
     } finally {
       setActionLoading(null);
     }
