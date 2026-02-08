@@ -45,13 +45,19 @@ if (!process.env.AUTH_SECRET && process.env.NODE_ENV === "production") {
   console.error("AUTH_SECRET is not set in production environment!");
 }
 
+const isDev = process.env.NODE_ENV === "development";
+function debugLog(...args: unknown[]) {
+  if (isDev) console.log(...args);
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30일
+    maxAge: 365 * 24 * 60 * 60, // 365일 (1년)
+    updateAge: 24 * 60 * 60, // 24시간마다 JWT 갱신 (활동 시 세션 연장)
   },
   pages: {
     signIn: "/login",
@@ -70,10 +76,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          console.log("[Auth] Login attempt for:", credentials?.email);
+          debugLog("[Auth] Login attempt for:", credentials?.email);
 
           if (!credentials?.email || !credentials?.password) {
-            console.log("[Auth] Missing credentials");
+            debugLog("[Auth] Missing credentials");
             throw new Error("이메일과 비밀번호를 입력해주세요.");
           }
 
@@ -81,10 +87,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { email: credentials.email as string },
           });
 
-          console.log("[Auth] User found:", !!user);
+          debugLog("[Auth] User found:", !!user);
 
           if (!user || !user.password) {
-            console.log("[Auth] User not found or no password");
+            debugLog("[Auth] User not found or no password");
             throw new Error("등록되지 않은 이메일입니다.");
           }
 
@@ -93,13 +99,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             user.password
           );
 
-          console.log("[Auth] Password valid:", isPasswordValid);
+          debugLog("[Auth] Password valid:", isPasswordValid);
 
           if (!isPasswordValid) {
             throw new Error("비밀번호가 일치하지 않습니다.");
           }
 
-          console.log("[Auth] Login successful for:", user.email);
+          debugLog("[Auth] Login successful for:", user.email);
 
           return {
             id: user.id,
@@ -129,8 +135,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const kakaoAccount = kakaoProfile?.kakao_account as Record<string, unknown> | undefined;
         const email = user.email || kakaoAccount?.email as string | undefined;
 
-        console.log("[Auth] Kakao signIn - email:", email, "providerAccountId:", account.providerAccountId);
-        console.log("[Auth] Kakao profile keys:", kakaoProfile ? Object.keys(kakaoProfile) : "none");
+        debugLog("[Auth] Kakao signIn - email:", email, "providerAccountId:", account.providerAccountId);
+        debugLog("[Auth] Kakao profile keys:", kakaoProfile ? Object.keys(kakaoProfile) : "none");
 
         // 1. 기존 Account가 있는지 확인 (이미 가입한 사용자)
         const existingAccount = await prisma.account.findUnique({
@@ -145,7 +151,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (existingAccount) {
           // 기존 사용자 → 로그인 허용
-          console.log("[Auth] Existing Kakao user:", existingAccount.user.email);
+          debugLog("[Auth] Existing Kakao user:", existingAccount.user.email);
           return true;
         }
 
@@ -156,7 +162,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const inviteName = cookieStore.get("invite-name")?.value;
 
           if (!inviteToken) {
-            console.log("[Auth] No invite token found for new Kakao user");
+            debugLog("[Auth] No invite token found for new Kakao user");
             return "/login?error=NoInvitation";
           }
 
@@ -167,17 +173,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (!invitation) {
-            console.log("[Auth] Invalid invite token");
+            debugLog("[Auth] Invalid invite token");
             return "/login?error=InvalidInvitation";
           }
 
           if (invitation.usedAt && !invitation.reusable) {
-            console.log("[Auth] Invite token already used");
+            debugLog("[Auth] Invite token already used");
             return "/login?error=InvitationUsed";
           }
 
           if (invitation.expiresAt < new Date()) {
-            console.log("[Auth] Invite token expired");
+            debugLog("[Auth] Invite token expired");
             return "/login?error=InvitationExpired";
           }
 
@@ -266,7 +272,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           cookieStore.delete("invite-token");
           cookieStore.delete("invite-name");
 
-          console.log("[Auth] New user created via invitation:", dbUser.email, dbUser.role);
+          debugLog("[Auth] New user created via invitation:", dbUser.email, dbUser.role);
           return true;
         } catch (error) {
           console.error("[Auth] Error processing Kakao signup:", error);

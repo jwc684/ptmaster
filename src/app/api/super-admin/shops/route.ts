@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop } from "@/lib/shop-utils";
+import { z } from "zod";
+
+const createShopSchema = z.object({
+  name: z.string().min(1, "이름은 필수입니다.").max(100),
+  slug: z.string().min(1, "슬러그는 필수입니다.").max(50).regex(/^[a-z0-9-]+$/, "슬러그는 영문 소문자, 숫자, 하이픈만 사용 가능합니다."),
+  description: z.string().max(500).optional(),
+  address: z.string().max(200).optional(),
+  phone: z.string().max(20).optional(),
+  email: z.string().email("올바른 이메일 주소를 입력해주세요.").optional().or(z.literal("")),
+  logo: z.string().max(500).optional(),
+});
 
 // GET /api/super-admin/shops - List all PT shops
 export async function GET(request: NextRequest) {
@@ -93,14 +104,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, slug, description, address, phone, email, logo } = body;
+    const validatedData = createShopSchema.safeParse(body);
 
-    if (!name || !slug) {
+    if (!validatedData.success) {
       return NextResponse.json(
-        { error: "Name and slug are required" },
+        { error: validatedData.error.issues[0].message },
         { status: 400 }
       );
     }
+
+    const { name, slug, description, address, phone, email, logo } = validatedData.data;
 
     // Check if slug is already taken
     const existingShop = await prisma.pTShop.findUnique({

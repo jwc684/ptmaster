@@ -61,9 +61,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    // ADMIN 또는 SUPER_ADMIN만 접근 가능
-    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
-      return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+    // SUPER_ADMIN만 관리자 초대 가능
+    if (!authResult.isSuperAdmin) {
+      return NextResponse.json({ error: "슈퍼관리자만 관리자를 초대할 수 있습니다." }, { status: 403 });
     }
 
     // Shop context 필수

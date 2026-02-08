@@ -43,6 +43,11 @@ export async function POST(request: Request) {
 
     let { role, email, metadata } = validatedData.data;
 
+    // ADMIN 역할 초대는 SUPER_ADMIN만 가능
+    if (role === "ADMIN" && !authResult.isSuperAdmin) {
+      return NextResponse.json({ error: "슈퍼관리자만 관리자를 초대할 수 있습니다." }, { status: 403 });
+    }
+
     // TRAINER는 MEMBER 초대만 생성 가능, trainerId 자동 주입
     if (authResult.userRole === "TRAINER") {
       if (role !== "MEMBER") {

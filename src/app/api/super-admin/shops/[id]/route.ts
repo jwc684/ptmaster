@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop } from "@/lib/shop-utils";
+import { z } from "zod";
+
+const updateShopSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  slug: z.string().min(1).max(50).regex(/^[a-z0-9-]+$/, "슬러그는 영문 소문자, 숫자, 하이픈만 사용 가능합니다.").optional(),
+  description: z.string().max(500).optional().nullable(),
+  address: z.string().max(200).optional().nullable(),
+  phone: z.string().max(20).optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal("")),
+  logo: z.string().max(500).optional().nullable(),
+  isActive: z.boolean().optional(),
+});
 
 // GET /api/super-admin/shops/[id] - Get shop details
 export async function GET(
@@ -103,7 +115,16 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, slug, description, address, phone, email, logo, isActive } = body;
+    const validatedData = updateShopSchema.safeParse(body);
+
+    if (!validatedData.success) {
+      return NextResponse.json(
+        { error: validatedData.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const { name, slug, description, address, phone, email, logo, isActive } = validatedData.data;
 
     // Check if shop exists
     const existingShop = await prisma.pTShop.findUnique({

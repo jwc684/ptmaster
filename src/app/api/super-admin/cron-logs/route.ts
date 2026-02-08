@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "30");
+  const limit = Math.min(parseInt(searchParams.get("limit") || "30"), 100);
   const status = searchParams.get("status"); // SUCCESS, ERROR, NO_DATA
 
   const where: Record<string, unknown> = {};
