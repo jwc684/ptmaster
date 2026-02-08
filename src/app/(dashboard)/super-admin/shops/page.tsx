@@ -139,8 +139,7 @@ export default function ShopsPage() {
       }
 
       toast.success(`${shopName} 관리자로 전환했습니다.`);
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch {
       toast.error("관리자 계정으로 로그인하는데 실패했습니다.");
     }
