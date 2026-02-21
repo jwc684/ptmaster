@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { signOut } from "next-auth/react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin } from "lucide-react";
+import { MapPin, LogOut } from "lucide-react";
 
 interface Shop {
   id: string;
@@ -112,6 +114,20 @@ export function SelectShopForm({ shops, defaultName }: SelectShopFormProps) {
           >
             {isLoading ? "처리 중..." : "센터 등록"}
           </Button>
+
+          <div className="flex items-center justify-between pt-2">
+            <Button variant="link" asChild className="px-0 text-muted-foreground">
+              <Link href="/my">나중에 하기</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-red-600 hover:text-red-600 hover:bg-red-50"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              로그아웃
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
