@@ -23,12 +23,15 @@ interface SetInputProps {
     reps?: number;
     durationMinutes?: number;
   }) => void;
+  defaultWeight?: number;
+  defaultReps?: number;
+  defaultDuration?: number;
 }
 
-export function SetInput({ exercise, nextSetNumber, order, onAdd }: SetInputProps) {
-  const [weight, setWeight] = useState("20");
-  const [reps, setReps] = useState("10");
-  const [duration, setDuration] = useState("30");
+export function SetInput({ exercise, nextSetNumber, order, onAdd, defaultWeight, defaultReps, defaultDuration }: SetInputProps) {
+  const [weight, setWeight] = useState(String(defaultWeight ?? 20));
+  const [reps, setReps] = useState(String(defaultReps ?? 10));
+  const [duration, setDuration] = useState(String(defaultDuration ?? 30));
 
   const handleAdd = () => {
     const data: Parameters<typeof onAdd>[0] = {
