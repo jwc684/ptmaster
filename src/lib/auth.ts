@@ -164,15 +164,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const inviteName = cookieStore.get("invite-name")?.value;
 
           if (!inviteToken) {
-            // Direct signup: signup-flow 쿠키 확인 (카카오 인증 후 센터 선택)
-            const signupFlow = cookieStore.get("signup-flow")?.value;
-
-            if (!signupFlow) {
-              debugLog("[Auth] No invite token or signup cookie found for new Kakao user");
-              return "/login?error=NoInvitation";
-            }
-
-            // Create minimal user without shop (shop selected after OAuth)
+            // Direct signup: 초대 없이 카카오 가입 → MEMBER로 자동 생성
             const userEmail = email || `kakao_${account.providerAccountId}@kakao.local`;
             const userName = user.name || userEmail.split("@")[0];
 
@@ -184,7 +176,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               },
             });
 
-            // Account 생성 (OAuth 연결)
             await prisma.account.create({
               data: {
                 userId: dbUser.id,
@@ -201,8 +192,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               },
             });
 
-            cookieStore.delete("signup-flow");
-            debugLog("[Auth] New member created via signup (pending shop selection):", dbUser.email);
+            debugLog("[Auth] New member created via direct signup (pending shop selection):", dbUser.email);
             return true;
           }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 import { z } from "zod";
 
 const schema = z.object({
@@ -60,6 +61,13 @@ export async function POST(request: Request) {
         },
       });
     });
+
+    // Clean up the signup-flow cookie now that signup is complete.
+    // This is done here (in a normal request handler) rather than inside the
+    // signIn callback, where cookie mutation can interfere with NextAuth's
+    // own session cookie write and cause "Unauthorized" on this very endpoint.
+    const cookieStore = await cookies();
+    cookieStore.delete("signup-flow");
 
     return NextResponse.json({ message: "가입이 완료되었습니다." });
   } catch (error) {

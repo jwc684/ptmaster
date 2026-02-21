@@ -15,8 +15,7 @@ import {
 import { PtMasterLogo } from "@/components/ui/pt-master-logo";
 
 const ERROR_MESSAGES: Record<string, string> = {
-  AccessDenied: "접근이 거부되었습니다. 초대 링크를 통해 가입해주세요.",
-  NoInvitation: "초대 링크를 통해 먼저 가입해주세요.",
+  AccessDenied: "접근이 거부되었습니다.",
   InvalidInvitation: "유효하지 않은 초대입니다.",
   InvitationUsed: "이미 사용된 초대 링크입니다.",
   InvitationExpired: "만료된 초대 링크입니다.",

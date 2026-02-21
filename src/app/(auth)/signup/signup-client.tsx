@@ -18,8 +18,6 @@ export function SignupClient() {
 
   async function handleKakaoSignIn() {
     setIsLoading(true);
-
-    await fetch("/api/signup/set-cookie", { method: "POST" });
     await signIn("kakao", { callbackUrl: "/signup/select-shop" });
   }
 
