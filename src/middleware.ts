@@ -39,19 +39,13 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Members without shopId must complete signup (select shop)
-  if (isLoggedIn && userRole === "MEMBER" && !req.auth?.user?.shopId) {
-    if (pathname === "/signup/select-shop") {
+  // Redirect logged-in users away from public routes to their dashboard
+  // Exception: MEMBER without shopId (JWT) needs to stay on signup pages to complete registration
+  if (isLoggedIn && isPublicRoute) {
+    const memberPendingSignup = userRole === "MEMBER" && !req.auth?.user?.shopId;
+    if (memberPendingSignup && pathname.startsWith("/signup")) {
       return NextResponse.next();
     }
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Signup incomplete" }, { status: 403 });
-    }
-    return NextResponse.redirect(new URL("/signup/select-shop", nextUrl));
-  }
-
-  // Redirect logged-in users away from public routes to their dashboard
-  if (isLoggedIn && isPublicRoute) {
     const dashboardPath = userRole ? DASHBOARD_PATH[userRole] : "/dashboard";
     return NextResponse.redirect(new URL(dashboardPath, nextUrl));
   }
