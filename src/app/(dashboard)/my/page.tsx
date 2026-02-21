@@ -3,7 +3,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, User, CreditCard } from "lucide-react";
+import { Activity, User, CreditCard, Dumbbell } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { MyPageNoShop } from "./my-page-no-shop";
 
 async function getMemberData(userId: string) {
@@ -76,6 +78,14 @@ export default async function MyPage() {
         <h1 className="text-xl font-bold">{member.user.name}님</h1>
         <p className="text-sm text-muted-foreground">마이페이지</p>
       </div>
+
+      {/* Start Workout Button */}
+      <Button asChild className="w-full h-14 text-lg">
+        <Link href="/my/workout">
+          <Dumbbell className="h-5 w-5 mr-2" />
+          운동 시작하기
+        </Link>
+      </Button>
 
       {/* PT Status Card */}
       <Card>
