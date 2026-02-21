@@ -32,7 +32,7 @@ async function migrateToMultiTenant() {
       console.log(`Default PT Shop created with ID: ${defaultShopId}`);
     }
 
-    // Step 2: Check if Super Admin already exists
+    // Step 2: Ensure Super Admin exists with correct role
     const existingSuperAdmin = await prisma.user.findFirst({
       where: { roles: { has: "SUPER_ADMIN" } },
     });
@@ -40,20 +40,80 @@ async function migrateToMultiTenant() {
     if (existingSuperAdmin) {
       console.log("Super Admin already exists, skipping creation.");
     } else {
-      // Create Super Admin
-      console.log("Creating Super Admin...");
-      const hashedPassword = await bcrypt.hash("superadmin123!", 10);
-      const superAdmin = await prisma.user.create({
-        data: {
-          email: "superadmin@ptmaster.com",
-          password: hashedPassword,
-          name: "Super Admin",
-          roles: ["SUPER_ADMIN"],
-          shopId: null, // Super Admin has no shop
-        },
+      // Check if the email exists but lost SUPER_ADMIN role (e.g. after db push reset)
+      const existingByEmail = await prisma.user.findUnique({
+        where: { email: "superadmin@ptmaster.com" },
       });
-      console.log(`Super Admin created: ${superAdmin.email}`);
+
+      if (existingByEmail) {
+        // Restore SUPER_ADMIN role
+        await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: { roles: ["SUPER_ADMIN"], shopId: null },
+        });
+        console.log(`Super Admin role restored for: ${existingByEmail.email}`);
+      } else {
+        // Create Super Admin
+        console.log("Creating Super Admin...");
+        const hashedPassword = await bcrypt.hash("superadmin123!", 10);
+        const superAdmin = await prisma.user.create({
+          data: {
+            email: "superadmin@ptmaster.com",
+            password: hashedPassword,
+            name: "Super Admin",
+            roles: ["SUPER_ADMIN"],
+            shopId: null, // Super Admin has no shop
+          },
+        });
+        console.log(`Super Admin created: ${superAdmin.email}`);
+      }
     }
+
+    // Step 2.5: Restore lost roles based on existing profiles
+    // After db push, all users may have been reset to [MEMBER] default.
+    // Restore ADMIN/TRAINER roles based on existing profiles and access logs.
+    console.log("\nRestoring roles from existing profiles...");
+
+    // Restore TRAINER role for users with TrainerProfile
+    const trainersWithMemberOnly = await prisma.user.findMany({
+      where: {
+        trainerProfile: { isNot: null },
+        NOT: { roles: { has: "TRAINER" } },
+      },
+      select: { id: true, email: true, roles: true },
+    });
+    for (const user of trainersWithMemberOnly) {
+      const newRoles = [...new Set([...user.roles, "TRAINER" as const])];
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { roles: newRoles },
+      });
+      console.log(`  Restored TRAINER role for: ${user.email}`);
+    }
+
+    // Restore ADMIN role for users who have access logs as ADMIN but currently only MEMBER
+    // (AccessLog.userRole preserved the original role)
+    const adminLogs = await prisma.accessLog.findMany({
+      where: { userRole: "ADMIN" },
+      select: { userId: true },
+      distinct: ["userId"],
+    });
+    for (const log of adminLogs) {
+      const user = await prisma.user.findUnique({
+        where: { id: log.userId },
+        select: { id: true, email: true, roles: true },
+      });
+      if (user && !user.roles.includes("ADMIN")) {
+        const newRoles = [...new Set([...user.roles, "ADMIN" as const])];
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { roles: newRoles },
+        });
+        console.log(`  Restored ADMIN role for: ${user.email}`);
+      }
+    }
+
+    console.log("Role restoration complete.");
 
     // Step 3: Update all existing users with shopId (except SUPER_ADMIN)
     console.log("\nUpdating users with shopId...");
