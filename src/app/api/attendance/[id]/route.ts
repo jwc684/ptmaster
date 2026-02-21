@@ -59,8 +59,8 @@ export async function GET(
       return NextResponse.json({ error: "출석 기록을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    // 회원은 자신의 기록만 조회 가능
-    if (hasRole(authResult.userRoles, "MEMBER")) {
+    // 회원은 자신의 기록만 조회 가능 (ADMIN/TRAINER/SUPER_ADMIN 제외)
+    if (hasRole(authResult.userRoles, "MEMBER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN", "TRAINER")) {
       if (!attendance.memberProfile || attendance.memberProfile.userId !== authResult.userId) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
       }
@@ -92,7 +92,7 @@ export async function PATCH(
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    if (hasRole(authResult.userRoles, "MEMBER")) {
+    if (hasRole(authResult.userRoles, "MEMBER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN", "TRAINER")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

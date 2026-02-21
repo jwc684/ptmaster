@@ -17,8 +17,8 @@ export async function GET(
 
     const { id } = await params;
 
-    // Members can only view their own profile
-    if (hasRole(authResult.userRoles, "MEMBER")) {
+    // Members can only view their own profile (skip for ADMIN/TRAINER/SUPER_ADMIN)
+    if (hasRole(authResult.userRoles, "MEMBER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN", "TRAINER")) {
       const userProfile = await prisma.memberProfile.findUnique({
         where: { userId: authResult.userId },
       });
@@ -109,7 +109,8 @@ export async function PATCH(
     const body = await request.json();
 
     // 회원 본인이 수정 가능한 필드: kakaoNotification, name
-    if (hasRole(authResult.userRoles, "MEMBER")) {
+    // ADMIN/TRAINER/SUPER_ADMIN이 MEMBER 역할도 함께 가진 경우 이 분기를 건너뜀
+    if (hasRole(authResult.userRoles, "MEMBER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN", "TRAINER")) {
       const allowedKeys = new Set(["kakaoNotification", "name"]);
       const bodyKeys = Object.keys(body);
       const hasOnlyAllowed = bodyKeys.length > 0 && bodyKeys.every((k) => allowedKeys.has(k));
