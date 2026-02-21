@@ -31,7 +31,35 @@ export default async function MySettingsPage() {
   const member = await getMemberSettings(session.user.id);
 
   if (!member) {
-    redirect("/my");
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl font-bold">설정</h1>
+          <p className="text-sm text-muted-foreground">내 정보</p>
+        </div>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4" />
+              내 정보
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">이름</span>
+              <span className="text-sm">{session.user.name || "-"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">이메일</span>
+              <span className="text-sm">{session.user.email || "-"}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <LogoutButton />
+      </div>
+    );
   }
 
   return (

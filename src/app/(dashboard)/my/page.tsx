@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Activity, User, CreditCard, Building2 } from "lucide-react";
+import { Activity, User, CreditCard } from "lucide-react";
+import { MyPageNoShop } from "./my-page-no-shop";
 
 async function getMemberData(userId: string) {
   const member = await prisma.memberProfile.findUnique({
@@ -56,29 +55,17 @@ export default async function MyPage() {
   const member = await getMemberData(session.user.id);
 
   if (!member) {
+    const shops = await prisma.pTShop.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, address: true },
+      orderBy: { name: "asc" },
+    });
+
     return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-xl font-bold">{session.user.name || "회원"}님, 환영합니다!</h1>
-          <p className="text-sm text-muted-foreground">마이페이지</p>
-        </div>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              센터 등록
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              PT 센터를 선택하면 일정 관리, 출석 확인 등 다양한 서비스를 이용할 수 있습니다.
-            </p>
-            <Button asChild className="w-full">
-              <Link href="/my/select-shop">센터 선택하기</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <MyPageNoShop
+        shops={shops}
+        userName={session.user.name || ""}
+      />
     );
   }
 
