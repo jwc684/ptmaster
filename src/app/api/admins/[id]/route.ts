@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
@@ -7,10 +6,6 @@ import { z } from "zod";
 const updateAdminSchema = z.object({
   name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다.").optional(),
   email: z.string().email("올바른 이메일 주소를 입력해주세요.").optional(),
-  password: z.preprocess(
-    (val) => (val === "" || val === undefined ? undefined : val),
-    z.string().min(8, "비밀번호는 최소 8자 이상이어야 합니다.").optional()
-  ),
   phone: z.string().optional().nullable(),
 });
 
@@ -105,7 +100,7 @@ export async function PATCH(
       return NextResponse.json({ error: "관리자를 찾을 수 없습니다." }, { status: 404 });
     }
 
-    const { name, email, password, phone } = validatedData.data;
+    const { name, email, phone } = validatedData.data;
 
     // 이메일 변경 시 중복 확인
     if (email && email !== existingAdmin.email) {
@@ -125,9 +120,6 @@ export async function PATCH(
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 12);
-    }
 
     const updatedAdmin = await prisma.user.update({
       where: { id },
@@ -157,7 +149,7 @@ export async function PATCH(
 
 // DELETE: 관리자 삭제
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

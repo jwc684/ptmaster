@@ -72,7 +72,6 @@ export default function AdminsPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
     phone: "",
   });
 
@@ -158,7 +157,6 @@ export default function AdminsPage() {
     setFormData({
       name: admin.name,
       email: admin.email,
-      password: "",
       phone: admin.phone || "",
     });
     setIsDialogOpen(true);
@@ -180,14 +178,6 @@ export default function AdminsPage() {
       toast.error("이메일을 입력해주세요.");
       return;
     }
-    if (!editingAdmin && !formData.password) {
-      toast.error("비밀번호를 입력해주세요.");
-      return;
-    }
-    if (formData.password && formData.password.length < 8) {
-      toast.error("비밀번호는 최소 8자 이상이어야 합니다.");
-      return;
-    }
 
     setIsSubmitting(true);
 
@@ -198,9 +188,6 @@ export default function AdminsPage() {
           email: formData.email,
           phone: formData.phone,
         };
-        if (formData.password) {
-          updateData.password = formData.password;
-        }
 
         const response = await fetch(`/api/admins/${editingAdmin.id}`, {
           method: "PATCH",
@@ -217,7 +204,7 @@ export default function AdminsPage() {
           );
           setIsDialogOpen(false);
           setEditingAdmin(null);
-          setFormData({ name: "", email: "", password: "", phone: "" });
+          setFormData({ name: "", email: "", phone: "" });
         } else {
           toast.error(data.error || "관리자 수정에 실패했습니다.");
         }
@@ -234,7 +221,7 @@ export default function AdminsPage() {
           toast.success("관리자가 추가되었습니다.");
           setAdmins((prev) => [data, ...prev]);
           setIsDialogOpen(false);
-          setFormData({ name: "", email: "", password: "", phone: "" });
+          setFormData({ name: "", email: "", phone: "" });
         } else {
           toast.error(data.error || "관리자 추가에 실패했습니다.");
         }
@@ -297,7 +284,7 @@ export default function AdminsPage() {
               </DialogTitle>
               <DialogDescription>
                 {editingAdmin
-                  ? "관리자 정보를 수정합니다. 비밀번호는 변경 시에만 입력하세요."
+                  ? "관리자 정보를 수정합니다."
                   : "새로운 관리자 계정을 생성합니다."}
               </DialogDescription>
             </DialogHeader>
@@ -323,20 +310,6 @@ export default function AdminsPage() {
                     setFormData({ ...formData, email: e.target.value })
                   }
                   placeholder="admin@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">
-                  비밀번호 {editingAdmin ? "(변경 시에만 입력)" : "*"}
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  placeholder={editingAdmin ? "변경하지 않으려면 비워두세요" : "최소 8자 이상"}
                 />
               </div>
               <div className="space-y-2">
