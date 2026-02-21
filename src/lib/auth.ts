@@ -37,6 +37,8 @@ declare module "@auth/core/jwt" {
     role: UserRole;
     phone?: string | null;
     shopId?: string | null;
+    userVerifiedAt?: number;
+    userDeleted?: boolean;
   }
 }
 
@@ -399,10 +401,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
 
+      // Periodically verify user still exists in DB (every 5 minutes)
+      if (!user && !account && token.id && !token.userDeleted) {
+        const VERIFY_INTERVAL = 5 * 60 * 1000;
+        const now = Date.now();
+        if (!token.userVerifiedAt || now - (token.userVerifiedAt as number) > VERIFY_INTERVAL) {
+          const userExists = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { id: true },
+          });
+          if (!userExists) {
+            token.userDeleted = true;
+            debugLog("[Auth] User deleted, invalidating token:", token.id);
+          } else {
+            token.userVerifiedAt = now;
+          }
+        }
+      }
+
       return token;
     },
 
     async session({ session, token }) {
+      // User was deleted — return session without user data
+      if (token?.userDeleted) {
+        return session;
+      }
+
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;

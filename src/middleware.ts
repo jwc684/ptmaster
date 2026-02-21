@@ -24,6 +24,21 @@ export default auth((req) => {
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
+  // Detect invalidated session (user was deleted from DB)
+  if (isLoggedIn && !userRole) {
+    if (!isPublicRoute && !isPublicApiRoute) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const response = NextResponse.redirect(new URL("/login", nextUrl));
+      response.cookies.delete("authjs.session-token");
+      response.cookies.delete("__Secure-authjs.session-token");
+      return response;
+    }
+    // On public routes, let them through (show login page)
+    return NextResponse.next();
+  }
+
   // Redirect logged-in users away from public routes to their dashboard
   if (isLoggedIn && isPublicRoute) {
     const dashboardPath = userRole ? DASHBOARD_PATH[userRole] : "/dashboard";

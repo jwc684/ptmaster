@@ -22,6 +22,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   InvitationExpired: "만료된 초대 링크입니다.",
   SignupError: "가입 중 오류가 발생했습니다. 다시 시도해주세요.",
   InvalidShop: "유효하지 않은 센터입니다. 다시 시도해주세요.",
+  AccountDeleted: "계정이 삭제되었습니다. 관리자에게 문의해주세요.",
 };
 
 export function LoginForm() {
