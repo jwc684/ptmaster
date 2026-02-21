@@ -164,57 +164,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const inviteName = cookieStore.get("invite-name")?.value;
 
           if (!inviteToken) {
-            // Direct signup: signup-shop-id 쿠키 확인
-            const signupShopId = cookieStore.get("signup-shop-id")?.value;
-            const signupName = cookieStore.get("signup-name")?.value;
+            // Direct signup: signup-flow 쿠키 확인 (카카오 인증 후 센터 선택)
+            const signupFlow = cookieStore.get("signup-flow")?.value;
 
-            if (!signupShopId) {
+            if (!signupFlow) {
               debugLog("[Auth] No invite token or signup cookie found for new Kakao user");
               return "/login?error=NoInvitation";
             }
 
-            // 센터 유효성 확인
-            const shop = await prisma.pTShop.findUnique({
-              where: { id: signupShopId, isActive: true },
-            });
-
-            if (!shop) {
-              cookieStore.delete("signup-shop-id");
-              cookieStore.delete("signup-name");
-              return "/login?error=InvalidShop";
-            }
-
+            // Create minimal user without shop (shop selected after OAuth)
             const userEmail = email || `kakao_${account.providerAccountId}@kakao.local`;
-            const decodedSignupName = signupName ? decodeURIComponent(signupName) : null;
-            const userName = decodedSignupName || user.name || userEmail.split("@")[0];
+            const userName = user.name || userEmail.split("@")[0];
 
-            // User + MemberProfile 생성 (트랜잭션)
-            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            let qrCode = "";
-            for (let i = 0; i < 12; i++) {
-              qrCode += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-
-            const dbUser = await prisma.$transaction(async (tx) => {
-              const newUser = await tx.user.create({
-                data: {
-                  email: userEmail,
-                  name: userName,
-                  role: "MEMBER",
-                  shopId: signupShopId,
-                },
-              });
-
-              await tx.memberProfile.create({
-                data: {
-                  userId: newUser.id,
-                  shopId: signupShopId,
-                  qrCode,
-                  remainingPT: 0,
-                },
-              });
-
-              return newUser;
+            const dbUser = await prisma.user.create({
+              data: {
+                email: userEmail,
+                name: userName,
+                role: "MEMBER",
+              },
             });
 
             // Account 생성 (OAuth 연결)
@@ -234,11 +201,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               },
             });
 
-            // signup 쿠키 삭제
-            cookieStore.delete("signup-shop-id");
-            cookieStore.delete("signup-name");
-
-            debugLog("[Auth] New member created via direct signup:", dbUser.email);
+            cookieStore.delete("signup-flow");
+            debugLog("[Auth] New member created via signup (pending shop selection):", dbUser.email);
             return true;
           }
 
@@ -402,19 +366,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       // Periodically verify user still exists in DB (every 5 minutes)
+      // Always refresh for members without shopId (pending signup completion)
       if (!user && !account && token.id && !token.userDeleted) {
         const VERIFY_INTERVAL = 5 * 60 * 1000;
         const now = Date.now();
-        if (!token.userVerifiedAt || now - (token.userVerifiedAt as number) > VERIFY_INTERVAL) {
-          const userExists = await prisma.user.findUnique({
+        const needsRefresh = token.role === "MEMBER" && !token.shopId;
+        if (needsRefresh || !token.userVerifiedAt || now - (token.userVerifiedAt as number) > VERIFY_INTERVAL) {
+          const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { id: true },
+            select: { id: true, role: true, shopId: true, phone: true },
           });
-          if (!userExists) {
+          if (!dbUser) {
             token.userDeleted = true;
             debugLog("[Auth] User deleted, invalidating token:", token.id);
           } else {
             token.userVerifiedAt = now;
+            token.role = dbUser.role;
+            token.shopId = dbUser.shopId;
+            token.phone = dbUser.phone;
           }
         }
       }

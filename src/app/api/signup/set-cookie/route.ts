@@ -1,26 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { z } from "zod";
 
-const schema = z.object({
-  shopId: z.string().min(1),
-  name: z.string().min(1),
-});
-
-// POST: Set signup cookies server-side with httpOnly flag
-export async function POST(request: Request) {
+// POST: Set signup-flow cookie to indicate direct signup
+export async function POST() {
   try {
-    const body = await request.json();
-    const result = schema.safeParse(body);
-
-    if (!result.success) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-    }
-
-    const { shopId, name } = result.data;
     const cookieStore = await cookies();
 
-    cookieStore.set("signup-shop-id", shopId, {
+    cookieStore.set("signup-flow", "true", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -28,16 +14,8 @@ export async function POST(request: Request) {
       path: "/",
     });
 
-    cookieStore.set("signup-name", name, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 300,
-      path: "/",
-    });
-
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ error: "Failed to set cookies" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to set cookie" }, { status: 500 });
   }
 }

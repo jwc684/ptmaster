@@ -39,6 +39,17 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // Members without shopId must complete signup (select shop)
+  if (isLoggedIn && userRole === "MEMBER" && !req.auth?.user?.shopId) {
+    if (pathname === "/signup/select-shop") {
+      return NextResponse.next();
+    }
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Signup incomplete" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/signup/select-shop", nextUrl));
+  }
+
   // Redirect logged-in users away from public routes to their dashboard
   if (isLoggedIn && isPublicRoute) {
     const dashboardPath = userRole ? DASHBOARD_PATH[userRole] : "/dashboard";
