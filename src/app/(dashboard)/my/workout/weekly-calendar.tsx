@@ -16,16 +16,23 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface WeekSession {
+  date: string;
+  status: string;
+}
+
 interface WeeklyCalendarProps {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   workoutDates: string[];
+  weekSessions?: WeekSession[];
 }
 
 export function WeeklyCalendar({
   selectedDate,
   onSelectDate,
   workoutDates,
+  weekSessions = [],
 }: WeeklyCalendarProps) {
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -38,6 +45,9 @@ export function WeeklyCalendar({
 
   const hasWorkout = (date: Date) =>
     workoutDates.some((d) => isSameDay(new Date(d), date));
+
+  const getSessionStatus = (date: Date) =>
+    weekSessions.find((s) => isSameDay(new Date(s.date), date))?.status;
 
   return (
     <div className="space-y-2">
@@ -76,6 +86,8 @@ export function WeeklyCalendar({
           const selected = isSameDay(day, selectedDate);
           const today = isToday(day);
           const workout = hasWorkout(day);
+          const status = getSessionStatus(day);
+          const isPlanned = status === "PLANNED";
 
           return (
             <button
@@ -98,8 +110,14 @@ export function WeeklyCalendar({
               {workout && (
                 <span
                   className={cn(
-                    "w-1 h-1 rounded-full mt-0.5",
-                    selected ? "bg-primary-foreground" : "bg-primary"
+                    "w-1.5 h-1.5 rounded-full mt-0.5",
+                    isPlanned
+                      ? selected
+                        ? "border border-primary-foreground bg-transparent"
+                        : "border border-amber-500 bg-transparent"
+                      : selected
+                        ? "bg-primary-foreground"
+                        : "bg-primary"
                   )}
                 />
               )}

@@ -63,11 +63,12 @@ model User {
   shopId        String?
 
   // Relations
-  memberProfile  MemberProfile?
-  trainerProfile TrainerProfile?
-  accounts       Account[]
-  sessions       Session[]
-  exercises      Exercise[]
+  memberProfile   MemberProfile?
+  trainerProfile  TrainerProfile?
+  accounts        Account[]
+  sessions        Session[]
+  exercises       Exercise[]
+  createdWorkouts WorkoutSession[] @relation("createdWorkouts")
 
   @@map("users")
 }
@@ -384,6 +385,7 @@ enum ExerciseType {
 }
 
 enum WorkoutStatus {
+  PLANNED
   IN_PROGRESS
   COMPLETED
 }
@@ -418,6 +420,8 @@ model WorkoutSession {
   status          WorkoutStatus @default(IN_PROGRESS)
   notes           String?       @db.Text
   shopId          String?
+  createdBy       User?         @relation("createdWorkouts", fields: [createdById], references: [id])
+  createdById     String?
   createdAt       DateTime      @default(now())
 
   sets WorkoutSet[]

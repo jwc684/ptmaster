@@ -144,6 +144,26 @@ export async function POST(request: Request) {
 
     const sessionDate = body.date ? new Date(body.date) : new Date();
 
+    // Check for existing session on the same date (including PLANNED)
+    const startOfDay = new Date(sessionDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(sessionDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingOnDate = await prisma.workoutSession.findFirst({
+      where: {
+        memberProfileId: memberProfile.id,
+        date: { gte: startOfDay, lte: endOfDay },
+      },
+    });
+
+    if (existingOnDate) {
+      return NextResponse.json(
+        { error: "해당 날짜에 이미 운동이 존재합니다.", workoutId: existingOnDate.id },
+        { status: 400 }
+      );
+    }
+
     const workout = await prisma.workoutSession.create({
       data: {
         memberProfileId: memberProfile.id,

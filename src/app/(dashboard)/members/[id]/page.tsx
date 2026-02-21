@@ -15,10 +15,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Phone, Mail, Calendar, CreditCard, User, Cake, Building2, History } from "lucide-react";
+import { Pencil, Phone, Mail, Calendar, User, Cake, Building2, History } from "lucide-react";
 import { DeleteMemberButton } from "@/components/members/delete-member-button";
 import { ImpersonateButton } from "@/components/members/impersonate-button";
 import { MemberScheduleTabs } from "@/components/members/member-schedule-tabs";
+import { MemberWorkoutHistory } from "@/components/members/member-workout-history";
 
 async function getMember(id: string) {
   return prisma.memberProfile.findUnique({
@@ -292,6 +293,9 @@ export default async function MemberDetailPage({
         memberProfileId={member.id}
         remainingPT={member.remainingPT}
       />
+
+      {/* 운동 기록 */}
+      <MemberWorkoutHistory memberProfileId={member.id} planHref={`/members/${member.id}/workout-plan`} />
 
       {/* PT 변동 내역 */}
       <Card>

@@ -25,7 +25,9 @@ import {
   CreditCard,
   Plus,
   Loader2,
+  Dumbbell,
 } from "lucide-react";
+import { MemberWorkoutHistory } from "@/components/members/member-workout-history";
 import { useScheduleActions } from "@/hooks/use-schedule-actions";
 import { ScheduleItemRow } from "@/components/schedule/schedule-item";
 import { ScheduleDialogs } from "@/components/schedule/schedule-dialogs";
@@ -220,11 +222,11 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Schedules Tabs */}
+      {/* Schedules & Workout Tabs */}
       <Tabs defaultValue="upcoming" className="gap-0">
         <TabsList className="w-full">
           <TabsTrigger value="upcoming">
-            예정된 스케줄
+            예정
             {upcoming.length > 0 && (
               <Badge variant="outline" className="ml-1">
                 {upcoming.length}
@@ -238,6 +240,10 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
                 {completed.length}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="workouts">
+            <Dumbbell className="h-3.5 w-3.5 mr-1" />
+            운동 기록
           </TabsTrigger>
         </TabsList>
         <TabsContent value="upcoming">
@@ -289,6 +295,9 @@ export function MemberDetailClient({ member, trainerProfileId }: Props) {
               지난 스케줄이 없습니다.
             </p>
           )}
+        </TabsContent>
+        <TabsContent value="workouts">
+          <MemberWorkoutHistory memberProfileId={member.id} planHref={`/my-members/${member.id}/workout-plan`} />
         </TabsContent>
       </Tabs>
 

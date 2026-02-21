@@ -193,6 +193,30 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
     }
   };
 
+  // Start a PLANNED workout (transition to IN_PROGRESS)
+  const handleStartPlanned = async (sessionId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/workouts/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "IN_PROGRESS" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error);
+        return;
+      }
+      await refreshSession(sessionId);
+      fetchWeekSessions(selectedDate);
+      setViewState("recording");
+    } catch {
+      toast.error("운동 시작 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle multi-select confirm from ExerciseSelector
   const handleExercisesConfirm = async (exercises: { id: string; name: string; type: string }[]) => {
     if (!activeSession) return;
@@ -201,16 +225,44 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
     const existingOrders = new Set(activeSession.sets.map((s) => s.order));
     let nextOrder = existingOrders.size > 0 ? Math.max(...activeSession.sets.map((s) => s.order)) + 1 : 0;
 
-    const sets = exercises.map((ex) => {
+    // Fetch last completed workout data for selected exercises
+    type HistoryEntry = {
+      sets: { setNumber: number; weight: number | null; reps: number | null; durationMinutes: number | null }[];
+      completedAt: string;
+    };
+    let historyMap: Record<string, HistoryEntry> = {};
+    try {
+      const ids = exercises.map((e) => e.id).join(",");
+      const histRes = await fetch(`/api/workouts/exercise-history?exerciseIds=${ids}`);
+      if (histRes.ok) {
+        historyMap = await histRes.json();
+      }
+    } catch {
+      // Fallback to defaults if history fetch fails
+    }
+
+    const sets = exercises.flatMap((ex) => {
       const order = nextOrder++;
-      return {
+      const history = historyMap[ex.id];
+      if (history && history.sets.length > 0) {
+        return history.sets.map((s) => ({
+          exerciseId: ex.id,
+          setNumber: s.setNumber,
+          order,
+          weight: s.weight ?? undefined,
+          reps: s.reps ?? undefined,
+          durationMinutes: s.durationMinutes ?? undefined,
+        }));
+      }
+      // Default fallback
+      return [{
         exerciseId: ex.id,
         setNumber: 1,
         order,
         weight: ex.type === "WEIGHT" ? 20 : undefined,
         reps: ex.type === "WEIGHT" || ex.type === "BODYWEIGHT" ? 10 : undefined,
         durationMinutes: ex.type === "CARDIO" ? 30 : undefined,
-      };
+      }];
     });
 
     try {
@@ -444,7 +496,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
 
   // When selectedDateSession changes, fetch its full data
   useEffect(() => {
-    if (selectedDateSession && selectedDateSession.status === "COMPLETED") {
+    if (selectedDateSession && (selectedDateSession.status === "COMPLETED" || selectedDateSession.status === "PLANNED")) {
       fetchDateWorkout(selectedDateSession.id);
     } else {
       setSelectedDateWorkout(null);
@@ -615,6 +667,9 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
                       nextSetNumber={group.sets.length + 1}
                       order={group.sets[0]?.order ?? 0}
                       onAdd={handleAddSet}
+                      defaultWeight={group.sets[group.sets.length - 1]?.weight ?? undefined}
+                      defaultReps={group.sets[group.sets.length - 1]?.reps ?? undefined}
+                      defaultDuration={group.sets[group.sets.length - 1]?.durationMinutes ?? undefined}
                     />
                   </CardContent>
                 </Card>
@@ -700,12 +755,22 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
             selectedDate={selectedDate}
             onSelectDate={handleDateSelect}
             workoutDates={workoutDates}
+            weekSessions={weekSessions}
           />
         </CardContent>
       </Card>
 
       {/* Action button based on date state */}
-      {selectedDateSession && selectedDateSession.status === "IN_PROGRESS" ? (
+      {selectedDateSession && selectedDateSession.status === "PLANNED" ? (
+        <Button
+          className="w-full h-14 text-lg"
+          onClick={() => handleStartPlanned(selectedDateSession.id)}
+          disabled={loading}
+        >
+          <Dumbbell className="h-5 w-5 mr-2" />
+          운동 시작
+        </Button>
+      ) : selectedDateSession && selectedDateSession.status === "IN_PROGRESS" ? (
         <Button
           className="w-full h-14 text-lg"
           onClick={() => handleResume(selectedDateSession.id)}
@@ -735,7 +800,55 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       <div className="border-t" />
 
       {/* Selected date's workout OR recent workout history */}
-      {selectedDateWorkout ? (
+      {selectedDateWorkout && selectedDateWorkout.status === "PLANNED" ? (
+        <div className="space-y-3">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            {format(selectedDate, "M월 d일", { locale: ko })} 운동 계획
+            <Badge variant="outline" className="text-amber-600 border-amber-400">계획됨</Badge>
+          </h2>
+          {(() => {
+            const grouped = selectedDateWorkout.sets.reduce(
+              (acc, set) => {
+                if (!acc[set.exerciseId]) {
+                  acc[set.exerciseId] = { exercise: set.exercise, sets: [] };
+                }
+                acc[set.exerciseId].sets.push(set);
+                return acc;
+              },
+              {} as Record<string, { exercise: Exercise; sets: WorkoutSet[] }>
+            );
+            return (
+              <Card>
+                <CardContent className="py-3 space-y-3">
+                  {Object.entries(grouped).map(([exId, group]) => (
+                    <div key={exId}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{group.exercise.name}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {group.exercise.type === "WEIGHT" ? "중량" : group.exercise.type === "CARDIO" ? "유산소" : "맨몸"}
+                        </Badge>
+                      </div>
+                      <div className="space-y-0.5 pl-2">
+                        {group.sets.map((set) => (
+                          <div key={set.id} className="text-sm text-muted-foreground">
+                            {set.setNumber}세트:&nbsp;
+                            {set.exercise.type === "WEIGHT" && <>{set.weight}kg x {set.reps}회</>}
+                            {set.exercise.type === "CARDIO" && <>{set.durationMinutes}분</>}
+                            {set.exercise.type === "BODYWEIGHT" && <>{set.reps}회</>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {selectedDateWorkout.notes && (
+                    <p className="text-sm text-muted-foreground border-t pt-2">{selectedDateWorkout.notes}</p>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
+        </div>
+      ) : selectedDateWorkout ? (
         <div className="space-y-3">
           <h2 className="text-base font-semibold">
             {format(selectedDate, "M월 d일", { locale: ko })} 운동

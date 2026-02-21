@@ -82,7 +82,24 @@ export async function PATCH(
 
     const updateData: Record<string, unknown> = {};
 
+    if (body.status === "IN_PROGRESS") {
+      if (workout.status !== "PLANNED") {
+        return NextResponse.json(
+          { error: "이미 시작된 운동입니다." },
+          { status: 400 }
+        );
+      }
+      updateData.status = "IN_PROGRESS";
+      updateData.startedAt = new Date();
+    }
+
     if (body.status === "COMPLETED") {
+      if (workout.status === "PLANNED") {
+        return NextResponse.json(
+          { error: "먼저 운동을 시작해주세요." },
+          { status: 400 }
+        );
+      }
       updateData.status = "COMPLETED";
       updateData.completedAt = new Date();
     }
