@@ -40,10 +40,10 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
 };
 
 // Public routes that don't require authentication
-export const PUBLIC_ROUTES = ["/login", "/", "/invite", "/admin/login"];
+export const PUBLIC_ROUTES = ["/login", "/", "/invite", "/signup", "/admin/login"];
 
 // API routes that are public
-export const PUBLIC_API_ROUTES = ["/api/auth", "/api/health", "/api/invite"];
+export const PUBLIC_API_ROUTES = ["/api/auth", "/api/health", "/api/invite", "/api/signup"];
 
 // Dashboard paths by role
 export const DASHBOARD_PATH: Record<UserRole, string> = {

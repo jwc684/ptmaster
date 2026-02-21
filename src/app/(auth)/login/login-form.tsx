@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   InvitationUsed: "이미 사용된 초대 링크입니다.",
   InvitationExpired: "만료된 초대 링크입니다.",
   SignupError: "가입 중 오류가 발생했습니다. 다시 시도해주세요.",
+  InvalidShop: "유효하지 않은 센터입니다. 다시 시도해주세요.",
 };
 
 export function LoginForm() {
@@ -85,6 +87,13 @@ export function LoginForm() {
             </span>
           )}
         </Button>
+
+        <p className="text-sm text-center text-muted-foreground">
+          계정이 없으신가요?{" "}
+          <Link href="/signup" className="text-primary hover:underline">
+            회원 가입
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

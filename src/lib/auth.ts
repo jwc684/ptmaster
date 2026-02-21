@@ -162,8 +162,82 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const inviteName = cookieStore.get("invite-name")?.value;
 
           if (!inviteToken) {
-            debugLog("[Auth] No invite token found for new Kakao user");
-            return "/login?error=NoInvitation";
+            // Direct signup: signup-shop-id 쿠키 확인
+            const signupShopId = cookieStore.get("signup-shop-id")?.value;
+            const signupName = cookieStore.get("signup-name")?.value;
+
+            if (!signupShopId) {
+              debugLog("[Auth] No invite token or signup cookie found for new Kakao user");
+              return "/login?error=NoInvitation";
+            }
+
+            // 센터 유효성 확인
+            const shop = await prisma.pTShop.findUnique({
+              where: { id: signupShopId, isActive: true },
+            });
+
+            if (!shop) {
+              cookieStore.delete("signup-shop-id");
+              cookieStore.delete("signup-name");
+              return "/login?error=InvalidShop";
+            }
+
+            const userEmail = email || `kakao_${account.providerAccountId}@kakao.local`;
+            const decodedSignupName = signupName ? decodeURIComponent(signupName) : null;
+            const userName = decodedSignupName || user.name || userEmail.split("@")[0];
+
+            // User + MemberProfile 생성 (트랜잭션)
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let qrCode = "";
+            for (let i = 0; i < 12; i++) {
+              qrCode += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            const dbUser = await prisma.$transaction(async (tx) => {
+              const newUser = await tx.user.create({
+                data: {
+                  email: userEmail,
+                  name: userName,
+                  role: "MEMBER",
+                  shopId: signupShopId,
+                },
+              });
+
+              await tx.memberProfile.create({
+                data: {
+                  userId: newUser.id,
+                  shopId: signupShopId,
+                  qrCode,
+                  remainingPT: 0,
+                },
+              });
+
+              return newUser;
+            });
+
+            // Account 생성 (OAuth 연결)
+            await prisma.account.create({
+              data: {
+                userId: dbUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                refresh_token: account.refresh_token,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state as string | null,
+              },
+            });
+
+            // signup 쿠키 삭제
+            cookieStore.delete("signup-shop-id");
+            cookieStore.delete("signup-name");
+
+            debugLog("[Auth] New member created via direct signup:", dbUser.email);
+            return true;
           }
 
           // 3. 초대 유효성 확인
