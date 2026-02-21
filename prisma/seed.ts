@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, ExerciseType } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import fs from "fs";
 
 const prisma = new PrismaClient();
 
@@ -152,49 +153,41 @@ async function main() {
 
   console.log("Created member2: member2@ptshop.com / member123!");
 
-  // Seed system exercises
-  const systemExercises = [
-    // 중량 (WEIGHT)
-    { name: "벤치프레스", type: "WEIGHT" as const },
-    { name: "스쿼트", type: "WEIGHT" as const },
-    { name: "데드리프트", type: "WEIGHT" as const },
-    { name: "오버헤드프레스", type: "WEIGHT" as const },
-    { name: "바벨로우", type: "WEIGHT" as const },
-    { name: "덤벨컬", type: "WEIGHT" as const },
-    { name: "레그프레스", type: "WEIGHT" as const },
-    { name: "렛풀다운", type: "WEIGHT" as const },
-    { name: "덤벨 숄더프레스", type: "WEIGHT" as const },
-    { name: "케이블 플라이", type: "WEIGHT" as const },
-    // 유산소 (CARDIO)
-    { name: "러닝", type: "CARDIO" as const },
-    { name: "사이클", type: "CARDIO" as const },
-    { name: "로잉", type: "CARDIO" as const },
-    { name: "줄넘기", type: "CARDIO" as const },
-    { name: "수영", type: "CARDIO" as const },
-    { name: "스텝퍼", type: "CARDIO" as const },
-    { name: "걷기", type: "CARDIO" as const },
-    // 맨몸 (BODYWEIGHT)
-    { name: "푸시업", type: "BODYWEIGHT" as const },
-    { name: "풀업", type: "BODYWEIGHT" as const },
-    { name: "딥스", type: "BODYWEIGHT" as const },
-    { name: "버피", type: "BODYWEIGHT" as const },
-    { name: "플랭크", type: "BODYWEIGHT" as const },
-    { name: "런지", type: "BODYWEIGHT" as const },
-    { name: "맨몸 스쿼트", type: "BODYWEIGHT" as const },
-    { name: "크런치", type: "BODYWEIGHT" as const },
-  ];
+  // Seed system exercises from CSV
+  const csvPath = __dirname + "/exercises.csv";
+  if (fs.existsSync(csvPath)) {
+    const csvContent = fs.readFileSync(csvPath, "utf-8");
+    const lines = csvContent.trim().split("\n").slice(1); // skip header
 
-  for (const ex of systemExercises) {
-    const existing = await prisma.exercise.findFirst({
-      where: { name: ex.name, isSystem: true },
-    });
-    if (!existing) {
-      await prisma.exercise.create({
-        data: { name: ex.name, type: ex.type, isSystem: true },
-      });
+    // Map category to ExerciseType
+    function getExerciseType(category: string, equipment: string): ExerciseType {
+      if (category === "유산소") return "CARDIO";
+      if (equipment === "맨몸") return "BODYWEIGHT";
+      return "WEIGHT";
     }
+
+    // Delete old system exercises and re-create
+    await prisma.exercise.deleteMany({ where: { isSystem: true } });
+
+    const exercises = lines.map((line) => {
+      const parts = line.split(",");
+      const name = parts[1].trim();
+      const category = parts[2].trim();
+      const equipment = parts[3].trim();
+      return {
+        name,
+        type: getExerciseType(category, equipment),
+        category,
+        equipment,
+        isSystem: true,
+      };
+    });
+
+    await prisma.exercise.createMany({ data: exercises });
+    console.log(`Seeded ${exercises.length} system exercises from CSV`);
+  } else {
+    console.log("exercises.csv not found, skipping exercise seeding");
   }
-  console.log(`Seeded ${systemExercises.length} system exercises`);
 
   console.log("\nSeeding completed!");
   console.log("\nTest accounts:");

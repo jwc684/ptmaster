@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Timer,
   Settings,
+  Dumbbell,
 } from "lucide-react";
 
 import {
@@ -54,6 +55,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   MessageSquare,
   Timer,
   Settings,
+  Dumbbell,
 };
 
 export function AppSidebar() {

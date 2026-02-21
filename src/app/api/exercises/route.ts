@@ -28,11 +28,13 @@ export async function GET(request: Request) {
 
     const exercises = await prisma.exercise.findMany({
       where,
-      orderBy: [{ isSystem: "desc" }, { name: "asc" }],
+      orderBy: [{ isSystem: "desc" }, { category: "asc" }, { name: "asc" }],
       select: {
         id: true,
         name: true,
         type: true,
+        category: true,
+        equipment: true,
         isSystem: true,
       },
     });
@@ -93,6 +95,8 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         type: true,
+        category: true,
+        equipment: true,
         isSystem: true,
       },
     });

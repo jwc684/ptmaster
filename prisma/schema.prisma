@@ -392,6 +392,8 @@ model Exercise {
   id          String       @id @default(cuid())
   name        String
   type        ExerciseType
+  category    String?      // 하체, 가슴, 등, 어깨, 팔, 복근, 유산소, 역도, 기타
+  equipment   String?      // 바벨, 덤벨, 맨몸, 머신, 케틀벨, 이지바, 기타
   isSystem    Boolean      @default(false)
   createdBy   User?        @relation(fields: [createdById], references: [id])
   createdById String?
@@ -402,6 +404,7 @@ model Exercise {
 
   @@index([type])
   @@index([isSystem])
+  @@index([category])
   @@map("exercises")
 }
 
