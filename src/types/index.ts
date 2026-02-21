@@ -16,6 +16,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
     "/super-admin/exercises",
     "/super-admin/notification-logs",
     "/super-admin/cron-logs",
+    "/super-admin/logs",
   ],
   ADMIN: [
     "/dashboard",

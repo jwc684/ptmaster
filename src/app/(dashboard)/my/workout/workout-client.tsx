@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Timer, Dumbbell, Plus, Square, CalendarPlus, ChevronRight } from "lucide-react";
+import { Trash2, Timer, Dumbbell, Plus, Square, CalendarPlus, ChevronRight, ArrowLeft } from "lucide-react";
 import { ExerciseSelector } from "./exercise-selector";
 import { SetInput } from "./set-input";
 import { WorkoutHistoryItem } from "./workout-history-item";
@@ -451,6 +451,25 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
     }
   }, [selectedDateSession, fetchDateWorkout]);
 
+  // Delete a completed workout session
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      const res = await fetch(`/api/workouts/${sessionId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success("운동 기록이 삭제되었습니다.");
+      setDetailSession(null);
+      setSelectedDateWorkout(null);
+      fetchWeekSessions(selectedDate);
+      router.refresh();
+    } catch {
+      toast.error("운동 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   // Handle date selection
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -472,138 +491,168 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       )
     : {};
 
-  // ========== RECORDING VIEW ==========
+  // ========== RECORDING VIEW (fullscreen overlay) ==========
   if (viewState === "recording" && activeSession) {
+    const completedCount = activeSession.sets.filter((s) => s.isCompleted).length;
+    const totalCount = activeSession.sets.length;
+
     return (
-      <div className="space-y-4">
-        {/* Header with timer */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Dumbbell className="h-5 w-5" />
-              운동 중
-            </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(activeSession.date), "M월 d일 (EEE)", { locale: ko })}
-              </span>
-              <span className="text-muted-foreground/50">|</span>
-              <Timer className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm font-mono tabular-nums text-muted-foreground">
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        {/* Sticky header */}
+        <div className="shrink-0 border-b bg-background">
+          <div className="flex items-center justify-between px-4 h-14">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setViewState("home")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Timer className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-mono tabular-nums">
                 {formatElapsed(elapsed)}
               </span>
             </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-destructive"
+                onClick={handleDelete}
+                disabled={loading}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDelete}
-              disabled={loading}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleComplete}
-              disabled={loading}
-            >
-              <Square className="h-4 w-4 mr-1" />
-              완료
-            </Button>
+          <div className="px-4 pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-lg font-bold flex items-center gap-2">
+                  <Dumbbell className="h-5 w-5" />
+                  운동 중
+                </h1>
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(activeSession.date), "M월 d일 (EEE)", { locale: ko })}
+                </span>
+              </div>
+              {totalCount > 0 && (
+                <Badge variant="secondary">
+                  {completedCount}/{totalCount} 완료
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Exercise sets */}
-        {Object.entries(groupedSets).length > 0 ? (
-          Object.entries(groupedSets).map(([exerciseId, group]) => (
-            <Card key={exerciseId}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center justify-between">
-                  <span>{group.exercise.name}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {group.exercise.type === "WEIGHT"
-                      ? "중량"
-                      : group.exercise.type === "CARDIO"
-                        ? "유산소"
-                        : "맨몸"}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {/* Existing sets */}
-                {group.sets.map((set) => (
-                  <div
-                    key={set.id}
-                    className={`flex items-center justify-between py-1.5 px-2 bg-muted/50 ${
-                      set.isCompleted ? "opacity-60" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 flex-1">
-                      <Checkbox
-                        checked={set.isCompleted}
-                        onCheckedChange={(checked) =>
-                          handleToggleComplete(set.id, checked === true)
-                        }
-                      />
-                      <span className="text-sm text-muted-foreground w-6">
-                        {set.setNumber}
-                      </span>
-                      <span className={`text-sm flex-1 ${set.isCompleted ? "line-through" : ""}`}>
-                        {set.exercise.type === "WEIGHT" && (
-                          <>
-                            {set.weight}kg x {set.reps}회
-                          </>
-                        )}
-                        {set.exercise.type === "CARDIO" && (
-                          <>{set.durationMinutes}분</>
-                        )}
-                        {set.exercise.type === "BODYWEIGHT" && (
-                          <>{set.reps}회</>
-                        )}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={() => handleDeleteSet(set.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+        {/* Scrollable exercise sets */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 py-4 space-y-4 pb-28">
+            {Object.entries(groupedSets).length > 0 ? (
+              Object.entries(groupedSets).map(([exerciseId, group]) => (
+                <Card key={exerciseId}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span>{group.exercise.name}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {group.exercise.type === "WEIGHT"
+                          ? "중량"
+                          : group.exercise.type === "CARDIO"
+                            ? "유산소"
+                            : "맨몸"}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {/* Existing sets */}
+                    {group.sets.map((set) => (
+                      <div
+                        key={set.id}
+                        className={`flex items-center justify-between py-1.5 px-2 bg-muted/50 ${
+                          set.isCompleted ? "opacity-60" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <Checkbox
+                            checked={set.isCompleted}
+                            onCheckedChange={(checked) =>
+                              handleToggleComplete(set.id, checked === true)
+                            }
+                          />
+                          <span className="text-sm text-muted-foreground w-6">
+                            {set.setNumber}
+                          </span>
+                          <span className={`text-sm flex-1 ${set.isCompleted ? "line-through" : ""}`}>
+                            {set.exercise.type === "WEIGHT" && (
+                              <>
+                                {set.weight}kg x {set.reps}회
+                              </>
+                            )}
+                            {set.exercise.type === "CARDIO" && (
+                              <>{set.durationMinutes}분</>
+                            )}
+                            {set.exercise.type === "BODYWEIGHT" && (
+                              <>{set.reps}회</>
+                            )}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleDeleteSet(set.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
 
-                {/* Add set input */}
-                <SetInput
-                  exercise={group.exercise}
-                  nextSetNumber={group.sets.length + 1}
-                  order={group.sets[0]?.order ?? 0}
-                  onAdd={handleAddSet}
-                />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              아래 버튼을 눌러 운동을 추가해주세요.
-            </CardContent>
-          </Card>
-        )}
+                    {/* Add set input */}
+                    <SetInput
+                      exercise={group.exercise}
+                      nextSetNumber={group.sets.length + 1}
+                      order={group.sets[0]?.order ?? 0}
+                      onAdd={handleAddSet}
+                    />
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  아래 버튼을 눌러 운동을 추가해주세요.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
 
-        {/* Add exercise button */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => {
-            setAddingMore(true);
-            setShowExerciseSelector(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          운동 추가
-        </Button>
+        {/* Fixed bottom action bar */}
+        <div className="shrink-0 border-t bg-background px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setAddingMore(true);
+                setShowExerciseSelector(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              운동 추가
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleComplete}
+              disabled={loading || totalCount === 0}
+            >
+              <Square className="h-4 w-4 mr-2" />
+              운동 완료
+            </Button>
+          </div>
+        </div>
 
         {/* Exercise selector sheet (for adding more) */}
         <ExerciseSelector
@@ -619,15 +668,17 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
     );
   }
 
-  // ========== EXERCISE SELECT VIEW ==========
+  // ========== EXERCISE SELECT VIEW (fullscreen) ==========
   if (viewState === "exercise-select") {
     return (
-      <ExerciseSelector
-        open={showExerciseSelector}
-        onClose={handleExerciseSelectorClose}
-        onConfirm={handleExercisesConfirm}
-        excludeIds={[]}
-      />
+      <div className="fixed inset-0 z-50 bg-background">
+        <ExerciseSelector
+          open={showExerciseSelector}
+          onClose={handleExerciseSelectorClose}
+          onConfirm={handleExercisesConfirm}
+          excludeIds={[]}
+        />
+      </div>
     );
   }
 
@@ -692,6 +743,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
           <WorkoutHistoryItem
             session={selectedDateWorkout}
             onClick={() => setDetailSession(selectedDateWorkout)}
+            onDelete={handleDeleteSession}
           />
         </div>
       ) : loadingDateWorkout ? (
@@ -706,6 +758,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
               key={s.id}
               session={s}
               onClick={() => setDetailSession(s)}
+              onDelete={handleDeleteSession}
             />
           ))}
         </div>
@@ -723,6 +776,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
           session={detailSession}
           open={!!detailSession}
           onClose={() => setDetailSession(null)}
+          onDelete={handleDeleteSession}
         />
       )}
     </div>

@@ -141,7 +141,7 @@ export function ExerciseSelector({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-none flex flex-col">
+      <SheetContent side="bottom" className="h-[100dvh] sm:h-[85vh] rounded-none flex flex-col">
         <SheetHeader>
           <SheetTitle>운동 선택</SheetTitle>
         </SheetHeader>

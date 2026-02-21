@@ -7,7 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, Trash2 } from "lucide-react";
 
 interface Exercise {
   id: string;
@@ -39,6 +40,7 @@ interface WorkoutDetailDialogProps {
   session: WorkoutSession;
   open: boolean;
   onClose: () => void;
+  onDelete?: (sessionId: string) => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -51,6 +53,7 @@ export function WorkoutDetailDialog({
   session,
   open,
   onClose,
+  onDelete,
 }: WorkoutDetailDialogProps) {
   // Group sets by exercise
   const grouped = session.sets.reduce(
@@ -160,6 +163,20 @@ export function WorkoutDetailDialog({
           {session.notes && (
             <div className="border-t pt-3">
               <p className="text-sm text-muted-foreground">{session.notes}</p>
+            </div>
+          )}
+
+          {/* Delete button */}
+          {onDelete && (
+            <div className="border-t pt-3">
+              <Button
+                variant="outline"
+                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => onDelete(session.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                운동 기록 삭제
+              </Button>
             </div>
           )}
         </div>

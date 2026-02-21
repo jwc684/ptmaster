@@ -35,7 +35,7 @@ declare module "next-auth" {
 declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
-    roles: UserRole[];
+    roles?: UserRole[];
     phone?: string | null;
     shopId?: string | null;
     userVerifiedAt?: number;
@@ -353,8 +353,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       // Legacy compatibility: migrate single role to roles array
-      if ((token as Record<string, unknown>).role && !token.roles) {
-        token.roles = [(token as Record<string, unknown>).role as UserRole];
+      const legacyRole = (token as Record<string, unknown>).role as UserRole | undefined;
+      const tokenRoles = token.roles as UserRole[] | undefined;
+      if (legacyRole && (!tokenRoles || tokenRoles.length === 0)) {
+        token.roles = [legacyRole];
         delete (token as Record<string, unknown>).role;
       }
 
