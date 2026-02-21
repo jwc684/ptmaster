@@ -88,6 +88,8 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
   const [loading, setLoading] = useState(false);
   const [detailSession, setDetailSession] = useState<WorkoutSession | null>(null);
   const [addingMore, setAddingMore] = useState(false);
+  const [selectedDateWorkout, setSelectedDateWorkout] = useState<WorkoutSession | null>(null);
+  const [loadingDateWorkout, setLoadingDateWorkout] = useState(false);
 
   // Timer
   useEffect(() => {
@@ -412,6 +414,43 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
     }
   };
 
+  // Fetch full workout for a specific session id
+  const fetchDateWorkout = useCallback(async (sessionId: string) => {
+    setLoadingDateWorkout(true);
+    try {
+      const res = await fetch(`/api/workouts/${sessionId}`);
+      const data = await res.json();
+      if (res.ok && data.workout) {
+        setSelectedDateWorkout({
+          ...data.workout,
+          date: data.workout.date,
+          startedAt: data.workout.startedAt,
+          completedAt: data.workout.completedAt,
+          createdAt: data.workout.createdAt,
+          sets: data.workout.sets.map((s: WorkoutSet) => ({
+            ...s,
+            createdAt: s.createdAt,
+          })),
+        });
+      } else {
+        setSelectedDateWorkout(null);
+      }
+    } catch {
+      setSelectedDateWorkout(null);
+    } finally {
+      setLoadingDateWorkout(false);
+    }
+  }, []);
+
+  // When selectedDateSession changes, fetch its full data
+  useEffect(() => {
+    if (selectedDateSession && selectedDateSession.status === "COMPLETED") {
+      fetchDateWorkout(selectedDateSession.id);
+    } else {
+      setSelectedDateWorkout(null);
+    }
+  }, [selectedDateSession, fetchDateWorkout]);
+
   // Handle date selection
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -642,10 +681,24 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       )}
 
       {/* Separator */}
-      {recentSessions.length > 0 && <div className="border-t" />}
+      <div className="border-t" />
 
-      {/* Recent workout history */}
-      {recentSessions.length > 0 ? (
+      {/* Selected date's workout OR recent workout history */}
+      {selectedDateWorkout ? (
+        <div className="space-y-3">
+          <h2 className="text-base font-semibold">
+            {format(selectedDate, "M월 d일", { locale: ko })} 운동
+          </h2>
+          <WorkoutHistoryItem
+            session={selectedDateWorkout}
+            onClick={() => setDetailSession(selectedDateWorkout)}
+          />
+        </div>
+      ) : loadingDateWorkout ? (
+        <div className="py-4 text-center text-sm text-muted-foreground">
+          불러오는 중...
+        </div>
+      ) : recentSessions.length > 0 ? (
         <div className="space-y-3">
           <h2 className="text-base font-semibold">최근 운동</h2>
           {recentSessions.map((s) => (

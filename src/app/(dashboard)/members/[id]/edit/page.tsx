@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { MemberForm } from "@/components/forms/member-form";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 
 async function getMember(id: string) {
   const member = await prisma.memberProfile.findUnique({
@@ -33,8 +33,9 @@ async function getMember(id: string) {
   };
 }
 
-async function getTrainers() {
+async function getTrainers(shopId: string | null, isSuperAdmin: boolean) {
   return prisma.trainerProfile.findMany({
+    where: buildShopFilter(shopId, isSuperAdmin),
     select: {
       id: true,
       user: { select: { name: true } },
@@ -48,15 +49,15 @@ export default async function EditMemberPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  const authResult = await getAuthWithShop();
+  if (!authResult.isAuthenticated || (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN")) {
     redirect("/dashboard");
   }
 
   const { id } = await params;
   const [member, trainers] = await Promise.all([
     getMember(id),
-    getTrainers(),
+    getTrainers(authResult.shopId, authResult.isSuperAdmin),
   ]);
 
   if (!member) {

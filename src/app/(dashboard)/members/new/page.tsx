@@ -1,11 +1,12 @@
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { MemberForm } from "@/components/forms/member-form";
+import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 
-async function getTrainers() {
+async function getTrainers(shopId: string | null, isSuperAdmin: boolean) {
   return prisma.trainerProfile.findMany({
+    where: buildShopFilter(shopId, isSuperAdmin),
     select: {
       id: true,
       user: { select: { name: true } },
@@ -15,13 +16,13 @@ async function getTrainers() {
 }
 
 export default async function NewMemberPage() {
-  const session = await auth();
+  const authResult = await getAuthWithShop();
 
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!authResult.isAuthenticated || (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN")) {
     redirect("/dashboard");
   }
 
-  const trainers = await getTrainers();
+  const trainers = await getTrainers(authResult.shopId, authResult.isSuperAdmin);
 
   return (
     <div>
