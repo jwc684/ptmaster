@@ -40,12 +40,7 @@ export default auth((req) => {
   }
 
   // Redirect logged-in users away from public routes to their dashboard
-  // Exception: MEMBER without shopId (JWT) needs to stay on signup pages to complete registration
   if (isLoggedIn && isPublicRoute) {
-    const memberPendingSignup = userRole === "MEMBER" && !req.auth?.user?.shopId;
-    if (memberPendingSignup && pathname.startsWith("/signup")) {
-      return NextResponse.next();
-    }
     const dashboardPath = userRole ? DASHBOARD_PATH[userRole] : "/dashboard";
     return NextResponse.redirect(new URL(dashboardPath, nextUrl));
   }

@@ -31,7 +31,7 @@ export default async function MySettingsPage() {
   const member = await getMemberSettings(session.user.id);
 
   if (!member) {
-    redirect("/dashboard");
+    redirect("/my");
   }
 
   return (

@@ -18,7 +18,7 @@ export function SignupClient() {
 
   async function handleKakaoSignIn() {
     setIsLoading(true);
-    await signIn("kakao", { callbackUrl: "/signup/select-shop" });
+    await signIn("kakao", { callbackUrl: "/my" });
   }
 
   return (

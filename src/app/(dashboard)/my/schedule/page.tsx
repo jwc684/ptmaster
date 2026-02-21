@@ -46,7 +46,7 @@ export default async function MySchedulePage() {
   const data = await getScheduleData(session.user.id);
 
   if (data === null) {
-    redirect("/dashboard");
+    redirect("/my");
   }
 
   const serialized = data.schedules.map((s) => ({

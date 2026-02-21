@@ -1,22 +1,14 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
 import { ImpersonateBanner } from "@/components/layout/impersonate-banner";
 import { BottomNav } from "@/components/layout/bottom-nav";
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // MEMBER without shopId must complete signup (runs in Node.js, Prisma works)
-  const session = await auth();
-  if (session?.user?.role === "MEMBER" && !session.user.shopId) {
-    redirect("/signup/select-shop");
-  }
-
   return (
     <SidebarProvider>
       <AppSidebar />
