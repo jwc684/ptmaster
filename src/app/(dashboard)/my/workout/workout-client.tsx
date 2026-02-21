@@ -163,9 +163,22 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       const data = await res.json();
       if (!res.ok) {
         if (data.workoutId) {
-          // Already in-progress session exists, load it
-          await refreshSession(data.workoutId);
-          setViewState("recording");
+          // Session already exists on this date - check its status
+          const existingRes = await fetch(`/api/workouts/${data.workoutId}`);
+          const existingData = await existingRes.json();
+          if (existingRes.ok && existingData.workout) {
+            const status = existingData.workout.status;
+            if (status === "PLANNED") {
+              // Start the planned workout
+              await handleStartPlanned(data.workoutId);
+              return;
+            } else if (status === "IN_PROGRESS") {
+              await refreshSession(data.workoutId);
+              setViewState("recording");
+              return;
+            }
+          }
+          toast.error(data.error);
         } else {
           toast.error(data.error);
         }
@@ -220,7 +233,10 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
   // Handle multi-select confirm from ExerciseSelector
   const handleExercisesConfirm = async (exercises: { id: string; name: string; type: string }[]) => {
     if (!activeSession) return;
-    setShowExerciseSelector(false);
+    // Do NOT call setShowExerciseSelector(false) here.
+    // The Sheet is already being closed by the caller (onConfirm callback or onOpenChange).
+    // Calling it here triggers handleExerciseSelectorClose before sets are saved,
+    // which checks activeSession.sets.length === 0 and deletes the session.
 
     const existingOrders = new Set(activeSession.sets.map((s) => s.order));
     let nextOrder = existingOrders.size > 0 ? Math.max(...activeSession.sets.map((s) => s.order)) + 1 : 0;
@@ -274,12 +290,15 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       if (!res.ok) {
         const data = await res.json();
         toast.error(data.error);
+        setAddingMore(false);
         return;
       }
       await refreshSession(activeSession.id);
+      setAddingMore(false);
       setViewState("recording");
     } catch {
       toast.error("운동 추가 중 오류가 발생했습니다.");
+      setAddingMore(false);
     }
   };
 
@@ -713,10 +732,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
         <ExerciseSelector
           open={showExerciseSelector}
           onClose={handleExerciseSelectorClose}
-          onConfirm={(exercises) => {
-            setAddingMore(false);
-            handleExercisesConfirm(exercises);
-          }}
+          onConfirm={handleExercisesConfirm}
           excludeIds={Object.keys(groupedSets)}
         />
       </div>

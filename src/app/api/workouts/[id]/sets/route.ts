@@ -32,9 +32,9 @@ export async function POST(
       return NextResponse.json({ error: "운동 기록을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    if (workout.status === "COMPLETED") {
+    if (workout.status !== "IN_PROGRESS") {
       return NextResponse.json(
-        { error: "완료된 운동에는 세트를 추가할 수 없습니다." },
+        { error: "진행 중인 운동에만 세트를 추가할 수 있습니다." },
         { status: 400 }
       );
     }

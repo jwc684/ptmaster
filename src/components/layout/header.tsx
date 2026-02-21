@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, LogOut, Menu, User } from "lucide-react";
+import { LogOut, Menu, User } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 
@@ -67,14 +67,6 @@ export function Header() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1 flex-shrink-0">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" asChild className="h-8 w-8 sm:h-9 sm:w-9">
-          <Link href="/notifications">
-            <Bell className="h-4 w-4" />
-            <span className="sr-only">알림</span>
-          </Link>
-        </Button>
-
         {/* User Menu */}
         {mounted ? (
           <DropdownMenu>
