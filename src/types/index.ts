@@ -35,6 +35,7 @@ export const ROLE_ACCESS: Record<UserRole, string[]> = {
   MEMBER: [
     "/my",
     "/my/schedule",
+    "/my/workout",
     "/my/settings",
   ],
 };
@@ -152,6 +153,12 @@ export const NAV_ITEMS: NavItem[] = [
     title: "예약",
     href: "/my/schedule",
     icon: "CalendarDays",
+    roles: ["MEMBER"],
+  },
+  {
+    title: "운동",
+    href: "/my/workout",
+    icon: "Dumbbell",
     roles: ["MEMBER"],
   },
   {

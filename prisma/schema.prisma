@@ -67,6 +67,7 @@ model User {
   trainerProfile TrainerProfile?
   accounts       Account[]
   sessions       Session[]
+  exercises      Exercise[]
 
   @@map("users")
 }
@@ -141,10 +142,11 @@ model MemberProfile {
   trainerId        String?
 
   // Relations
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attendances  Attendance[]
-  payments     Payment[]
-  schedules    Schedule[]
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendances     Attendance[]
+  payments        Payment[]
+  schedules       Schedule[]
+  workoutSessions WorkoutSession[]
 
   @@index([shopId])
   @@index([trainerId])
@@ -369,4 +371,72 @@ model Invitation {
   @@index([token])
   @@index([shopId])
   @@map("invitations")
+}
+
+// ============================================
+// Exercise & Workout Tracking
+// ============================================
+
+enum ExerciseType {
+  WEIGHT     // 중량 (kg + reps)
+  CARDIO     // 유산소 (duration)
+  BODYWEIGHT // 맨몸 (reps)
+}
+
+enum WorkoutStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Exercise {
+  id          String       @id @default(cuid())
+  name        String
+  type        ExerciseType
+  isSystem    Boolean      @default(false)
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+  createdById String?
+  shopId      String?
+  createdAt   DateTime     @default(now())
+
+  workoutSets WorkoutSet[]
+
+  @@index([type])
+  @@index([isSystem])
+  @@map("exercises")
+}
+
+model WorkoutSession {
+  id              String        @id @default(cuid())
+  memberProfile   MemberProfile @relation(fields: [memberProfileId], references: [id], onDelete: Cascade)
+  memberProfileId String
+  date            DateTime      @default(now())
+  startedAt       DateTime      @default(now())
+  completedAt     DateTime?
+  status          WorkoutStatus @default(IN_PROGRESS)
+  notes           String?       @db.Text
+  shopId          String?
+  createdAt       DateTime      @default(now())
+
+  sets WorkoutSet[]
+
+  @@index([memberProfileId])
+  @@index([date])
+  @@map("workout_sessions")
+}
+
+model WorkoutSet {
+  id               String         @id @default(cuid())
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  workoutSessionId String
+  exercise         Exercise       @relation(fields: [exerciseId], references: [id])
+  exerciseId       String
+  order            Int            @default(0)
+  setNumber        Int
+  weight           Float?
+  reps             Int?
+  durationMinutes  Int?
+  createdAt        DateTime       @default(now())
+
+  @@index([workoutSessionId])
+  @@map("workout_sets")
 }

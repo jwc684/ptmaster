@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   User,
   Settings,
+  Dumbbell,
 } from "lucide-react";
 
 import { NAV_ITEMS } from "@/types";
@@ -22,6 +23,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ClipboardCheck,
   User,
   Settings,
+  Dumbbell,
 };
 
 // Roles that use bottom navigation on mobile instead of sidebar
