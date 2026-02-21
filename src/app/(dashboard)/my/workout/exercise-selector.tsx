@@ -141,14 +141,14 @@ export function ExerciseSelector({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="bottom" className="h-[100dvh] sm:h-[85vh] rounded-none flex flex-col">
+      <SheetContent side="bottom" className="h-[100dvh] sm:h-[85vh] rounded-none !gap-0 overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
         <SheetHeader>
           <SheetTitle>운동 선택</SheetTitle>
         </SheetHeader>
 
         {/* Search */}
-        <div className="relative mt-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative px-4">
+          <Search className="absolute left-7 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="운동 검색..."
             value={searchQuery}
@@ -158,7 +158,7 @@ export function ExerciseSelector({
         </div>
 
         {!isSearching && (
-          <Tabs value={tab} onValueChange={setTab} className="mt-3">
+          <Tabs value={tab} onValueChange={setTab} className="px-4 mt-2">
             <TabsList className="w-full flex-wrap h-auto gap-0">
               {categories.map((cat) => (
                 <TabsTrigger key={cat} value={cat} className="flex-1 min-w-0 text-xs px-2">
@@ -179,7 +179,7 @@ export function ExerciseSelector({
               <button
                 key={exercise.id}
                 type="button"
-                className={`w-full text-left px-3 py-2.5 transition-colors flex items-center gap-3 ${
+                className={`w-full text-left px-4 py-2.5 transition-colors flex items-center gap-3 ${
                   isExcluded
                     ? "opacity-40 cursor-not-allowed"
                     : isSelected
@@ -225,36 +225,39 @@ export function ExerciseSelector({
           )}
         </div>
 
-        {/* Custom exercise input */}
-        <div className="flex gap-2 mt-3 pt-3 border-t">
-          <Input
-            placeholder="커스텀 운동 추가"
-            value={customName}
-            onChange={(e) => setCustomName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAddCustom()}
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleAddCustom}
-            disabled={adding || !customName.trim()}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Bottom confirm bar */}
-        {selectedCount > 0 && (
-          <div className="flex items-center justify-between mt-3 pt-3 border-t">
-            <span className="text-sm text-muted-foreground">
-              {selectedCount}개 선택됨
-            </span>
-            <Button size="sm" onClick={handleConfirm}>
-              <Check className="h-4 w-4 mr-1" />
-              확인
+        {/* Bottom fixed section */}
+        <div className="shrink-0 px-4 pt-3 border-t space-y-3 pb-2">
+          {/* Custom exercise input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="커스텀 운동 추가"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddCustom()}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAddCustom}
+              disabled={adding || !customName.trim()}
+            >
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
-        )}
+
+          {/* Confirm bar */}
+          {selectedCount > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {selectedCount}개 선택됨
+              </span>
+              <Button size="sm" onClick={handleConfirm}>
+                <Check className="h-4 w-4 mr-1" />
+                확인
+              </Button>
+            </div>
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );

@@ -497,7 +497,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
     const totalCount = activeSession.sets.length;
 
     return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="fixed inset-0 z-[60] bg-background flex flex-col">
         {/* Sticky header */}
         <div className="shrink-0 border-b bg-background">
           <div className="flex items-center justify-between px-4 h-14">
@@ -671,7 +671,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
   // ========== EXERCISE SELECT VIEW (fullscreen) ==========
   if (viewState === "exercise-select") {
     return (
-      <div className="fixed inset-0 z-50 bg-background">
+      <div className="fixed inset-0 z-[60] bg-background">
         <ExerciseSelector
           open={showExerciseSelector}
           onClose={handleExerciseSelectorClose}
