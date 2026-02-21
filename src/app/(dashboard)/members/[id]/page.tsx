@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { hasRole } from "@/lib/role-utils";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -156,7 +157,7 @@ export default async function MemberDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!session?.user || !hasRole(session.user.roles, "ADMIN", "SUPER_ADMIN")) {
     redirect("/dashboard");
   }
 
@@ -177,7 +178,7 @@ export default async function MemberDetailPage({
           description="회원 정보"
         />
         <div className="flex gap-2">
-          {session.user.role === "SUPER_ADMIN" && (
+          {session.user.roles.includes("SUPER_ADMIN") && (
             <ImpersonateButton
               userId={member.userId}
               userName={member.user.name}

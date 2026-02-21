@@ -46,13 +46,13 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         message: "비밀번호가 재설정되었습니다.",
-        user: { email: user.email, name: user.name, role: user.role },
+        user: { email: user.email, name: user.name, roles: user.roles },
       });
     }
 
     // 이미 관리자가 있는지 확인
     const existingAdmin = await prisma.user.findFirst({
-      where: { role: "ADMIN" },
+      where: { roles: { has: "ADMIN" } },
     });
 
     if (existingAdmin) {
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       // 기존 사용자를 관리자로 업그레이드
       const updatedUser = await prisma.user.update({
         where: { email: adminEmail },
-        data: { role: "ADMIN" },
+        data: { roles: { push: "ADMIN" } },
       });
       return NextResponse.json({
         message: "기존 사용자를 관리자로 업그레이드했습니다.",
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           id: updatedUser.id,
           email: updatedUser.email,
           name: updatedUser.name,
-          role: updatedUser.role,
+          roles: updatedUser.roles,
         },
       });
     }
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
         email: adminEmail,
         password: hashedPassword,
         name: adminName,
-        role: "ADMIN",
+        roles: ["ADMIN"],
       },
     });
 
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
         id: admin.id,
         email: admin.email,
         name: admin.name,
-        role: admin.role,
+        roles: admin.roles,
       },
       credentials: {
         email: adminEmail,
@@ -128,15 +128,15 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const adminCount = await prisma.user.count({
-      where: { role: "ADMIN" },
+      where: { roles: { has: "ADMIN" } },
     });
 
     const trainerCount = await prisma.user.count({
-      where: { role: "TRAINER" },
+      where: { roles: { has: "TRAINER" } },
     });
 
     const memberCount = await prisma.user.count({
-      where: { role: "MEMBER" },
+      where: { roles: { has: "MEMBER" } },
     });
 
     return NextResponse.json({

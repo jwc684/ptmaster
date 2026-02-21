@@ -69,7 +69,7 @@ async function seedMultiShopData() {
         password: adminPassword,
         name: `${shopData.name} 관리자`,
         phone: shopData.phone,
-        role: "ADMIN",
+        roles: ["ADMIN"],
         shopId: shop.id,
       },
     });
@@ -89,7 +89,7 @@ async function seedMultiShopData() {
           password: hashedPassword,
           name: trainerName,
           phone: `010-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-          role: "TRAINER",
+          roles: ["TRAINER"],
           shopId: shop.id,
           trainerProfile: {
             create: {
@@ -134,7 +134,7 @@ async function seedMultiShopData() {
             password: hashedPassword,
             name: memberName,
             phone: `010-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-            role: "MEMBER",
+            roles: ["MEMBER"],
             shopId: shop.id,
             createdAt: joinDate,
             memberProfile: {

@@ -33,7 +33,7 @@ export async function GET(
     const admins = await prisma.user.findMany({
       where: {
         shopId: id,
-        role: "ADMIN",
+        roles: { has: "ADMIN" },
       },
       select: {
         id: true,
@@ -167,7 +167,7 @@ export async function DELETE(
       where: {
         id: adminId,
         shopId: id,
-        role: "ADMIN",
+        roles: { has: "ADMIN" },
       },
     });
 

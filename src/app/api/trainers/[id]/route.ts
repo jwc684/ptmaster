@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { trainerUpdateSchema } from "@/lib/validations/trainer";
+import { hasRole } from "@/lib/role-utils";
 
 export async function GET(
   request: Request,
@@ -17,7 +18,7 @@ export async function GET(
     const { id } = await params;
 
     // Trainers can only view their own profile
-    if (authResult.userRole === "TRAINER") {
+    if (hasRole(authResult.userRoles, "TRAINER")) {
       const userProfile = await prisma.trainerProfile.findUnique({
         where: { userId: authResult.userId },
       });
@@ -78,7 +79,7 @@ export async function PATCH(
     if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -173,7 +174,7 @@ export async function DELETE(
     if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

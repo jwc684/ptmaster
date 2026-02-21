@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
 import { sendAttendanceNotification, sendCancellationNotification, sendScheduleChangeNotification } from "@/lib/kakao-message";
+import { hasRole } from "@/lib/role-utils";
 
 const updateScheduleSchema = z.object({
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
@@ -22,7 +23,7 @@ export async function PATCH(
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    if (authResult.userRole === "MEMBER") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -55,8 +56,8 @@ export async function PATCH(
       return NextResponse.json({ error: "일정을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    // 트레이너인 경우 자신의 일정만 수정 가능
-    if (authResult.userRole === "TRAINER") {
+    // 트레이너인 경우 자신의 일정만 수정 가능 (ADMIN 우선: ADMIN+TRAINER 복합 역할은 제한 없음)
+    if (hasRole(authResult.userRoles, "TRAINER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       const trainerProfile = await prisma.trainerProfile.findUnique({
         where: { userId: authResult.userId },
       });
@@ -340,7 +341,7 @@ export async function DELETE(
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    if (authResult.userRole === "MEMBER") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -356,8 +357,8 @@ export async function DELETE(
       return NextResponse.json({ error: "일정을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    // 트레이너인 경우 자신의 일정만 삭제 가능
-    if (authResult.userRole === "TRAINER") {
+    // 트레이너인 경우 자신의 일정만 삭제 가능 (ADMIN 우선: ADMIN+TRAINER 복합 역할은 제한 없음)
+    if (hasRole(authResult.userRoles, "TRAINER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       const trainerProfile = await prisma.trainerProfile.findUnique({
         where: { userId: authResult.userId },
       });

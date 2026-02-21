@@ -6,7 +6,7 @@ import { TrainerForm } from "@/components/forms/trainer-form";
 export default async function NewTrainerPage() {
   const session = await auth();
 
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!session?.user || !session.user.roles.some(r => ["ADMIN", "SUPER_ADMIN"].includes(r))) {
     redirect("/dashboard");
   }
 

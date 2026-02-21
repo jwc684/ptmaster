@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { memberUpdateSchema, assignTrainerSchema } from "@/lib/validations/member";
+import { hasRole } from "@/lib/role-utils";
 
 export async function GET(
   request: Request,
@@ -17,7 +18,7 @@ export async function GET(
     const { id } = await params;
 
     // Members can only view their own profile
-    if (authResult.userRole === "MEMBER") {
+    if (hasRole(authResult.userRoles, "MEMBER")) {
       const userProfile = await prisma.memberProfile.findUnique({
         where: { userId: authResult.userId },
       });
@@ -108,7 +109,7 @@ export async function PATCH(
     const body = await request.json();
 
     // 회원 본인이 수정 가능한 필드: kakaoNotification, name
-    if (authResult.userRole === "MEMBER") {
+    if (hasRole(authResult.userRoles, "MEMBER")) {
       const allowedKeys = new Set(["kakaoNotification", "name"]);
       const bodyKeys = Object.keys(body);
       const hasOnlyAllowed = bodyKeys.length > 0 && bodyKeys.every((k) => allowedKeys.has(k));
@@ -155,7 +156,7 @@ export async function PATCH(
     }
 
     const allowedRoles = ["ADMIN", "SUPER_ADMIN", "TRAINER"];
-    if (!allowedRoles.includes(authResult.userRole)) {
+    if (!authResult.userRoles.some(r => allowedRoles.includes(r))) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -175,7 +176,7 @@ export async function PATCH(
       }
 
       // TRAINER: 자기 trainerProfileId만 지정 가능 + 같은 shopId 회원만
-      if (authResult.userRole === "TRAINER") {
+      if (hasRole(authResult.userRoles, "TRAINER")) {
         const trainerProfile = await prisma.trainerProfile.findUnique({
           where: { userId: authResult.userId },
           select: { id: true, shopId: true },
@@ -225,7 +226,7 @@ export async function PATCH(
     }
 
     // 전체 회원 수정은 ADMIN/SUPER_ADMIN만 허용
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -328,7 +329,7 @@ export async function DELETE(
     if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

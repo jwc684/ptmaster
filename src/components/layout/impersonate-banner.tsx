@@ -35,7 +35,8 @@ export function ImpersonateBanner() {
     TRAINER: "트레이너",
     MEMBER: "회원",
   };
-  const roleLabel = roleLabels[session.user.role] || session.user.role;
+  const userRoles = (session.user.roles ?? []) as string[];
+  const roleLabel = userRoles.map(r => roleLabels[r] || r).join(", ");
 
   return (
     <div className="sticky top-0 z-[60] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-white">

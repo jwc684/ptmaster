@@ -46,7 +46,7 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  const isTrainer = session.user.role === "TRAINER";
+  const isTrainer = session.user.roles.includes("TRAINER");
   const trainerInfo = isTrainer ? await getTrainerInfo(session.user.id) : null;
 
   return (

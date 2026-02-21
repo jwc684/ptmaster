@@ -34,7 +34,7 @@ async function migrateToMultiTenant() {
 
     // Step 2: Check if Super Admin already exists
     const existingSuperAdmin = await prisma.user.findFirst({
-      where: { role: "SUPER_ADMIN" },
+      where: { roles: { has: "SUPER_ADMIN" } },
     });
 
     if (existingSuperAdmin) {
@@ -48,7 +48,7 @@ async function migrateToMultiTenant() {
           email: "superadmin@ptmaster.com",
           password: hashedPassword,
           name: "Super Admin",
-          role: "SUPER_ADMIN",
+          roles: ["SUPER_ADMIN"],
           shopId: null, // Super Admin has no shop
         },
       });
@@ -60,7 +60,7 @@ async function migrateToMultiTenant() {
     const usersUpdated = await prisma.user.updateMany({
       where: {
         shopId: null,
-        role: { not: "SUPER_ADMIN" },
+        NOT: { roles: { has: "SUPER_ADMIN" } },
       },
       data: {
         shopId: defaultShopId,
@@ -124,7 +124,7 @@ async function migrateToMultiTenant() {
     const usersWithoutShop = await prisma.user.count({
       where: {
         shopId: null,
-        role: { not: "SUPER_ADMIN" },
+        NOT: { roles: { has: "SUPER_ADMIN" } },
       },
     });
 

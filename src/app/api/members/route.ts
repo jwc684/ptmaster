@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 import { logApiAction } from "@/lib/access-log";
 import { z } from "zod";
+import { hasRole, primaryRole } from "@/lib/role-utils";
 
 export async function GET(request: Request) {
   try {
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
     }
 
     // Only ADMIN and SUPER_ADMIN can access member list
-    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
     }
 
     // Only ADMIN and SUPER_ADMIN can create members
-    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -192,7 +193,7 @@ export async function POST(request: Request) {
     await logApiAction(
       authResult.userId,
       currentUser?.name || "Unknown",
-      authResult.userRole,
+      primaryRole(authResult.userRoles),
       "CREATE",
       "/api/members",
       `회원 초대 생성: ${name}`,

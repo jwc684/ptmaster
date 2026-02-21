@@ -36,7 +36,7 @@ async function main() {
       password: superAdminPassword,
       name: "Super Admin",
       phone: "010-0000-0000",
-      role: "SUPER_ADMIN",
+      roles: ["SUPER_ADMIN"],
       shopId: null, // Super Admin has no shop
     },
   });
@@ -53,7 +53,7 @@ async function main() {
       password: hashedPassword,
       name: "관리자",
       phone: "010-1234-5678",
-      role: "ADMIN",
+      roles: ["ADMIN"],
       shopId: defaultShop.id,
     },
   });
@@ -70,7 +70,7 @@ async function main() {
       password: trainerPassword,
       name: "김트레이너",
       phone: "010-2345-6789",
-      role: "TRAINER",
+      roles: ["TRAINER"],
       shopId: defaultShop.id,
       trainerProfile: {
         create: {
@@ -94,7 +94,7 @@ async function main() {
       password: memberPassword,
       name: "박회원",
       phone: "010-3456-7890",
-      role: "MEMBER",
+      roles: ["MEMBER"],
       shopId: defaultShop.id,
       memberProfile: {
         create: {
@@ -139,7 +139,7 @@ async function main() {
       password: member2Password,
       name: "이회원",
       phone: "010-5678-1234",
-      role: "MEMBER",
+      roles: ["MEMBER"],
       shopId: defaultShop.id,
       memberProfile: {
         create: {

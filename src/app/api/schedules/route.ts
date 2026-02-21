@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 import { sendScheduleNotification } from "@/lib/kakao-message";
+import { hasRole } from "@/lib/role-utils";
 
 const scheduleSchema = z.object({
   memberProfileId: z.string().min(1, "회원을 선택해주세요."),
@@ -29,8 +30,8 @@ export async function GET(request: Request) {
     let trainerId: string | undefined;
     let memberProfileId: string | undefined;
 
-    // 트레이너인 경우 자신의 일정만 조회
-    if (authResult.userRole === "TRAINER") {
+    // 트레이너인 경우 자신의 일정만 조회 (ADMIN 우선: ADMIN+TRAINER 복합 역할은 필터 없음)
+    if (hasRole(authResult.userRoles, "TRAINER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       const trainerProfile = await prisma.trainerProfile.findUnique({
         where: { userId: authResult.userId },
       });
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     }
 
     // 회원인 경우 자신의 일정만 조회
-    if (authResult.userRole === "MEMBER") {
+    if (hasRole(authResult.userRoles, "MEMBER") && !hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
       const memberProfile = await prisma.memberProfile.findUnique({
         where: { userId: authResult.userId },
       });
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
     }
 
     // 트레이너, 관리자, Super Admin만 예약 가능
-    if (authResult.userRole === "MEMBER") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -198,9 +199,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 트레이너 ID 가져오기
+    // 트레이너 ID 가져오기 (ADMIN+TRAINER 복합 역할은 ADMIN 우선으로 trainerId 직접 지정 불필요)
     let trainerId: string;
-    if (authResult.userRole === "TRAINER") {
+    if (hasRole(authResult.userRoles, "TRAINER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       const trainerProfile = await prisma.trainerProfile.findUnique({
         where: { userId: authResult.userId },
       });

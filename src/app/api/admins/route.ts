@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
 import { z } from "zod";
+import { hasRole } from "@/lib/role-utils";
 
 const createAdminSchema = z.object({
   name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다."),
@@ -19,7 +20,7 @@ export async function GET() {
     }
 
     // ADMIN 또는 SUPER_ADMIN만 접근 가능
-    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -28,7 +29,7 @@ export async function GET() {
 
     const admins = await prisma.user.findMany({
       where: {
-        role: "ADMIN",
+        roles: { has: "ADMIN" },
         ...shopFilter,
       },
       select: {
@@ -36,6 +37,7 @@ export async function GET() {
         name: true,
         email: true,
         phone: true,
+        roles: true,
         createdAt: true,
         shopId: true,
       },

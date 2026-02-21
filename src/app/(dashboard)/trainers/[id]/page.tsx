@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { hasRole } from "@/lib/role-utils";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +39,7 @@ export default async function TrainerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+  if (!session?.user || !hasRole(session.user.roles, "ADMIN", "SUPER_ADMIN")) {
     redirect("/dashboard");
   }
 
@@ -76,7 +77,7 @@ export default async function TrainerDetailPage({
           trainerName={trainer.user.name}
           hasMember={trainer.members.length > 0}
         />
-        {session.user.role === "SUPER_ADMIN" && (
+        {session.user.roles.includes("SUPER_ADMIN") && (
           <ImpersonateButton
             userId={trainer.userId}
             trainerName={trainer.user.name}

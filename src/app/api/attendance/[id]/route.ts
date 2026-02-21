@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
+import { hasRole } from "@/lib/role-utils";
 
 const updateAttendanceSchema = z.object({
   notes: z.string().optional(),
@@ -31,7 +32,7 @@ export async function GET(
         checkInTime: true,
         remainingPTAfter: true,
         notes: true,
-        internalNotes: authResult.userRole !== "MEMBER" ? true : false,
+        internalNotes: hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN"),
         memberProfile: {
           select: {
             id: true,
@@ -59,7 +60,7 @@ export async function GET(
     }
 
     // 회원은 자신의 기록만 조회 가능
-    if (authResult.userRole === "MEMBER") {
+    if (hasRole(authResult.userRoles, "MEMBER")) {
       if (!attendance.memberProfile || attendance.memberProfile.userId !== authResult.userId) {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
       }
@@ -91,7 +92,7 @@ export async function PATCH(
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    if (authResult.userRole === "MEMBER") {
+    if (hasRole(authResult.userRoles, "MEMBER")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -120,7 +121,7 @@ export async function PATCH(
     }
 
     // 트레이너인 경우 자신의 출석 기록만 수정 가능
-    if (authResult.userRole === "TRAINER") {
+    if (hasRole(authResult.userRoles, "TRAINER")) {
       const trainerProfile = await prisma.trainerProfile.findUnique({
         where: { userId: authResult.userId },
       });
@@ -175,7 +176,7 @@ export async function DELETE(
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
 
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "관리자만 삭제할 수 있습니다." }, { status: 403 });
     }
 

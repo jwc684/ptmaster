@@ -5,13 +5,14 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@prisma/client";
 import { logLogin } from "@/lib/access-log";
+import { primaryRole } from "@/lib/role-utils";
 import { cookies } from "next/headers";
 // Import to enable @auth/core module augmentation
 import "@auth/core/jwt";
 
 declare module "next-auth" {
   interface User {
-    role: UserRole;
+    roles: UserRole[];
     phone?: string | null;
     shopId?: string | null;
   }
@@ -21,7 +22,7 @@ declare module "next-auth" {
       id: string;
       email: string;
       name: string;
-      role: UserRole;
+      roles: UserRole[];
       phone?: string | null;
       shopId?: string | null;
       image?: string | null;
@@ -34,7 +35,7 @@ declare module "next-auth" {
 declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
-    role: UserRole;
+    roles: UserRole[];
     phone?: string | null;
     shopId?: string | null;
     userVerifiedAt?: number;
@@ -113,7 +114,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: user.id,
             email: user.email,
             name: user.name,
-            role: user.role,
+            roles: user.roles,
             phone: user.phone,
             shopId: user.shopId,
           };
@@ -154,7 +155,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // 기존 사용자 → user 객체에 DB 데이터 설정 (jwt 콜백에서 사용)
           const dbUser = existingAccount.user;
           user.id = dbUser.id;
-          user.role = dbUser.role;
+          user.roles = dbUser.roles;
           user.phone = dbUser.phone;
           user.shopId = dbUser.shopId;
           user.email = dbUser.email;
@@ -183,7 +184,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 data: {
                   email: userEmail,
                   name: userName,
-                  role: "MEMBER",
+                  roles: ["MEMBER"],
                 },
               });
             }
@@ -206,7 +207,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             // user 객체에 DB 데이터 설정 (jwt 콜백에서 사용)
             user.id = dbUser.id;
-            user.role = dbUser.role;
+            user.roles = dbUser.roles;
             user.phone = dbUser.phone;
             user.shopId = dbUser.shopId;
             user.email = dbUser.email;
@@ -253,7 +254,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 email: userEmail,
                 name: userName,
                 phone: metadata?.phone as string || null,
-                role: invitation.role,
+                roles: [invitation.role],
                 shopId: invitation.shopId,
               },
             });
@@ -323,12 +324,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // user 객체에 DB 데이터 설정 (jwt 콜백에서 사용)
           user.id = dbUser.id;
-          user.role = dbUser.role;
+          user.roles = dbUser.roles;
           user.phone = dbUser.phone;
           user.shopId = dbUser.shopId;
           user.email = dbUser.email;
 
-          debugLog("[Auth] New user created via invitation:", dbUser.email, dbUser.role);
+          debugLog("[Auth] New user created via invitation:", dbUser.email, dbUser.roles);
           return true;
         } catch (error) {
           console.error("[Auth] Error processing Kakao signup:", error);
@@ -344,11 +345,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // signIn 콜백에서 user 객체에 DB 데이터를 미리 설정해두었으므로 Prisma 불필요
       if (user && account) {
         token.id = user.id!;
-        token.role = user.role;
+        token.roles = user.roles;
         token.phone = user.phone;
         token.shopId = user.shopId;
         if (user.email) token.email = user.email;
         token.userVerifiedAt = Date.now();
+      }
+
+      // Legacy compatibility: migrate single role to roles array
+      if ((token as Record<string, unknown>).role && !token.roles) {
+        token.roles = [(token as Record<string, unknown>).role as UserRole];
+        delete (token as Record<string, unknown>).role;
       }
 
       // 후속 요청: DB에서 주기적 검증 (Edge Runtime에서는 skip)
@@ -357,18 +364,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!user && !account && token.id && !token.userDeleted) {
         const VERIFY_INTERVAL = 5 * 60 * 1000;
         const now = Date.now();
-        const needsRefresh = token.role === "MEMBER" && !token.shopId;
+        const needsRefresh = (token.roles as UserRole[] | undefined)?.includes("MEMBER") && !token.shopId;
         if (needsRefresh || !token.userVerifiedAt || now - (token.userVerifiedAt as number) > VERIFY_INTERVAL) {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { id: token.id as string },
-              select: { id: true, role: true, shopId: true, phone: true },
+              select: { id: true, roles: true, shopId: true, phone: true },
             });
             if (!dbUser) {
               token.userDeleted = true;
             } else {
               token.userVerifiedAt = now;
-              token.role = dbUser.role;
+              token.roles = dbUser.roles;
               token.shopId = dbUser.shopId;
               token.phone = dbUser.phone;
             }
@@ -389,13 +396,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (token) {
         session.user.id = token.id as string;
-        session.user.role = token.role as UserRole;
+        session.user.roles = token.roles as UserRole[];
         session.user.phone = token.phone as string | null | undefined;
         session.user.shopId = token.shopId as string | null | undefined;
       }
 
       // Check for impersonation cookie (only if current user is SUPER_ADMIN)
-      if (token.role === "SUPER_ADMIN") {
+      if ((token.roles as UserRole[] | undefined)?.includes("SUPER_ADMIN")) {
         try {
           const cookieStore = await cookies();
           const impersonateCookie = cookieStore.get("impersonate-session");
@@ -409,7 +416,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               session.user.id = payload.id as string;
               session.user.email = payload.email as string;
               session.user.name = payload.name as string;
-              session.user.role = payload.role as UserRole;
+              session.user.roles = (payload.roles as UserRole[]) ?? [payload.role as UserRole];
               session.user.shopId = payload.shopId as string | null;
               session.user.isImpersonating = true;
               session.user.impersonateShopName = payload.shopName as string | null;
@@ -430,7 +437,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // DB에서 유저 정보 조회 (OAuth 로그인 시 role이 없을 수 있음)
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
-            select: { role: true, shopId: true, name: true },
+            select: { roles: true, shopId: true, name: true },
           });
 
           if (!dbUser) return;
@@ -447,7 +454,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           await logLogin(
             user.id,
             dbUser.name || user.name || "Unknown",
-            dbUser.role,
+            primaryRole(dbUser.roles),
             dbUser.shopId,
             shopName
           );

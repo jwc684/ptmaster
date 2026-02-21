@@ -34,8 +34,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, Loader2, Pencil, Trash2, MoreHorizontal, Link2 } from "lucide-react";
+import { Shield, Loader2, Pencil, Trash2, MoreHorizontal, Link2, UserCog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +49,7 @@ interface Admin {
   name: string;
   email: string;
   phone: string | null;
+  roles: string[];
   createdAt: string;
 }
 
@@ -234,6 +236,35 @@ export default function AdminsPage() {
     }
   }
 
+  async function handleToggleTrainerRole(admin: Admin) {
+    const hasTrainerRole = admin.roles.includes("TRAINER");
+    const method = hasTrainerRole ? "DELETE" : "POST";
+    const action = hasTrainerRole ? "제거" : "추가";
+
+    try {
+      const response = await fetch(`/api/users/${admin.id}/roles`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "TRAINER" }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`트레이너 역할이 ${action}되었습니다.`);
+        setAdmins((prev) =>
+          prev.map((a) =>
+            a.id === admin.id ? { ...a, roles: data.user.roles } : a
+          )
+        );
+      } else {
+        toast.error(data.error || `역할 ${action}에 실패했습니다.`);
+      }
+    } catch {
+      toast.error(`역할 ${action} 중 오류가 발생했습니다.`);
+    }
+  }
+
   async function handleDelete() {
     if (!adminToDelete) return;
 
@@ -386,7 +417,12 @@ export default function AdminsPage() {
                       onClick={() => openEditDialog(admin)}
                     >
                       <TableCell>
-                        <div className="font-medium">{admin.name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{admin.name}</span>
+                          {admin.roles.includes("TRAINER") && (
+                            <Badge variant="secondary" className="text-xs">트레이너</Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <span className="text-muted-foreground">{admin.email}</span>
@@ -412,6 +448,12 @@ export default function AdminsPage() {
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(admin); }}>
                               <Pencil className="h-4 w-4 mr-2" />
                               수정
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => { e.stopPropagation(); handleToggleTrainerRole(admin); }}
+                            >
+                              <UserCog className="h-4 w-4 mr-2" />
+                              {admin.roles.includes("TRAINER") ? "트레이너 역할 제거" : "트레이너 역할 추가"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={(e) => { e.stopPropagation(); openDeleteDialog(admin); }}

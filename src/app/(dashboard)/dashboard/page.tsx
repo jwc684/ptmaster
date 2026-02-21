@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, UserCog, CreditCard, Activity, ClipboardCheck } from "lucide-react";
 import { redirect } from "next/navigation";
+import { hasRole } from "@/lib/role-utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PTTrendsChart } from "@/components/dashboard/pt-trends-chart";
@@ -390,13 +391,13 @@ export default async function DashboardPage() {
   }
 
   // Members should be redirected to their my page
-  if (authResult.userRole === "MEMBER") {
+  if (hasRole(authResult.userRoles, "MEMBER") && !hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
     redirect("/my");
   }
 
-  // Get trainer profile if trainer
+  // Get trainer profile if trainer (and not admin — admin gets admin dashboard)
   let trainerId: string | null = null;
-  if (authResult.userRole === "TRAINER") {
+  if (hasRole(authResult.userRoles, "TRAINER")) {
     const trainerProfile = await prisma.trainerProfile.findUnique({
       where: { userId: authResult.userId },
       select: { id: true },
@@ -408,7 +409,7 @@ export default async function DashboardPage() {
 
   return (
     <Suspense fallback={<DashboardSkeleton />}>
-      {authResult.userRole === "ADMIN" || authResult.userRole === "SUPER_ADMIN" ? (
+      {hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN") ? (
         <AdminDashboard shopFilter={shopFilter} />
       ) : trainerId ? (
         <TrainerDashboard trainerId={trainerId} />

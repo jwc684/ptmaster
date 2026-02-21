@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { paymentSchema } from "@/lib/validations/payment";
 import { getAuthWithShop, buildShopFilter, requireShopContext } from "@/lib/shop-utils";
+import { hasRole } from "@/lib/role-utils";
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
     }
 
     // Only ADMIN and SUPER_ADMIN can access payment list
-    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
     }
 
     // Only ADMIN and SUPER_ADMIN can create payments
-    if (!["ADMIN", "SUPER_ADMIN"].includes(authResult.userRole)) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

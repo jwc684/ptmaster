@@ -51,7 +51,7 @@ async function seedTestData() {
           password: hashedPassword,
           name: memberName,
           phone: `010-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-          role: "MEMBER",
+          roles: ["MEMBER"],
           createdAt: date,
           memberProfile: {
             create: {

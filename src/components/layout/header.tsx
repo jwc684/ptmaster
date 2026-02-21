@@ -36,7 +36,9 @@ export function Header() {
   }, []);
 
   const user = session?.user;
-  const useBottomNav = user?.role === "TRAINER" || user?.role === "MEMBER";
+  const userRoles = (user?.roles ?? []) as string[];
+  const hasAdminAccess = userRoles.some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
+  const useBottomNav = !hasAdminAccess && userRoles.some((r) => r === "TRAINER" || r === "MEMBER");
   const initials = user?.name
     ?.split(" ")
     .map((n) => n[0])
@@ -91,9 +93,13 @@ export function Header() {
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email}
                   </p>
-                  <Badge variant="secondary" className="mt-1 w-fit">
-                    {user?.role ? roleLabels[user.role as keyof typeof roleLabels] : ""}
-                  </Badge>
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {userRoles.map((r) => (
+                      <Badge key={r} variant="secondary" className="w-fit">
+                        {roleLabels[r as keyof typeof roleLabels] ?? r}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

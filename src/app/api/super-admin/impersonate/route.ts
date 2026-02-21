@@ -3,6 +3,7 @@ import { SignJWT } from "jose";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop } from "@/lib/shop-utils";
 import { logAccess } from "@/lib/access-log";
+import { primaryRole } from "@/lib/role-utils";
 import { cookies } from "next/headers";
 
 const IMPERSONATE_COOKIE = "impersonate-session";
@@ -38,12 +39,12 @@ export async function POST(request: NextRequest) {
 
     if (shopId) {
       targetUser = await prisma.user.findFirst({
-        where: { shopId, role: "ADMIN" },
+        where: { shopId, roles: { has: "ADMIN" } },
         select: {
           id: true,
           email: true,
           name: true,
-          role: true,
+          roles: true,
           shopId: true,
           shop: { select: { name: true } },
         },
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
           id: true,
           email: true,
           name: true,
-          role: true,
+          roles: true,
           shopId: true,
           shop: { select: { name: true } },
         },
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      if (targetUser.role === "SUPER_ADMIN") {
+      if (targetUser.roles.includes("SUPER_ADMIN")) {
         return NextResponse.json(
           { error: "Cannot impersonate SUPER_ADMIN users" },
           { status: 400 }
@@ -81,11 +82,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a signed JWT for the impersonation cookie (1 hour expiry)
+    const primary = primaryRole(targetUser.roles);
     const token = await new SignJWT({
       id: targetUser.id,
       email: targetUser.email,
       name: targetUser.name,
-      role: targetUser.role,
+      roles: targetUser.roles,
       shopId: targetUser.shopId,
       shopName: targetUser.shop?.name || null,
       superAdminId: authResult.userId,
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
       .setExpirationTime("1h")
       .sign(getSecret());
 
-    const roleLabel = targetUser.role === "ADMIN" ? "관리자" : targetUser.role === "TRAINER" ? "트레이너" : "회원";
+    const roleLabel = primary === "ADMIN" ? "관리자" : primary === "TRAINER" ? "트레이너" : "회원";
 
     await logAccess({
       userId: authResult.userId,
@@ -131,7 +133,7 @@ export async function POST(request: NextRequest) {
       user: {
         name: targetUser.name,
         email: targetUser.email,
-        role: targetUser.role,
+        roles: targetUser.roles,
         shopName: targetUser.shop?.name,
       },
     });

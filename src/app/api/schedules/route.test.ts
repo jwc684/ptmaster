@@ -103,7 +103,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -144,7 +144,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -171,7 +171,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -189,7 +189,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -206,7 +206,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -223,7 +223,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -240,7 +240,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "trainer-user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -260,7 +260,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "trainer-user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -278,7 +278,7 @@ describe("GET /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "sa-1",
-      userRole: "SUPER_ADMIN",
+      userRoles: ["SUPER_ADMIN"],
       shopId: null,
       isSuperAdmin: true,
     } as AuthWithShopResult);
@@ -333,7 +333,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "member-1",
-      userRole: "MEMBER",
+      userRoles: ["MEMBER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -355,7 +355,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "sa-1",
-      userRole: "SUPER_ADMIN",
+      userRoles: ["SUPER_ADMIN"],
       shopId: null,
       isSuperAdmin: true,
     } as AuthWithShopResult);
@@ -380,7 +380,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -403,7 +403,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -428,7 +428,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -456,7 +456,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -487,7 +487,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "trainer-user",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -542,7 +542,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "trainer-user",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -574,7 +574,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "admin-user",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -605,7 +605,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "trainer-user",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -665,7 +665,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "admin-user",
-      userRole: "ADMIN",
+      userRoles: ["ADMIN"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);
@@ -723,7 +723,7 @@ describe("POST /api/schedules", () => {
     mockGetAuth.mockResolvedValue({
       isAuthenticated: true,
       userId: "user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
     } as AuthWithShopResult);

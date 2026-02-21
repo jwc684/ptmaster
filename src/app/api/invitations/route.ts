@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getAuthWithShop, requireShopContext } from "@/lib/shop-utils";
 import { z } from "zod";
+import { hasRole } from "@/lib/role-utils";
 
 const createInvitationSchema = z.object({
   role: z.enum(["ADMIN", "TRAINER", "MEMBER"]),
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     }
 
     // ADMIN, SUPER_ADMIN, 또는 TRAINER만 초대 생성 가능
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "TRAINER" && !authResult.isSuperAdmin) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -48,8 +49,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "슈퍼관리자만 관리자를 초대할 수 있습니다." }, { status: 403 });
     }
 
-    // TRAINER는 MEMBER 초대만 생성 가능, trainerId 자동 주입
-    if (authResult.userRole === "TRAINER") {
+    // TRAINER는 MEMBER 초대만 생성 가능, trainerId 자동 주입 (ADMIN 우선: ADMIN+TRAINER 복합 역할은 제한 없음)
+    if (hasRole(authResult.userRoles, "TRAINER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       if (role !== "MEMBER") {
         return NextResponse.json({ error: "트레이너는 회원만 초대할 수 있습니다." }, { status: 403 });
       }
@@ -66,8 +67,8 @@ export async function POST(request: Request) {
       metadata = { ...(metadata || {}), trainerId: trainerProfile.id };
     }
 
-    // 트레이너가 생성하는 MEMBER 초대는 reusable
-    const isReusable = authResult.userRole === "TRAINER" && role === "MEMBER";
+    // 트레이너가 생성하는 MEMBER 초대는 reusable (ADMIN+TRAINER 복합 역할은 ADMIN으로 처리)
+    const isReusable = hasRole(authResult.userRoles, "TRAINER") && !hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN") && role === "MEMBER";
 
     // 토큰 생성
     const token = crypto.randomUUID();
@@ -131,7 +132,7 @@ export async function GET() {
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

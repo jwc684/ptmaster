@@ -35,7 +35,7 @@ async function getAvailableMembers(shopId: string) {
 export default async function AddMemberPage() {
   const session = await auth();
 
-  if (!session?.user || session.user.role !== "TRAINER") {
+  if (!session?.user || !session.user.roles.includes("TRAINER")) {
     redirect("/dashboard");
   }
 

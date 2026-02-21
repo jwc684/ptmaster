@@ -75,7 +75,7 @@ async function getOrCreateInviteUrl(trainerId: string, shopId: string, userId: s
 export default async function MyMembersPage() {
   const session = await auth();
 
-  if (!session?.user || session.user.role !== "TRAINER") {
+  if (!session?.user || !session.user.roles.includes("TRAINER")) {
     redirect("/dashboard");
   }
 

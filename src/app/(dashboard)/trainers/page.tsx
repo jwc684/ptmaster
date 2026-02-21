@@ -51,7 +51,7 @@ export default async function TrainersPage() {
     redirect("/login");
   }
 
-  if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+  if (!authResult.userRoles.some(r => ["ADMIN", "SUPER_ADMIN"].includes(r))) {
     redirect("/dashboard");
   }
 

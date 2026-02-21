@@ -54,7 +54,7 @@ model User {
   password      String?
   name          String
   phone         String?
-  role          UserRole  @default(MEMBER)
+  roles         UserRole[] @default([MEMBER])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

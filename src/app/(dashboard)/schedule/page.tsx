@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasRole } from "@/lib/role-utils";
 import { ScheduleView } from "@/components/schedule/schedule-view";
 
 async function getTrainerMembers(userId: string) {
@@ -57,12 +58,12 @@ export default async function SchedulePage() {
   }
 
   // 트레이너와 관리자만 접근 가능
-  if (session.user.role === "MEMBER") {
+  if (!hasRole(session.user.roles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
     redirect("/my");
   }
 
-  const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
-  const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+  const isAdmin = hasRole(session.user.roles, "ADMIN", "SUPER_ADMIN");
+  const isSuperAdmin = session.user.roles.includes("SUPER_ADMIN");
 
   if (isAdmin) {
     // 관리자/슈퍼관리자: 트레이너가 배정된 모든 회원

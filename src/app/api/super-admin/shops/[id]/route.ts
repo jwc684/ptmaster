@@ -70,7 +70,7 @@ export async function GET(
     });
 
     const admins = await prisma.user.findMany({
-      where: { shopId: id, role: "ADMIN" },
+      where: { shopId: id, roles: { has: "ADMIN" } },
       select: {
         id: true,
         email: true,

@@ -3,11 +3,12 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { ROLE_ACCESS, PUBLIC_ROUTES, PUBLIC_API_ROUTES, DASHBOARD_PATH } from "@/types";
 import type { UserRole } from "@/types";
+import { getDashboardPath } from "@/lib/role-utils";
 
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
-  const userRole = req.auth?.user?.role as UserRole | undefined;
+  const userRoles = req.auth?.user?.roles as UserRole[] | undefined;
 
   const pathname = nextUrl.pathname;
 
@@ -25,7 +26,7 @@ export default auth((req) => {
   );
 
   // Detect invalidated session (user was deleted from DB)
-  if (isLoggedIn && !userRole) {
+  if (isLoggedIn && (!userRoles || userRoles.length === 0)) {
     if (!isPublicRoute && !isPublicApiRoute) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,7 +42,7 @@ export default auth((req) => {
 
   // Redirect logged-in users away from public routes to their dashboard
   if (isLoggedIn && isPublicRoute) {
-    const dashboardPath = userRole ? DASHBOARD_PATH[userRole] : "/dashboard";
+    const dashboardPath = userRoles ? getDashboardPath(userRoles) : "/dashboard";
     return NextResponse.redirect(new URL(dashboardPath, nextUrl));
   }
 
@@ -59,18 +60,18 @@ export default auth((req) => {
     const impersonateCookie = req.cookies.get("impersonate-session");
     const isStopImpersonate = pathname === "/api/super-admin/impersonate" && req.method === "DELETE" && impersonateCookie?.value;
 
-    if (!isLoggedIn || (userRole !== "SUPER_ADMIN" && !isStopImpersonate)) {
+    if (!isLoggedIn || (!userRoles?.includes("SUPER_ADMIN") && !isStopImpersonate)) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-      const dashboardPath = userRole ? DASHBOARD_PATH[userRole] : "/login";
+      const dashboardPath = userRoles ? getDashboardPath(userRoles) : "/login";
       return NextResponse.redirect(new URL(dashboardPath, nextUrl));
     }
     return NextResponse.next();
   }
 
   // If impersonation cookie exists, the real user is SUPER_ADMIN — bypass role-based route check.
-  // The session callback overrides userRole to the impersonated role, so we check the cookie directly.
+  // The session callback overrides userRoles to the impersonated roles, so we check the cookie directly.
   if (isLoggedIn) {
     const impersonateCookie = req.cookies.get("impersonate-session");
     if (impersonateCookie?.value) {
@@ -79,8 +80,9 @@ export default auth((req) => {
   }
 
   // Check role-based access for protected routes
-  if (isLoggedIn && userRole) {
-    const allowedRoutes = ROLE_ACCESS[userRole];
+  if (isLoggedIn && userRoles) {
+    // Combine allowed routes from all user roles
+    const allowedRoutes = userRoles.flatMap((r) => ROLE_ACCESS[r] ?? []);
     const isAllowed = allowedRoutes.some(
       (route) => pathname === route || pathname.startsWith(`${route}/`)
     );
@@ -93,7 +95,7 @@ export default auth((req) => {
 
     if (!isAllowed && !isPublicRoute) {
       // Redirect to appropriate dashboard if access denied
-      const dashboardPath = DASHBOARD_PATH[userRole];
+      const dashboardPath = getDashboardPath(userRoles);
       return NextResponse.redirect(new URL(dashboardPath, nextUrl));
     }
   }

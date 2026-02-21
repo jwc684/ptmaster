@@ -58,7 +58,7 @@ async function getMemberCount(shopFilter: { shopId?: string }) {
 async function getUnregisteredMembers() {
   return prisma.user.findMany({
     where: {
-      role: "MEMBER",
+      roles: { has: "MEMBER" },
       shopId: null,
       memberProfile: null,
     },
@@ -85,7 +85,7 @@ export default async function MembersPage() {
     redirect("/login");
   }
 
-  if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+  if (!authResult.userRoles.some(r => ["ADMIN", "SUPER_ADMIN"].includes(r))) {
     redirect("/dashboard");
   }
 

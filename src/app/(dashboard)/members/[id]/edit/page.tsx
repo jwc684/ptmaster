@@ -50,7 +50,7 @@ export default async function EditMemberPage({
   params: Promise<{ id: string }>;
 }) {
   const authResult = await getAuthWithShop();
-  if (!authResult.isAuthenticated || (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN")) {
+  if (!authResult.isAuthenticated || !authResult.userRoles.some(r => ["ADMIN", "SUPER_ADMIN"].includes(r))) {
     redirect("/dashboard");
   }
 

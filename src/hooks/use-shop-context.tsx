@@ -56,7 +56,7 @@ export function ShopProvider({ children }: ShopProviderProps) {
   const [currentShop, setCurrentShop] = useState<Shop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
+  const isSuperAdmin = (session?.user?.roles ?? []).includes("SUPER_ADMIN");
 
   // Fetch shops (only for Super Admin)
   const refreshShops = useCallback(async () => {

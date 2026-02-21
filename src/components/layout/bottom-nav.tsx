@@ -32,12 +32,15 @@ const BOTTOM_NAV_ROLES: UserRole[] = ["TRAINER", "MEMBER"];
 export function BottomNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const userRole = session?.user?.role as UserRole | undefined;
+  const userRoles = (session?.user?.roles ?? []) as UserRole[];
 
-  if (!userRole || !BOTTOM_NAV_ROLES.includes(userRole)) return null;
+  // Show bottom nav only for TRAINER/MEMBER who don't also have ADMIN/SUPER_ADMIN
+  const hasAdminAccess = userRoles.some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
+  const hasBottomNavRole = userRoles.some((r) => BOTTOM_NAV_ROLES.includes(r));
+  if (!hasBottomNavRole || hasAdminAccess) return null;
 
   const navItems = NAV_ITEMS.filter(
-    (item) => item.roles.includes(userRole)
+    (item) => userRoles.some((r) => item.roles.includes(r))
   );
 
   return (

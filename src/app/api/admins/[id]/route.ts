@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
+import { hasRole } from "@/lib/role-utils";
 
 const updateAdminSchema = z.object({
   name: z.string().min(2, "이름은 최소 2자 이상이어야 합니다.").optional(),
@@ -21,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -31,7 +32,7 @@ export async function GET(
     const admin = await prisma.user.findFirst({
       where: {
         id,
-        role: "ADMIN",
+        roles: { has: "ADMIN" },
         ...shopFilter,
       },
       select: {
@@ -39,6 +40,7 @@ export async function GET(
         name: true,
         email: true,
         phone: true,
+        roles: true,
         createdAt: true,
         shopId: true,
       },
@@ -70,7 +72,7 @@ export async function PATCH(
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -91,7 +93,7 @@ export async function PATCH(
     const existingAdmin = await prisma.user.findFirst({
       where: {
         id,
-        role: "ADMIN",
+        roles: { has: "ADMIN" },
         ...shopFilter,
       },
     });
@@ -129,6 +131,7 @@ export async function PATCH(
         name: true,
         email: true,
         phone: true,
+        roles: true,
         createdAt: true,
         shopId: true,
       },
@@ -159,7 +162,7 @@ export async function DELETE(
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    if (authResult.userRole !== "ADMIN" && !authResult.isSuperAdmin) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -179,7 +182,7 @@ export async function DELETE(
     const admin = await prisma.user.findFirst({
       where: {
         id,
-        role: "ADMIN",
+        roles: { has: "ADMIN" },
         ...shopFilter,
       },
     });
@@ -191,7 +194,7 @@ export async function DELETE(
     // 해당 샵의 마지막 관리자 삭제 방지
     const adminCount = await prisma.user.count({
       where: {
-        role: "ADMIN",
+        roles: { has: "ADMIN" },
         shopId: admin.shopId,
       },
     });

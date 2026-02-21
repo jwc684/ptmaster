@@ -18,7 +18,7 @@ async function getTrainers(shopId: string | null, isSuperAdmin: boolean) {
 export default async function NewMemberPage() {
   const authResult = await getAuthWithShop();
 
-  if (!authResult.isAuthenticated || (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN")) {
+  if (!authResult.isAuthenticated || !authResult.userRoles.some(r => ["ADMIN", "SUPER_ADMIN"].includes(r))) {
     redirect("/dashboard");
   }
 

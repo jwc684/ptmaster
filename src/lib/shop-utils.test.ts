@@ -81,7 +81,7 @@ describe("buildShopFilter", () => {
 describe("requireRoles", () => {
   const authenticatedAdmin: ShopAuthResult = {
     userId: "user-1",
-    userRole: "ADMIN" as UserRole,
+    userRoles: ["ADMIN"] as UserRole[],
     shopId: "shop-1",
     isSuperAdmin: false,
     isAuthenticated: true,
@@ -89,7 +89,7 @@ describe("requireRoles", () => {
 
   const authenticatedSuperAdmin: ShopAuthResult = {
     userId: "user-2",
-    userRole: "SUPER_ADMIN" as UserRole,
+    userRoles: ["SUPER_ADMIN"] as UserRole[],
     shopId: null,
     isSuperAdmin: true,
     isAuthenticated: true,
@@ -97,7 +97,7 @@ describe("requireRoles", () => {
 
   const authenticatedTrainer: ShopAuthResult = {
     userId: "user-3",
-    userRole: "TRAINER" as UserRole,
+    userRoles: ["TRAINER"] as UserRole[],
     shopId: "shop-1",
     isSuperAdmin: false,
     isAuthenticated: true,
@@ -105,7 +105,7 @@ describe("requireRoles", () => {
 
   const authenticatedMember: ShopAuthResult = {
     userId: "user-4",
-    userRole: "MEMBER" as UserRole,
+    userRoles: ["MEMBER"] as UserRole[],
     shopId: "shop-1",
     isSuperAdmin: false,
     isAuthenticated: true,
@@ -162,7 +162,7 @@ describe("requireShopContext", () => {
   it("returns error for super admin without shop context", () => {
     const result = requireShopContext({
       userId: "u1",
-      userRole: "SUPER_ADMIN" as UserRole,
+      userRoles: ["SUPER_ADMIN"] as UserRole[],
       shopId: null,
       isSuperAdmin: true,
       isAuthenticated: true,
@@ -173,7 +173,7 @@ describe("requireShopContext", () => {
   it("returns null for super admin with shop context", () => {
     const result = requireShopContext({
       userId: "u1",
-      userRole: "SUPER_ADMIN" as UserRole,
+      userRoles: ["SUPER_ADMIN"] as UserRole[],
       shopId: "shop-1",
       isSuperAdmin: true,
       isAuthenticated: true,
@@ -184,7 +184,7 @@ describe("requireShopContext", () => {
   it("returns null for regular user with shop", () => {
     const result = requireShopContext({
       userId: "u1",
-      userRole: "TRAINER" as UserRole,
+      userRoles: ["TRAINER"] as UserRole[],
       shopId: "shop-1",
       isSuperAdmin: false,
       isAuthenticated: true,
@@ -195,7 +195,7 @@ describe("requireShopContext", () => {
   it("returns error for regular user without shop", () => {
     const result = requireShopContext({
       userId: "u1",
-      userRole: "TRAINER" as UserRole,
+      userRoles: ["TRAINER"] as UserRole[],
       shopId: null,
       isSuperAdmin: false,
       isAuthenticated: true,
@@ -236,7 +236,7 @@ describe("getAuthWithShop", () => {
     mockAuth.mockResolvedValue({
       user: {
         id: "user-1",
-        role: "TRAINER",
+        roles: ["TRAINER"],
         shopId: "shop-1",
       },
     } as any);
@@ -244,7 +244,7 @@ describe("getAuthWithShop", () => {
     const result = await getAuthWithShop();
     expect(result).toEqual({
       userId: "user-1",
-      userRole: "TRAINER",
+      userRoles: ["TRAINER"],
       shopId: "shop-1",
       isSuperAdmin: false,
       isAuthenticated: true,
@@ -255,7 +255,7 @@ describe("getAuthWithShop", () => {
     mockAuth.mockResolvedValue({
       user: {
         id: "sa-1",
-        role: "SUPER_ADMIN",
+        roles: ["SUPER_ADMIN"],
         shopId: null,
       },
     } as any);
@@ -270,7 +270,7 @@ describe("getAuthWithShop", () => {
     const result = await getAuthWithShop();
     expect(result).toEqual({
       userId: "sa-1",
-      userRole: "SUPER_ADMIN",
+      userRoles: ["SUPER_ADMIN"],
       shopId: "override-shop",
       isSuperAdmin: true,
       isAuthenticated: true,
@@ -281,7 +281,7 @@ describe("getAuthWithShop", () => {
     mockAuth.mockResolvedValue({
       user: {
         id: "sa-1",
-        role: "SUPER_ADMIN",
+        roles: ["SUPER_ADMIN"],
         shopId: null,
       },
     } as any);
@@ -298,7 +298,7 @@ describe("getAuthWithShop", () => {
     const result = await getAuthWithShop();
     expect(result).toEqual({
       userId: "sa-1",
-      userRole: "SUPER_ADMIN",
+      userRoles: ["SUPER_ADMIN"],
       shopId: "cookie-shop",
       isSuperAdmin: true,
       isAuthenticated: true,
@@ -309,7 +309,7 @@ describe("getAuthWithShop", () => {
     mockAuth.mockResolvedValue({
       user: {
         id: "sa-1",
-        role: "SUPER_ADMIN",
+        roles: ["SUPER_ADMIN"],
         shopId: null,
       },
     } as any);
@@ -338,7 +338,7 @@ describe("getAuthWithShop", () => {
     mockAuth.mockResolvedValue({
       user: {
         id: "sa-1",
-        role: "SUPER_ADMIN",
+        roles: ["SUPER_ADMIN"],
         shopId: null,
       },
     } as any);
@@ -378,7 +378,7 @@ describe("userBelongsToShop", () => {
   it("returns true for SUPER_ADMIN regardless of shopId", async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({
       shopId: null,
-      role: "SUPER_ADMIN",
+      roles: ["SUPER_ADMIN"],
     });
 
     const result = await userBelongsToShop("sa-1", "any-shop");
@@ -388,7 +388,7 @@ describe("userBelongsToShop", () => {
   it("returns true when user shopId matches", async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({
       shopId: "shop-1",
-      role: "TRAINER",
+      roles: ["TRAINER"],
     });
 
     const result = await userBelongsToShop("user-1", "shop-1");
@@ -398,7 +398,7 @@ describe("userBelongsToShop", () => {
   it("returns false when user shopId does not match", async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({
       shopId: "shop-2",
-      role: "TRAINER",
+      roles: ["TRAINER"],
     });
 
     const result = await userBelongsToShop("user-1", "shop-1");

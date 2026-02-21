@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop } from "@/lib/shop-utils";
 import { z } from "zod";
+import { hasRole } from "@/lib/role-utils";
 
 const updateExerciseSchema = z.object({
   name: z.string().min(1, "운동 이름을 입력해주세요.").max(100).optional(),
@@ -21,7 +22,7 @@ export async function PATCH(
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    if (authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -80,7 +81,7 @@ export async function DELETE(
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    if (authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

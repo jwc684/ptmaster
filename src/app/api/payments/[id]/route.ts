@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
 import { z } from "zod";
+import { hasRole } from "@/lib/role-utils";
 
 const updatePaymentSchema = z.object({
   amount: z.number().min(0, "금액은 0 이상이어야 합니다.").optional(),
@@ -18,7 +19,7 @@ export async function GET(
     if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -69,7 +70,7 @@ export async function PATCH(
     if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -161,7 +162,7 @@ export async function DELETE(
     if (!authResult.isAuthenticated) {
       return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
     }
-    if (authResult.userRole !== "ADMIN" && authResult.userRole !== "SUPER_ADMIN") {
+    if (!hasRole(authResult.userRoles, "ADMIN", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

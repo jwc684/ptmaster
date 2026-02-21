@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthWithShop, buildShopFilter } from "@/lib/shop-utils";
+import { hasRole } from "@/lib/role-utils";
 
 export async function GET(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
     }
 
     // Only ADMIN, TRAINER, and SUPER_ADMIN can access attendance
-    if (!["ADMIN", "TRAINER", "SUPER_ADMIN"].includes(authResult.userRole)) {
+    if (!hasRole(authResult.userRoles, "ADMIN", "TRAINER", "SUPER_ADMIN")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
 
     // 트레이너인 경우 자신의 출석 기록만 조회
     let trainerFilter = {};
-    if (authResult.userRole === "TRAINER") {
+    if (hasRole(authResult.userRoles, "TRAINER")) {
       const trainerProfile = await prisma.trainerProfile.findUnique({
         where: { userId: authResult.userId },
       });

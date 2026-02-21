@@ -17,10 +17,10 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, role: true, shopId: true, memberProfile: { select: { id: true } } },
+      select: { id: true, roles: true, shopId: true, memberProfile: { select: { id: true } } },
     });
 
-    if (!user || user.role !== "MEMBER") {
+    if (!user || !user.roles.includes("MEMBER")) {
       return NextResponse.json({ error: "회원 계정으로만 센터 등록이 가능합니다." }, { status: 400 });
     }
 

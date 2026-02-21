@@ -17,7 +17,7 @@ export async function GET(
     const { id } = await params;
 
     // Users can only view their own shop (except Super Admin)
-    if (session.user.role !== "SUPER_ADMIN" && session.user.shopId !== id) {
+    if (!session.user.roles.includes("SUPER_ADMIN") && session.user.shopId !== id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

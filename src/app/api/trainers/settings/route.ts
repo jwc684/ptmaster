@@ -14,7 +14,7 @@ const updateSchema = z.object({
 export async function PATCH(request: Request) {
   try {
     const session = await auth();
-    if (!session?.user || session.user.role !== "TRAINER") {
+    if (!session?.user || !session.user.roles.includes("TRAINER")) {
       return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
     }
 

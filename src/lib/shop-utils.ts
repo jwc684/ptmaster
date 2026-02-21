@@ -5,7 +5,7 @@ import type { UserRole } from "@prisma/client";
 
 export interface ShopAuthResult {
   userId: string;
-  userRole: UserRole;
+  userRoles: UserRole[];
   shopId: string | null;
   isSuperAdmin: boolean;
   isAuthenticated: true;
@@ -32,7 +32,7 @@ export async function getAuthWithShop(validateShop = false): Promise<AuthWithSho
     return { isAuthenticated: false, error: "Unauthorized" };
   }
 
-  const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+  const isSuperAdmin = session.user.roles.includes("SUPER_ADMIN");
   let effectiveShopId = session.user.shopId ?? null;
 
   // Super Admin can override shop context via header or cookie
@@ -66,7 +66,7 @@ export async function getAuthWithShop(validateShop = false): Promise<AuthWithSho
 
   return {
     userId: session.user.id,
-    userRole: session.user.role,
+    userRoles: session.user.roles,
     shopId: effectiveShopId,
     isSuperAdmin,
     isAuthenticated: true,
@@ -116,7 +116,7 @@ export function requireRoles(
     return null;
   }
 
-  if (!allowedRoles.includes(authResult.userRole)) {
+  if (!authResult.userRoles.some((r) => allowedRoles.includes(r))) {
     return "Forbidden";
   }
 
@@ -179,10 +179,10 @@ export async function userBelongsToShop(
 ): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { shopId: true, role: true },
+    select: { shopId: true, roles: true },
   });
 
   if (!user) return false;
-  if (user.role === "SUPER_ADMIN") return true;
+  if (user.roles.includes("SUPER_ADMIN")) return true;
   return user.shopId === shopId;
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthWithShop } from "@/lib/shop-utils";
 import { logPageView } from "@/lib/access-log";
 import { prisma } from "@/lib/prisma";
+import { primaryRole } from "@/lib/role-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     await logPageView(
       authResult.userId,
       user?.name || "Unknown",
-      authResult.userRole,
+      primaryRole(authResult.userRoles),
       page,
       authResult.shopId,
       shopName

@@ -59,7 +59,7 @@ export default async function MyMemberDetailPage({
 }) {
   const session = await auth();
 
-  if (!session?.user || session.user.role !== "TRAINER") {
+  if (!session?.user || !session.user.roles.includes("TRAINER")) {
     redirect("/dashboard");
   }
 

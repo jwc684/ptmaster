@@ -39,7 +39,8 @@ import type { UserRole } from "@/types";
 import { useShopContext } from "@/hooks/use-shop-context";
 import { PtMasterLogo } from "@/components/ui/pt-master-logo";
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+type IconComponentType = React.ComponentType<{ className?: string }>;
+const iconMap: Record<string, IconComponentType> = {
   LayoutDashboard,
   Users,
   UserCog,
@@ -63,10 +64,10 @@ export function AppSidebar() {
   const { data: session } = useSession();
   const { setOpenMobile, isMobile } = useSidebar();
   const { currentShop, isSuperAdmin } = useShopContext();
-  const userRole = session?.user?.role as UserRole | undefined;
+  const userRoles = (session?.user?.roles ?? []) as UserRole[];
 
   const filteredNavItems = NAV_ITEMS.filter(
-    (item) => userRole && item.roles.includes(userRole)
+    (item) => userRoles.some((r) => item.roles.includes(r))
   );
 
   const handleMenuClick = () => {
@@ -79,8 +80,9 @@ export function AppSidebar() {
   const displayName = currentShop?.name || "PT Shop";
   const dashboardLink = isSuperAdmin ? "/super-admin" : "/dashboard";
 
-  // TRAINER/MEMBER use bottom navigation on mobile — hide sidebar entirely on mobile
-  if ((userRole === "TRAINER" || userRole === "MEMBER") && isMobile) {
+  // TRAINER/MEMBER (without ADMIN/SUPER_ADMIN) use bottom navigation on mobile — hide sidebar entirely on mobile
+  const hasAdminAccess = userRoles.some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
+  if (!hasAdminAccess && isMobile) {
     return null;
   }
 

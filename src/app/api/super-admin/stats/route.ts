@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       prisma.pTShop.count(),
       prisma.pTShop.count({ where: { isActive: true } }),
-      prisma.user.count({ where: { role: { not: "SUPER_ADMIN" } } }),
+      prisma.user.count({ where: { NOT: { roles: { has: "SUPER_ADMIN" } } } }),
       prisma.memberProfile.count(),
       prisma.trainerProfile.count(),
-      prisma.user.count({ where: { role: "ADMIN" } }),
+      prisma.user.count({ where: { roles: { has: "ADMIN" } } }),
       prisma.payment.count({ where: { status: "COMPLETED" } }),
       prisma.attendance.count(),
     ]);
