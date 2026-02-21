@@ -438,6 +438,7 @@ model WorkoutSet {
   weight           Float?
   reps             Int?
   durationMinutes  Int?
+  isCompleted      Boolean        @default(false)
   createdAt        DateTime       @default(now())
 
   @@index([workoutSessionId])

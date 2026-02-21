@@ -14,6 +14,7 @@ export const createSetSchema = z.object({
   weight: z.number().min(0).optional(),
   reps: z.int().min(0).optional(),
   durationMinutes: z.int().min(0).optional(),
+  isCompleted: z.boolean().optional(),
 });
 
 // 세트 bulk 추가
@@ -21,9 +22,15 @@ export const createSetsSchema = z.object({
   sets: z.array(createSetSchema).min(1, "최소 1개의 세트를 입력해주세요."),
 });
 
+// 세트 완료 토글
+export const updateSetSchema = z.object({
+  isCompleted: z.boolean(),
+});
+
 // 세션 시작
 export const createWorkoutSessionSchema = z.object({
   notes: z.string().optional(),
+  date: z.string().optional(),
 });
 
 // 세션 완료 (PATCH)
@@ -35,5 +42,6 @@ export const updateWorkoutSessionSchema = z.object({
 export type CreateExerciseInput = z.infer<typeof createExerciseSchema>;
 export type CreateSetInput = z.infer<typeof createSetSchema>;
 export type CreateSetsInput = z.infer<typeof createSetsSchema>;
+export type UpdateSetInput = z.infer<typeof updateSetSchema>;
 export type CreateWorkoutSessionInput = z.infer<typeof createWorkoutSessionSchema>;
 export type UpdateWorkoutSessionInput = z.infer<typeof updateWorkoutSessionSchema>;

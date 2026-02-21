@@ -8,11 +8,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Search, Check } from "lucide-react";
 
 interface Exercise {
   id: string;
@@ -26,7 +27,7 @@ interface Exercise {
 interface ExerciseSelectorProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (exercise: Exercise) => void;
+  onConfirm: (exercises: Exercise[]) => void;
   excludeIds?: string[];
 }
 
@@ -47,7 +48,7 @@ const CATEGORY_ORDER = ["하체", "가슴", "등", "어깨", "팔", "복근", "�
 export function ExerciseSelector({
   open,
   onClose,
-  onSelect,
+  onConfirm,
   excludeIds = [],
 }: ExerciseSelectorProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -55,10 +56,12 @@ export function ExerciseSelector({
   const [searchQuery, setSearchQuery] = useState("");
   const [customName, setCustomName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
     setSearchQuery("");
+    setSelectedIds(new Set());
     fetch("/api/exercises")
       .then((res) => res.json())
       .then((data) => {
@@ -67,7 +70,6 @@ export function ExerciseSelector({
       .catch(() => toast.error("운동 목록을 불러올 수 없습니다."));
   }, [open]);
 
-  // Available categories from loaded exercises
   const categories = useMemo(() => {
     const cats = new Set<string>();
     for (const e of exercises) {
@@ -77,7 +79,7 @@ export function ExerciseSelector({
   }, [exercises]);
 
   const filtered = useMemo(() => {
-    let list = exercises.filter((e) => !excludeIds.includes(e.id));
+    let list = exercises;
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter((e) => e.name.toLowerCase().includes(q));
@@ -85,7 +87,29 @@ export function ExerciseSelector({
       list = list.filter((e) => e.category === tab);
     }
     return list;
-  }, [exercises, excludeIds, tab, searchQuery]);
+  }, [exercises, tab, searchQuery]);
+
+  const toggleSelect = (id: string) => {
+    if (excludeIds.includes(id)) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleConfirm = () => {
+    const selected = exercises.filter((e) => selectedIds.has(e.id));
+    if (selected.length === 0) {
+      toast.error("운동을 선택해주세요.");
+      return;
+    }
+    onConfirm(selected);
+  };
 
   const handleAddCustom = async () => {
     if (!customName.trim()) return;
@@ -113,10 +137,11 @@ export function ExerciseSelector({
   };
 
   const isSearching = searchQuery.trim().length > 0;
+  const selectedCount = selectedIds.size;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-none">
+      <SheetContent side="bottom" className="h-[85vh] rounded-none flex flex-col">
         <SheetHeader>
           <SheetTitle>운동 선택</SheetTitle>
         </SheetHeader>
@@ -145,39 +170,57 @@ export function ExerciseSelector({
         )}
 
         {/* Exercise list */}
-        <div className="space-y-0.5 max-h-[50vh] overflow-y-auto mt-2">
-          {filtered.map((exercise) => (
-            <button
-              key={exercise.id}
-              type="button"
-              className="w-full text-left px-3 py-2.5 hover:bg-muted transition-colors flex items-center justify-between"
-              onClick={() => onSelect(exercise)}
-            >
-              <span className="text-sm">{exercise.name}</span>
-              <div className="flex items-center gap-1.5">
-                {exercise.equipment && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    {exercise.equipment}
-                  </Badge>
-                )}
-                {isSearching && exercise.category && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                    {exercise.category}
-                  </Badge>
-                )}
-                {!exercise.isSystem && (
-                  <span className="text-xs text-muted-foreground">커스텀</span>
-                )}
-              </div>
-            </button>
-          ))}
+        <div className="flex-1 space-y-0.5 overflow-y-auto mt-2 min-h-0">
+          {filtered.map((exercise) => {
+            const isExcluded = excludeIds.includes(exercise.id);
+            const isSelected = selectedIds.has(exercise.id);
+
+            return (
+              <button
+                key={exercise.id}
+                type="button"
+                className={`w-full text-left px-3 py-2.5 transition-colors flex items-center gap-3 ${
+                  isExcluded
+                    ? "opacity-40 cursor-not-allowed"
+                    : isSelected
+                      ? "bg-primary/10"
+                      : "hover:bg-muted"
+                }`}
+                onClick={() => toggleSelect(exercise.id)}
+                disabled={isExcluded}
+              >
+                <Checkbox
+                  checked={isSelected}
+                  disabled={isExcluded}
+                  className="pointer-events-none"
+                />
+                <span className="text-sm flex-1">{exercise.name}</span>
+                <div className="flex items-center gap-1.5">
+                  {exercise.equipment && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {exercise.equipment}
+                    </Badge>
+                  )}
+                  {isSearching && exercise.category && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {exercise.category}
+                    </Badge>
+                  )}
+                  {isExcluded && (
+                    <span className="text-xs text-muted-foreground">추가됨</span>
+                  )}
+                  {!exercise.isSystem && !isExcluded && (
+                    <span className="text-xs text-muted-foreground">커스텀</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
           {filtered.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
               {isSearching
                 ? "검색 결과가 없습니다."
-                : excludeIds.length > 0
-                  ? "추가할 수 있는 운동이 없습니다."
-                  : "운동이 없습니다."}
+                : "운동이 없습니다."}
             </p>
           )}
         </div>
@@ -199,6 +242,19 @@ export function ExerciseSelector({
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Bottom confirm bar */}
+        {selectedCount > 0 && (
+          <div className="flex items-center justify-between mt-3 pt-3 border-t">
+            <span className="text-sm text-muted-foreground">
+              {selectedCount}개 선택됨
+            </span>
+            <Button size="sm" onClick={handleConfirm}>
+              <Check className="h-4 w-4 mr-1" />
+              확인
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

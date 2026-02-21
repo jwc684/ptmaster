@@ -20,6 +20,31 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get("date");
+    const weekStart = searchParams.get("weekStart");
+    const weekEnd = searchParams.get("weekEnd");
+
+    // Week range query for calendar dots
+    if (weekStart && weekEnd) {
+      const sessions = await prisma.workoutSession.findMany({
+        where: {
+          memberProfileId: memberProfile.id,
+          date: {
+            gte: new Date(weekStart),
+            lte: new Date(weekEnd),
+          },
+        },
+        select: { id: true, date: true, status: true },
+        orderBy: { date: "asc" },
+      });
+
+      return NextResponse.json({
+        weekSessions: sessions.map((s) => ({
+          id: s.id,
+          date: s.date.toISOString(),
+          status: s.status,
+        })),
+      });
+    }
 
     const where: Record<string, unknown> = {
       memberProfileId: memberProfile.id,
@@ -117,10 +142,13 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
 
+    const sessionDate = body.date ? new Date(body.date) : new Date();
+
     const workout = await prisma.workoutSession.create({
       data: {
         memberProfileId: memberProfile.id,
         shopId: memberProfile.shopId,
+        date: sessionDate,
         notes: body.notes || null,
       },
     });

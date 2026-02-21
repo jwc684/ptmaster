@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { createSetSchema, createSetsSchema } from "@/lib/validations/workout";
+import { createSetSchema, createSetsSchema, updateSetSchema } from "@/lib/validations/workout";
 
 export async function POST(
   request: Request,
@@ -32,7 +32,7 @@ export async function POST(
       return NextResponse.json({ error: "운동 기록을 찾을 수 없습니다." }, { status: 404 });
     }
 
-    if (workout.status !== "IN_PROGRESS") {
+    if (workout.status === "COMPLETED") {
       return NextResponse.json(
         { error: "완료된 운동에는 세트를 추가할 수 없습니다." },
         { status: 400 }
@@ -60,6 +60,7 @@ export async function POST(
           weight: s.weight,
           reps: s.reps,
           durationMinutes: s.durationMinutes,
+          isCompleted: s.isCompleted ?? false,
         })),
       });
 
@@ -85,6 +86,7 @@ export async function POST(
           weight: result.data.weight,
           reps: result.data.reps,
           durationMinutes: result.data.durationMinutes,
+          isCompleted: result.data.isCompleted ?? false,
         },
         include: {
           exercise: { select: { id: true, name: true, type: true } },
@@ -100,6 +102,70 @@ export async function POST(
     console.error("Error adding sets:", error);
     return NextResponse.json(
       { error: "세트 추가 중 오류가 발생했습니다." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const setId = searchParams.get("setId");
+
+    if (!setId) {
+      return NextResponse.json({ error: "setId가 필요합니다." }, { status: 400 });
+    }
+
+    const memberProfile = await prisma.memberProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+
+    if (!memberProfile) {
+      return NextResponse.json({ error: "회원 프로필이 없습니다." }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const result = updateSetSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    // Verify ownership through workout session
+    const set = await prisma.workoutSet.findFirst({
+      where: {
+        id: setId,
+        workoutSessionId: id,
+        workoutSession: { memberProfileId: memberProfile.id },
+      },
+    });
+
+    if (!set) {
+      return NextResponse.json({ error: "세트를 찾을 수 없습니다." }, { status: 404 });
+    }
+
+    const updated = await prisma.workoutSet.update({
+      where: { id: setId },
+      data: { isCompleted: result.data.isCompleted },
+    });
+
+    return NextResponse.json({ message: "세트가 업데이트되었습니다.", set: updated });
+  } catch (error) {
+    console.error("Error updating set:", error);
+    return NextResponse.json(
+      { error: "세트 업데이트 중 오류가 발생했습니다." },
       { status: 500 }
     );
   }

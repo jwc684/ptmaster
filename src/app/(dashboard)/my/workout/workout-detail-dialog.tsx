@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
 
 interface Exercise {
   id: string;
@@ -22,6 +23,7 @@ interface WorkoutSet {
   weight: number | null;
   reps: number | null;
   durationMinutes: number | null;
+  isCompleted: boolean;
 }
 
 interface WorkoutSession {
@@ -62,6 +64,9 @@ export function WorkoutDetailDialog({
     {} as Record<string, { exercise: Exercise; sets: WorkoutSet[] }>
   );
 
+  const completedSets = session.sets.filter((s) => s.isCompleted).length;
+  const totalSets = session.sets.length;
+
   const dateObj = new Date(session.date);
   const dateStr = dateObj.toLocaleDateString("ko-KR", {
     year: "numeric",
@@ -99,7 +104,8 @@ export function WorkoutDetailDialog({
               <p className="text-muted-foreground">소요 시간: {durationText}</p>
             )}
             <p className="text-muted-foreground">
-              총 {session.sets.length}세트 / {Object.keys(grouped).length}종목
+              총 {totalSets}세트 / {Object.keys(grouped).length}종목
+              {totalSets > 0 && ` (${completedSets}/${totalSets} 완료)`}
             </p>
           </div>
 
@@ -119,22 +125,30 @@ export function WorkoutDetailDialog({
                   {group.sets.map((set) => (
                     <div
                       key={set.id}
-                      className="flex items-center gap-2 text-sm pl-2"
+                      className={`flex items-center gap-2 text-sm pl-2 ${
+                        set.isCompleted ? "opacity-60" : ""
+                      }`}
                     >
-                      <span className="text-muted-foreground w-6">
-                        {set.setNumber}
-                      </span>
-                      {set.exercise.type === "WEIGHT" && (
-                        <span>
-                          {set.weight}kg x {set.reps}회
+                      {set.isCompleted ? (
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                      ) : (
+                        <span className="text-muted-foreground w-3.5 text-center shrink-0">
+                          {set.setNumber}
                         </span>
                       )}
-                      {set.exercise.type === "CARDIO" && (
-                        <span>{set.durationMinutes}분</span>
-                      )}
-                      {set.exercise.type === "BODYWEIGHT" && (
-                        <span>{set.reps}회</span>
-                      )}
+                      <span className={set.isCompleted ? "line-through" : ""}>
+                        {set.exercise.type === "WEIGHT" && (
+                          <>
+                            {set.weight}kg x {set.reps}회
+                          </>
+                        )}
+                        {set.exercise.type === "CARDIO" && (
+                          <>{set.durationMinutes}분</>
+                        )}
+                        {set.exercise.type === "BODYWEIGHT" && (
+                          <>{set.reps}회</>
+                        )}
+                      </span>
                     </div>
                   ))}
                 </div>

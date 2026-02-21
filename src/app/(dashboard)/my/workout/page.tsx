@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { startOfWeek, endOfWeek } from "date-fns";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkoutClient } from "./workout-client";
@@ -11,7 +12,11 @@ async function getWorkoutData(userId: string) {
 
   if (!memberProfile) return null;
 
-  const [activeSession, recentSessions] = await Promise.all([
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
+  const [activeSession, recentSessions, weekSessions] = await Promise.all([
     prisma.workoutSession.findFirst({
       where: {
         memberProfileId: memberProfile.id,
@@ -42,6 +47,14 @@ async function getWorkoutData(userId: string) {
       orderBy: { completedAt: "desc" },
       take: 20,
     }),
+    prisma.workoutSession.findMany({
+      where: {
+        memberProfileId: memberProfile.id,
+        date: { gte: weekStart, lte: weekEnd },
+      },
+      select: { id: true, date: true, status: true },
+      orderBy: { date: "asc" },
+    }),
   ]);
 
   return {
@@ -69,6 +82,11 @@ async function getWorkoutData(userId: string) {
         ...set,
         createdAt: set.createdAt.toISOString(),
       })),
+    })),
+    weekSessions: weekSessions.map((s) => ({
+      id: s.id,
+      date: s.date.toISOString(),
+      status: s.status,
     })),
   };
 }

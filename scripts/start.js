@@ -27,6 +27,20 @@ if (process.env.DATABASE_URL) {
       console.error('Error:', migrationError.message);
       console.error('Continuing with server start anyway...');
     }
+
+    // Seed exercises from CSV
+    console.log('Seeding exercises...');
+    try {
+      execSync('npx tsx scripts/seed-exercises.ts', {
+        stdio: 'inherit',
+        env: { ...process.env }
+      });
+      console.log('Exercise seeding completed');
+    } catch (seedError) {
+      console.error('Warning: exercise seeding failed');
+      console.error('Error:', seedError.message);
+      console.error('Continuing with server start anyway...');
+    }
   } catch (error) {
     console.error('Warning: prisma db push failed');
     console.error('Error:', error.message);

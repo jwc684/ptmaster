@@ -17,6 +17,7 @@ interface WorkoutSet {
   weight: number | null;
   reps: number | null;
   durationMinutes: number | null;
+  isCompleted: boolean;
 }
 
 interface WorkoutSession {
@@ -44,6 +45,10 @@ export function WorkoutHistoryItem({ session, onClick }: WorkoutHistoryItemProps
     }
   }
   const exercises = Array.from(exerciseMap.values());
+
+  // Completion count
+  const completedSets = session.sets.filter((s) => s.isCompleted).length;
+  const totalSets = session.sets.length;
 
   // Duration
   let durationText = "";
@@ -100,7 +105,7 @@ export function WorkoutHistoryItem({ session, onClick }: WorkoutHistoryItemProps
             </div>
           </div>
           <span className="text-xs text-muted-foreground shrink-0 ml-2">
-            {session.sets.length}세트
+            {completedSets}/{totalSets} 완료
           </span>
         </div>
       </CardContent>
