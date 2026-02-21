@@ -138,7 +138,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = user.email || kakaoAccount?.email as string | undefined;
 
         debugLog("[Auth] Kakao signIn - email:", email, "providerAccountId:", account.providerAccountId);
-        debugLog("[Auth] Kakao profile keys:", kakaoProfile ? Object.keys(kakaoProfile) : "none");
 
         // 1. 기존 Account가 있는지 확인 (이미 가입한 사용자)
         const existingAccount = await prisma.account.findUnique({
@@ -152,8 +151,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (existingAccount) {
-          // 기존 사용자 → 로그인 허용
-          debugLog("[Auth] Existing Kakao user:", existingAccount.user.email);
+          // 기존 사용자 → user 객체에 DB 데이터 설정 (jwt 콜백에서 사용)
+          const dbUser = existingAccount.user;
+          user.id = dbUser.id;
+          user.role = dbUser.role;
+          user.phone = dbUser.phone;
+          user.shopId = dbUser.shopId;
+          user.email = dbUser.email;
+          debugLog("[Auth] Existing Kakao user:", dbUser.email);
           return true;
         }
 
@@ -168,13 +173,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const userEmail = email || `kakao_${account.providerAccountId}@kakao.local`;
             const userName = user.name || userEmail.split("@")[0];
 
-            const dbUser = await prisma.user.create({
-              data: {
-                email: userEmail,
-                name: userName,
-                role: "MEMBER",
-              },
+            // 이메일 중복 시 기존 유저에 계정 연결
+            let dbUser = await prisma.user.findUnique({
+              where: { email: userEmail },
             });
+
+            if (!dbUser) {
+              dbUser = await prisma.user.create({
+                data: {
+                  email: userEmail,
+                  name: userName,
+                  role: "MEMBER",
+                },
+              });
+            }
 
             await prisma.account.create({
               data: {
@@ -192,7 +204,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               },
             });
 
-            debugLog("[Auth] New member created via direct signup (pending shop selection):", dbUser.email);
+            // user 객체에 DB 데이터 설정 (jwt 콜백에서 사용)
+            user.id = dbUser.id;
+            user.role = dbUser.role;
+            user.phone = dbUser.phone;
+            user.shopId = dbUser.shopId;
+            user.email = dbUser.email;
+
+            debugLog("[Auth] New member created via direct signup:", dbUser.email);
             return true;
           }
 
@@ -302,6 +321,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           cookieStore.delete("invite-token");
           cookieStore.delete("invite-name");
 
+          // user 객체에 DB 데이터 설정 (jwt 콜백에서 사용)
+          user.id = dbUser.id;
+          user.role = dbUser.role;
+          user.phone = dbUser.phone;
+          user.shopId = dbUser.shopId;
+          user.email = dbUser.email;
+
           debugLog("[Auth] New user created via invitation:", dbUser.email, dbUser.role);
           return true;
         } catch (error) {
@@ -314,66 +340,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async jwt({ token, user, account }) {
-      if (user) {
-        // Credentials 로그인: user 객체에서 직접 설정
-        if (account?.provider === "credentials") {
-          token.id = user.id!;
-          token.role = user.role;
-          token.phone = user.phone;
-          token.shopId = user.shopId;
-        }
+      // 첫 로그인: user 객체에서 토큰 데이터 설정 (Credentials, Kakao 모두)
+      // signIn 콜백에서 user 객체에 DB 데이터를 미리 설정해두었으므로 Prisma 불필요
+      if (user && account) {
+        token.id = user.id!;
+        token.role = user.role;
+        token.phone = user.phone;
+        token.shopId = user.shopId;
+        if (user.email) token.email = user.email;
+        token.userVerifiedAt = Date.now();
       }
 
-      // OAuth 첫 로그인 시: Account → User로 조회 (이메일 없을 수 있음)
-      if (account?.provider === "kakao") {
-        const dbAccount = await prisma.account.findUnique({
-          where: {
-            provider_providerAccountId: {
-              provider: "kakao",
-              providerAccountId: account.providerAccountId,
-            },
-          },
-          include: { user: true },
-        });
-        if (dbAccount?.user) {
-          token.id = dbAccount.user.id;
-          token.role = dbAccount.user.role;
-          token.phone = dbAccount.user.phone;
-          token.shopId = dbAccount.user.shopId;
-          token.email = dbAccount.user.email;
-        }
-      } else if (!token.role && token.email) {
-        // Fallback: token에 role이 없을 때 이메일로 DB 조회
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email as string },
-        });
-        if (dbUser) {
-          token.id = dbUser.id;
-          token.role = dbUser.role;
-          token.phone = dbUser.phone;
-          token.shopId = dbUser.shopId;
-        }
-      }
-
-      // Periodically verify user still exists in DB (every 5 minutes)
-      // Always refresh for members without shopId (pending signup completion)
+      // 후속 요청: DB에서 주기적 검증 (Edge Runtime에서는 skip)
+      // 미들웨어(Edge)에서는 Prisma 사용 불가 → try/catch로 graceful 처리
+      // Server Component/API Route(Node.js)에서만 실제 검증 실행
       if (!user && !account && token.id && !token.userDeleted) {
         const VERIFY_INTERVAL = 5 * 60 * 1000;
         const now = Date.now();
         const needsRefresh = token.role === "MEMBER" && !token.shopId;
         if (needsRefresh || !token.userVerifiedAt || now - (token.userVerifiedAt as number) > VERIFY_INTERVAL) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { id: true, role: true, shopId: true, phone: true },
-          });
-          if (!dbUser) {
-            token.userDeleted = true;
-            debugLog("[Auth] User deleted, invalidating token:", token.id);
-          } else {
-            token.userVerifiedAt = now;
-            token.role = dbUser.role;
-            token.shopId = dbUser.shopId;
-            token.phone = dbUser.phone;
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { id: true, role: true, shopId: true, phone: true },
+            });
+            if (!dbUser) {
+              token.userDeleted = true;
+            } else {
+              token.userVerifiedAt = now;
+              token.role = dbUser.role;
+              token.shopId = dbUser.shopId;
+              token.phone = dbUser.phone;
+            }
+          } catch {
+            // Edge Runtime: Prisma 사용 불가, 기존 토큰 데이터 유지
           }
         }
       }
