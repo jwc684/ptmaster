@@ -176,18 +176,19 @@ export function ExerciseSelector({
             const isSelected = selectedIds.has(exercise.id);
 
             return (
-              <button
+              <div
                 key={exercise.id}
-                type="button"
-                className={`w-full text-left px-4 py-2.5 transition-colors flex items-center gap-3 ${
+                role="button"
+                tabIndex={isExcluded ? -1 : 0}
+                className={`w-full text-left px-4 py-2.5 transition-colors flex items-center gap-3 cursor-pointer ${
                   isExcluded
                     ? "opacity-40 cursor-not-allowed"
                     : isSelected
                       ? "bg-primary/10"
                       : "hover:bg-muted"
                 }`}
-                onClick={() => toggleSelect(exercise.id)}
-                disabled={isExcluded}
+                onClick={() => !isExcluded && toggleSelect(exercise.id)}
+                onKeyDown={(e) => { if (!isExcluded && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleSelect(exercise.id); } }}
               >
                 <Checkbox
                   checked={isSelected}
@@ -213,7 +214,7 @@ export function ExerciseSelector({
                     <span className="text-xs text-muted-foreground">커스텀</span>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
           {filtered.length === 0 && (
