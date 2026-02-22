@@ -91,14 +91,21 @@ async function getWorkoutData(userId: string) {
   };
 }
 
-export default async function WorkoutPage() {
+export default async function WorkoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ autoStart?: string }>;
+}) {
   const session = await auth();
 
   if (!session?.user) {
     redirect("/login");
   }
 
-  const data = await getWorkoutData(session.user.id);
+  const [data, params] = await Promise.all([
+    getWorkoutData(session.user.id),
+    searchParams,
+  ]);
 
   if (!data) {
     return (
@@ -108,5 +115,5 @@ export default async function WorkoutPage() {
     );
   }
 
-  return <WorkoutClient initialData={data} />;
+  return <WorkoutClient initialData={data} autoStart={params.autoStart === "true"} />;
 }

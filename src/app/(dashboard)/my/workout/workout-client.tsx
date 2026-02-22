@@ -58,6 +58,7 @@ interface WorkoutClientProps {
     recentSessions: WorkoutSession[];
     weekSessions: WeekSession[];
   };
+  autoStart?: boolean;
 }
 
 type ViewState = "home" | "exercise-select" | "recording";
@@ -70,7 +71,7 @@ function formatElapsed(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export function WorkoutClient({ initialData }: WorkoutClientProps) {
+export function WorkoutClient({ initialData, autoStart }: WorkoutClientProps) {
   const router = useRouter();
   const [viewState, setViewState] = useState<ViewState>(
     initialData.activeSession ? "recording" : "home"
@@ -192,6 +193,16 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       setLoading(false);
     }
   };
+
+  // Auto-start workout planning when navigated with autoStart
+  const [autoStarted, setAutoStarted] = useState(false);
+  useEffect(() => {
+    if (autoStart && !autoStarted && viewState === "home" && !initialData.activeSession) {
+      setAutoStarted(true);
+      handleStartPlan();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, autoStarted]);
 
   // Resume existing session
   const handleResume = async (sessionId: string) => {

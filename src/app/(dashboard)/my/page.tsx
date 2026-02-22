@@ -81,7 +81,7 @@ export default async function MyPage() {
 
       {/* Start Workout Button */}
       <Button asChild className="w-full h-14 text-lg">
-        <Link href="/my/workout">
+        <Link href="/my/workout?autoStart=true">
           <Dumbbell className="h-5 w-5 mr-2" />
           운동 시작하기
         </Link>
