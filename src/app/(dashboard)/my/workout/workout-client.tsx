@@ -61,7 +61,7 @@ interface WorkoutClientProps {
   autoStart?: boolean;
 }
 
-type ViewState = "home" | "exercise-select" | "recording";
+type ViewState = "home" | "recording";
 
 function formatElapsed(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -102,12 +102,8 @@ export function WorkoutClient({ initialData, autoStart }: WorkoutClientProps) {
     return () => clearInterval(interval);
   }, [activeSession, viewState]);
 
-  // Auto-open exercise selector for exercise-select view
-  useEffect(() => {
-    if (viewState === "exercise-select") {
-      setShowExerciseSelector(true);
-    }
-  }, [viewState]);
+  // Track whether session was just created (needs exercise selection)
+  const [newSession, setNewSession] = useState(false);
 
   // Fetch week sessions when date changes
   const fetchWeekSessions = useCallback(async (date: Date) => {
@@ -186,7 +182,9 @@ export function WorkoutClient({ initialData, autoStart }: WorkoutClientProps) {
         return;
       }
       await refreshSession(data.workout.id);
-      setViewState("exercise-select");
+      setNewSession(true);
+      setShowExerciseSelector(true);
+      setViewState("recording");
     } catch {
       toast.error("운동 시작 중 오류가 발생했습니다.");
     } finally {
@@ -306,11 +304,13 @@ export function WorkoutClient({ initialData, autoStart }: WorkoutClientProps) {
       }
       await refreshSession(activeSession.id);
       setShowExerciseSelector(false);
+      setNewSession(false);
       setAddingMore(false);
       setViewState("recording");
     } catch {
       toast.error("운동 추가 중 오류가 발생했습니다.");
       setShowExerciseSelector(false);
+      setNewSession(false);
       setAddingMore(false);
     }
   };
@@ -322,8 +322,9 @@ export function WorkoutClient({ initialData, autoStart }: WorkoutClientProps) {
       setAddingMore(false);
       return;
     }
-    // If in exercise-select view with no sets, delete session and go back
-    if (viewState === "exercise-select" && activeSession && activeSession.sets.length === 0) {
+    // If session was just created with no exercises, delete it and go back
+    if (newSession && activeSession && activeSession.sets.length === 0) {
+      setNewSession(false);
       try {
         await fetch(`/api/workouts/${activeSession.id}`, { method: "DELETE" });
       } catch {
@@ -332,8 +333,8 @@ export function WorkoutClient({ initialData, autoStart }: WorkoutClientProps) {
       setActiveSession(null);
       setViewState("home");
       fetchWeekSessions(selectedDate);
-    } else if (viewState === "exercise-select" && activeSession) {
-      setViewState("recording");
+    } else {
+      setNewSession(false);
     }
   };
 
@@ -748,21 +749,7 @@ export function WorkoutClient({ initialData, autoStart }: WorkoutClientProps) {
           open={showExerciseSelector}
           onClose={handleExerciseSelectorClose}
           onConfirm={handleExercisesConfirm}
-          excludeIds={Object.keys(groupedSets)}
-        />
-      </div>
-    );
-  }
-
-  // ========== EXERCISE SELECT VIEW (fullscreen) ==========
-  if (viewState === "exercise-select") {
-    return (
-      <div className="fixed inset-0 z-[60] bg-background">
-        <ExerciseSelector
-          open={showExerciseSelector}
-          onClose={handleExerciseSelectorClose}
-          onConfirm={handleExercisesConfirm}
-          excludeIds={[]}
+          excludeIds={newSession ? [] : Object.keys(groupedSets)}
         />
       </div>
     );
