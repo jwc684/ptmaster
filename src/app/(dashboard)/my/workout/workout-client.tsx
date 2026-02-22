@@ -294,10 +294,12 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
         return;
       }
       await refreshSession(activeSession.id);
+      setShowExerciseSelector(false);
       setAddingMore(false);
       setViewState("recording");
     } catch {
       toast.error("운동 추가 중 오류가 발생했습니다.");
+      setShowExerciseSelector(false);
       setAddingMore(false);
     }
   };
@@ -345,6 +347,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       }
       toast.success("운동을 완료했습니다!");
       setActiveSession(null);
+      setShowExerciseSelector(false);
       setViewState("home");
       fetchWeekSessions(selectedDate);
       router.refresh();
@@ -370,6 +373,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
       }
       toast.success("운동이 취소되었습니다.");
       setActiveSession(null);
+      setShowExerciseSelector(false);
       setViewState("home");
       fetchWeekSessions(selectedDate);
       router.refresh();
@@ -576,7 +580,7 @@ export function WorkoutClient({ initialData }: WorkoutClientProps) {
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
-              onClick={() => setViewState("home")}
+              onClick={() => { setShowExerciseSelector(false); setViewState("home"); }}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
